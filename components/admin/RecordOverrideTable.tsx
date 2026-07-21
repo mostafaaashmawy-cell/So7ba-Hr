@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Trash2, ShieldAlert, Clock, Calendar, Wallet, Target, CheckCircle2, AlertCircle } from 'lucide-react';
 import { AttendanceRecord, LeavePermissionRecord, AdvanceRecord, KpiEntryRecord } from '@/lib/types/database';
-import { formatDate, formatTime, calculateWorkingHours } from '@/lib/utils/dateUtils';
+import { formatDate, formatTime } from '@/lib/utils/dateUtils';
 import { createClient } from '@/lib/supabase/client';
 
 interface RecordOverrideProps {

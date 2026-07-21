@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { DollarSign, AlertTriangle, CheckCircle2, ShieldCheck, Wallet } from 'lucide-react';
+import { DollarSign, AlertTriangle, CheckCircle2, Wallet } from 'lucide-react';
 import { AdvanceRecord } from '@/lib/types/database';
 import { getPayrollMonthDate, formatDate } from '@/lib/utils/dateUtils';
 import { createClient } from '@/lib/supabase/client';

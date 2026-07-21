@@ -29,8 +29,8 @@ export function getPayrollMonthDate(dateInput: Date | string = new Date()): stri
 export function getPayrollCycleRange(dateInput: Date | string = new Date()) {
   const d = typeof dateInput === 'string' ? new Date(dateInput) : new Date(dateInput);
   const day = d.getDate();
-  let year = d.getFullYear();
-  let month = d.getMonth();
+  const year = d.getFullYear();
+  const month = d.getMonth();
 
   if (day >= 26) {
     // Current cycle started on 26th of this month, ends on 25th of next month

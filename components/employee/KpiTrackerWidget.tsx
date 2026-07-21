@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Target, TrendingUp, Plus, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Target, Plus, CheckCircle2, AlertCircle } from 'lucide-react';
 import { KpiEntryRecord } from '@/lib/types/database';
 import { formatDate } from '@/lib/utils/dateUtils';
 import { createClient } from '@/lib/supabase/client';

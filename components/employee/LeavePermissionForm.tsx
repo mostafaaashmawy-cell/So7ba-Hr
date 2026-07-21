@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Calendar, CheckCircle, Clock, AlertCircle, Plus, ShieldAlert, Sparkles } from 'lucide-react';
+import { Calendar, CheckCircle, Clock, AlertCircle, Plus, Sparkles } from 'lucide-react';
 import { LeavePermissionRecord } from '@/lib/types/database';
 import { formatDate } from '@/lib/utils/dateUtils';
 import { createClient } from '@/lib/supabase/client';

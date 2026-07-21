@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Users, Clock, Calendar, Wallet, Target, Eye, MapPin } from 'lucide-react';
+import { Users, Clock, Calendar, Wallet, Target, MapPin } from 'lucide-react';
 import { UserProfile, AttendanceRecord, LeavePermissionRecord, AdvanceRecord, KpiEntryRecord } from '@/lib/types/database';
 import { formatDate, formatTime, calculateWorkingHours } from '@/lib/utils/dateUtils';
 

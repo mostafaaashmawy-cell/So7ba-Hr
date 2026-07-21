@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { UserRole } from '@/lib/types/database';
-import { Lock, Mail, User, ShieldCheck, ArrowRight, AlertCircle } from 'lucide-react';
+import { Lock, Mail, User, ArrowRight, AlertCircle } from 'lucide-react';
 
 export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -72,8 +72,9 @@ export default function LoginPage() {
           router.refresh();
         }
       }
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Authentication failed');
+    } catch (err: unknown) {
+      const errorObj = err as Error;
+      setErrorMsg(errorObj.message || 'Authentication failed');
     } finally {
       setLoading(false);
     }

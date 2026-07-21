@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { UserProfile, UserRole } from '@/lib/types/database';
-import { UserCheck, Shield, Edit3, Save, X, DollarSign, Target, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Shield, Edit3, Save, X, CheckCircle2, AlertCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 interface EmployeeManagementProps {
