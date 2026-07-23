@@ -6,6 +6,8 @@ import EmployeeManagement from '@/components/admin/EmployeeManagement';
 import RecordOverrideTable from '@/components/admin/RecordOverrideTable';
 import { UserProfile, AttendanceRecord, LeavePermissionRecord, AdvanceRecord, KpiEntryRecord } from '@/lib/types/database';
 
+import AdminWelcomeHeader from '@/components/admin/AdminWelcomeHeader';
+
 export default async function SuperAdminDashboardPage() {
   const supabase = await createClient();
 
@@ -63,20 +65,7 @@ export default async function SuperAdminDashboardPage() {
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-8 space-y-8">
         {/* Welcome Header */}
-        <div className="glass-card p-6 rounded-3xl border border-gray-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-black tracking-tight text-white">
-              Super Admin Control Center
-            </h1>
-            <p className="text-xs text-gray-400 mt-1">
-              Global system authority, salary configurations, and record override management
-            </p>
-          </div>
-
-          <div className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30">
-            Full System Write Access
-          </div>
-        </div>
+        <AdminWelcomeHeader />
 
         {/* Employee Management Section */}
         <EmployeeManagement initialUsers={(allUsers as UserProfile[]) || []} />

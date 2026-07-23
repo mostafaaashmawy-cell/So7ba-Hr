@@ -3,9 +3,10 @@
 import React from 'react';
 import Link from 'next/link';
 import { UserProfile } from '@/lib/types/database';
-import { LogOut, User, ShieldCheck, Briefcase, UserCheck } from 'lucide-react';
+import { LogOut, User, ShieldCheck, Briefcase, UserCheck, Globe } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import { useLanguage } from '@/lib/context/LanguageContext';
 
 interface NavbarProps {
   user: UserProfile | null;
@@ -15,6 +16,7 @@ interface NavbarProps {
 export default function Navbar({ user, activeRoleView }: NavbarProps) {
   const router = useRouter();
   const supabase = createClient();
+  const { language, setLanguage, t } = useLanguage();
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -22,24 +24,28 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
     router.refresh();
   };
 
+  const toggleLanguage = () => {
+    setLanguage(language === 'en' ? 'ar' : 'en');
+  };
+
   const getRoleBadge = (role?: string) => {
     switch (role) {
       case 'super_admin':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30">
-            <ShieldCheck className="w-3.5 h-3.5" /> Super Admin
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+            <ShieldCheck className="w-3.5 h-3.5" /> {t('superAdmin')}
           </span>
         );
       case 'manager':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-            <Briefcase className="w-3.5 h-3.5" /> Manager
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+            <Briefcase className="w-3.5 h-3.5" /> {t('teamView')}
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-            <UserCheck className="w-3.5 h-3.5" /> Employee
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+            <UserCheck className="w-3.5 h-3.5" /> {t('brand')}
           </span>
         );
     }
@@ -55,10 +61,10 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
           </div>
           <div>
             <div className="font-extrabold text-xl tracking-tight gradient-text">
-              So7ba HR
+              {t('brand')}
             </div>
             <div className="text-[10px] text-gray-400 font-medium tracking-wider uppercase">
-              Operations System
+              {t('operations')}
             </div>
           </div>
         </Link>
@@ -74,7 +80,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
                   : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/60'
               }`}
             >
-              My Workspace
+              {t('myWorkspace')}
             </Link>
 
             {(user.role === 'manager' || user.role === 'super_admin') && (
@@ -86,7 +92,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
                     : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/60'
                 }`}
               >
-                Team View
+                {t('teamView')}
               </Link>
             )}
 
@@ -99,7 +105,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
                     : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/60'
                 }`}
               >
-                Super Admin
+                {t('superAdmin')}
               </Link>
             )}
           </nav>
@@ -107,6 +113,16 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
 
         {/* User Info & Actions */}
         <div className="flex items-center gap-4">
+          {/* Language Toggle Button */}
+          <button
+            onClick={toggleLanguage}
+            title={language === 'en' ? 'Switch to Arabic' : 'تغيير للإنجليزية'}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-gray-300 hover:text-white border border-gray-800 transition-all text-xs font-semibold"
+          >
+            <Globe className="w-4 h-4 text-purple-400" />
+            <span>{language === 'en' ? 'العربية' : 'English'}</span>
+          </button>
+
           {user ? (
             <div className="flex items-center gap-3">
               <div className="hidden sm:flex flex-col items-end">
@@ -118,7 +134,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
 
               <button
                 onClick={handleSignOut}
-                title="Sign Out"
+                title={t('signOut')}
                 className="p-2 rounded-xl bg-gray-900 hover:bg-red-500/20 text-gray-400 hover:text-red-400 border border-gray-800 hover:border-red-500/30 transition-all"
               >
                 <LogOut className="w-4 h-4" />
@@ -129,7 +145,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
               href="/login"
               className="gradient-btn px-4 py-2 rounded-xl text-xs font-semibold text-white shadow-md"
             >
-              Sign In
+              {t('signIn')}
             </Link>
           )}
         </div>

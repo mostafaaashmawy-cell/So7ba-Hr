@@ -8,6 +8,8 @@ import AdvanceRequestForm from '@/components/employee/AdvanceRequestForm';
 import KpiTrackerWidget from '@/components/employee/KpiTrackerWidget';
 import { UserProfile, AttendanceRecord, LeavePermissionRecord, AdvanceRecord, KpiEntryRecord } from '@/lib/types/database';
 
+import WelcomeHeader from '@/components/employee/WelcomeHeader';
+
 export default async function EmployeeDashboardPage() {
   const supabase = await createClient();
 
@@ -64,21 +66,10 @@ export default async function EmployeeDashboardPage() {
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-8 space-y-8">
         {/* Welcome Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 glass-card p-6 rounded-3xl border border-gray-800">
-          <div>
-            <h1 className="text-2xl font-black tracking-tight text-white">
-              Welcome back, <span className="gradient-text">{user?.full_name || 'Employee'}</span>
-            </h1>
-            <p className="text-xs text-gray-400 mt-1">
-              Employee Operations Portal & Daily Tracking
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3 bg-gray-900/80 px-4 py-2 rounded-2xl border border-gray-800 text-xs">
-            <span className="text-gray-400">Assigned Metric:</span>
-            <span className="font-bold text-purple-300 capitalize">{user?.kpi_unit || 'tasks'}</span>
-          </div>
-        </div>
+        <WelcomeHeader
+          fullName={user?.full_name}
+          kpiUnit={user?.kpi_unit || 'tasks'}
+        />
 
         {/* Attendance Widget */}
         <AttendanceWidget

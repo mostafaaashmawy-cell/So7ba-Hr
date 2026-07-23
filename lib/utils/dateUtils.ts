@@ -1,11 +1,20 @@
-import { format, parseISO, differenceInMinutes } from 'date-fns';
+import { parseISO, differenceInMinutes } from 'date-fns';
+
+/**
+ * Returns the current date shifted to Africa/Cairo timezone.
+ */
+export function getCairoDate(dateInput: Date | string = new Date()): Date {
+  const d = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+  const cairoString = d.toLocaleString('en-US', { timeZone: 'Africa/Cairo' });
+  return new Date(cairoString);
+}
 
 /**
  * Returns the payroll month string (YYYY-MM-01) for any given date based on 25th cutoff.
  * Rule: 26th of Month M-1 to 25th of Month M => Payroll Month M
  */
-export function getPayrollMonthDate(dateInput: Date | string = new Date()): string {
-  const d = typeof dateInput === 'string' ? new Date(dateInput) : new Date(dateInput);
+export function getPayrollMonthDate(dateInput: Date | string = getCairoDate()): string {
+  const d = getCairoDate(dateInput);
   const day = d.getDate();
   let year = d.getFullYear();
   let month = d.getMonth(); // 0-indexed (0 = Jan)
@@ -26,8 +35,8 @@ export function getPayrollMonthDate(dateInput: Date | string = new Date()): stri
 /**
  * Returns the date range [startDate, endDate] for the active payroll cycle containing the date.
  */
-export function getPayrollCycleRange(dateInput: Date | string = new Date()) {
-  const d = typeof dateInput === 'string' ? new Date(dateInput) : new Date(dateInput);
+export function getPayrollCycleRange(dateInput: Date | string = getCairoDate()) {
+  const d = getCairoDate(dateInput);
   const day = d.getDate();
   const year = d.getFullYear();
   const month = d.getMonth();
@@ -64,7 +73,13 @@ export function calculateWorkingHours(checkIn: string, checkOut: string | null):
 
 export function formatDate(dateString: string): string {
   try {
-    return format(parseISO(dateString), 'dd MMM yyyy');
+    const d = parseISO(dateString);
+    return d.toLocaleDateString('en-GB', {
+      timeZone: 'Africa/Cairo',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
   } catch {
     return dateString;
   }
@@ -73,7 +88,13 @@ export function formatDate(dateString: string): string {
 export function formatTime(timeString: string | null): string {
   if (!timeString) return '--:--';
   try {
-    return format(parseISO(timeString), 'hh:mm a');
+    const d = parseISO(timeString);
+    return d.toLocaleTimeString('en-US', {
+      timeZone: 'Africa/Cairo',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
   } catch {
     return timeString;
   }

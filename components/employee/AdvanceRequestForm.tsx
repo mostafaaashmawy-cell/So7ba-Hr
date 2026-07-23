@@ -5,6 +5,7 @@ import { DollarSign, AlertTriangle, CheckCircle2, Wallet } from 'lucide-react';
 import { AdvanceRecord } from '@/lib/types/database';
 import { getPayrollMonthDate, formatDate } from '@/lib/utils/dateUtils';
 import { createClient } from '@/lib/supabase/client';
+import { useLanguage } from '@/lib/context/LanguageContext';
 
 interface AdvanceRequestProps {
   userId: string;
@@ -13,6 +14,7 @@ interface AdvanceRequestProps {
 }
 
 export default function AdvanceRequestForm({ userId, basicSalary, initialAdvances }: AdvanceRequestProps) {
+  const { t, isRtl } = useLanguage();
   const [advances, setAdvances] = useState<AdvanceRecord[]>(initialAdvances);
   const [amount, setAmount] = useState<number | ''>('');
   const [loading, setLoading] = useState(false);
@@ -36,12 +38,12 @@ export default function AdvanceRequestForm({ userId, basicSalary, initialAdvance
 
     if (typeof val === 'number' && val > maxAllowed) {
       setMsg({
-        text: `Requested amount exceeds 30% monthly salary limit (${maxAllowed.toLocaleString()} EGP).`,
+        text: `${t('capExceeded')} (${maxAllowed.toLocaleString()} EGP).`,
         error: true,
       });
     } else if (typeof val === 'number' && val > remainingMargin) {
       setMsg({
-        text: `Requested amount exceeds remaining available margin (${remainingMargin.toLocaleString()} EGP).`,
+        text: `${t('marginExceeded')} (${remainingMargin.toLocaleString()} EGP).`,
         error: true,
       });
     } else {
@@ -55,7 +57,7 @@ export default function AdvanceRequestForm({ userId, basicSalary, initialAdvance
 
     if (amount > maxAllowed) {
       setMsg({
-        text: `Cannot request more than 30% of basic salary (${maxAllowed.toLocaleString()} EGP).`,
+        text: `${t('capExceeded')} (${maxAllowed.toLocaleString()} EGP).`,
         error: true,
       });
       return;
@@ -63,7 +65,7 @@ export default function AdvanceRequestForm({ userId, basicSalary, initialAdvance
 
     if (amount > remainingMargin) {
       setMsg({
-        text: `Exceeds remaining available margin for this payroll month (${remainingMargin.toLocaleString()} EGP).`,
+        text: `${t('marginExceeded')} (${remainingMargin.toLocaleString()} EGP).`,
         error: true,
       });
       return;
@@ -87,7 +89,7 @@ export default function AdvanceRequestForm({ userId, basicSalary, initialAdvance
     } else if (data) {
       setAdvances([data as AdvanceRecord, ...advances]);
       setAmount('');
-      setMsg({ text: 'Advance payment request logged successfully!', error: false });
+      setMsg({ text: t('advanceSuccess'), error: false });
     }
     setLoading(false);
   };
@@ -100,8 +102,8 @@ export default function AdvanceRequestForm({ userId, basicSalary, initialAdvance
             <Wallet className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="font-bold text-lg text-white">Advance Payment (السلف)</h3>
-            <p className="text-xs text-gray-400">Monthly cap: 30% of basic salary</p>
+            <h3 className="font-bold text-lg text-white">{t('advancesTitle')}</h3>
+            <p className="text-xs text-gray-400">{t('advancesDesc')}</p>
           </div>
         </div>
       </div>
@@ -109,18 +111,27 @@ export default function AdvanceRequestForm({ userId, basicSalary, initialAdvance
       {/* Salary & Cap Breakdown Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="p-4 rounded-xl bg-gray-900/80 border border-gray-800">
-          <span className="text-xs font-semibold text-gray-400 block mb-1">Basic Salary</span>
-          <span className="text-xl font-bold text-white">{basicSalary.toLocaleString()} <span className="text-xs text-gray-400 font-normal">EGP</span></span>
+          <span className="text-xs font-semibold text-gray-400 block mb-1">{t('basicSalary')}</span>
+          <span className="text-xl font-bold text-white">
+            {basicSalary.toLocaleString()}{' '}
+            <span className="text-xs text-gray-400 font-normal">EGP</span>
+          </span>
         </div>
 
         <div className="p-4 rounded-xl bg-gray-900/80 border border-gray-800">
-          <span className="text-xs font-semibold text-gray-400 block mb-1">Max Monthly Cap (30%)</span>
-          <span className="text-xl font-bold text-amber-400">{maxAllowed.toLocaleString()} <span className="text-xs text-gray-400 font-normal">EGP</span></span>
+          <span className="text-xs font-semibold text-gray-400 block mb-1">{t('maxCap')}</span>
+          <span className="text-xl font-bold text-amber-400">
+            {maxAllowed.toLocaleString()}{' '}
+            <span className="text-xs text-gray-400 font-normal">EGP</span>
+          </span>
         </div>
 
         <div className="p-4 rounded-xl bg-gray-900/80 border border-gray-800">
-          <span className="text-xs font-semibold text-gray-400 block mb-1">Current Month Deductions</span>
-          <span className="text-xl font-bold text-rose-400">{currentMonthAdvances.toLocaleString()} <span className="text-xs text-gray-400 font-normal">EGP</span></span>
+          <span className="text-xs font-semibold text-gray-400 block mb-1">{t('currentDeductions')}</span>
+          <span className="text-xl font-bold text-rose-400">
+            {currentMonthAdvances.toLocaleString()}{' '}
+            <span className="text-xs text-gray-400 font-normal">EGP</span>
+          </span>
         </div>
       </div>
 
@@ -141,21 +152,21 @@ export default function AdvanceRequestForm({ userId, basicSalary, initialAdvance
       <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-4 items-end">
         <div className="flex-1 w-full">
           <label className="block text-xs font-medium text-gray-400 mb-1.5">
-            Requested Amount (Max: {remainingMargin.toLocaleString()} EGP remaining)
+            {t('amount')} ({t('remainingMargin')}: {remainingMargin.toLocaleString()} EGP)
           </label>
           <div className="relative">
             <input
               type="number"
-              min="1"
+              min="0"
               max={remainingMargin}
-              step="100"
+              step="any"
               value={amount}
               onChange={handleAmountChange}
               placeholder="e.g. 1500"
               required
               className="w-full bg-gray-900 border border-gray-800 rounded-xl pl-9 pr-4 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-purple-500"
             />
-            <DollarSign className="w-4 h-4 text-gray-500 absolute left-3 top-3" />
+            <DollarSign className={`w-4 h-4 text-gray-500 absolute ${isRtl ? 'right-3' : 'left-3'} top-3`} />
           </div>
         </div>
 
@@ -164,25 +175,25 @@ export default function AdvanceRequestForm({ userId, basicSalary, initialAdvance
           disabled={loading || (typeof amount === 'number' && amount > remainingMargin)}
           className="w-full sm:w-auto gradient-btn px-6 py-2.5 rounded-xl font-bold text-sm text-white shadow-md flex items-center justify-center gap-2 transition-all disabled:opacity-50"
         >
-          Request Advance
+          {t('requestAdvance')}
         </button>
       </form>
 
       {/* Advances Log */}
       <div>
-        <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Advance History</h4>
+        <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">{t('history')}</h4>
         {advances.length === 0 ? (
           <div className="text-center py-5 text-xs text-gray-500 bg-gray-900/30 rounded-xl border border-gray-800">
-            No advance requests recorded.
+            {isRtl ? 'لا يوجد طلبات سلف مسجلة.' : 'No advance requests recorded.'}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-gray-300">
               <thead className="bg-gray-900/80 text-gray-400 uppercase text-[10px] tracking-wider">
                 <tr>
-                  <th className="px-4 py-2.5 rounded-l-lg">Date</th>
-                  <th className="px-4 py-2.5">Payroll Month</th>
-                  <th className="px-4 py-2.5 text-right rounded-r-lg">Amount</th>
+                  <th className="px-4 py-2.5 rounded-l-lg">{t('date')}</th>
+                  <th className="px-4 py-2.5">{t('payrollMonth')}</th>
+                  <th className="px-4 py-2.5 text-right rounded-r-lg">{t('amount')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800/60">
@@ -190,7 +201,9 @@ export default function AdvanceRequestForm({ userId, basicSalary, initialAdvance
                   <tr key={a.id} className="hover:bg-gray-900/40">
                     <td className="px-4 py-3 text-gray-400">{formatDate(a.created_at || a.month)}</td>
                     <td className="px-4 py-3 font-medium text-purple-300">{a.month}</td>
-                    <td className="px-4 py-3 text-right font-bold text-emerald-400">{Number(a.amount).toLocaleString()} EGP</td>
+                    <td className="px-4 py-3 text-right font-bold text-emerald-400">
+                      {Number(a.amount).toLocaleString()} EGP
+                    </td>
                   </tr>
                 ))}
               </tbody>

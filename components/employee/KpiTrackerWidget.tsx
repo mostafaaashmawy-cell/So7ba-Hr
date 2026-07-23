@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Target, Plus, CheckCircle2, AlertCircle } from 'lucide-react';
 import { KpiEntryRecord } from '@/lib/types/database';
 import { formatDate } from '@/lib/utils/dateUtils';
 import { createClient } from '@/lib/supabase/client';
+import { useLanguage } from '@/lib/context/LanguageContext';
 
 interface KpiTrackerProps {
   userId: string;
@@ -13,13 +14,36 @@ interface KpiTrackerProps {
 }
 
 export default function KpiTrackerWidget({ userId, kpiUnit, initialEntries }: KpiTrackerProps) {
+  const { t, isRtl } = useLanguage();
   const [entries, setEntries] = useState<KpiEntryRecord[]>(initialEntries);
   const [amount, setAmount] = useState<number | ''>('');
   const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [notes, setNotes] = useState<string>('');
+  const [kpiUnits, setKpiUnits] = useState<string[]>([]);
+  const [selectedUnit, setSelectedUnit] = useState<string>(kpiUnit || 'tasks');
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<{ text: string; error: boolean } | null>(null);
 
   const supabase = createClient();
+
+  // Load KPI units configured by Admin
+  useEffect(() => {
+    const fetchKpiUnits = async () => {
+      const { data, error } = await supabase
+        .from('kpi_units')
+        .select('name')
+        .order('name', { ascending: true });
+
+      if (data && !error) {
+        const units = data.map((d) => d.name);
+        setKpiUnits(units);
+        if (units.length > 0 && !units.includes(selectedUnit)) {
+          setSelectedUnit(units[0]);
+        }
+      }
+    };
+    fetchKpiUnits();
+  }, [kpiUnit]);
 
   const totalAchieved = entries.reduce((sum, e) => sum + Number(e.amount), 0);
 
@@ -36,7 +60,8 @@ export default function KpiTrackerWidget({ userId, kpiUnit, initialEntries }: Kp
         user_id: userId,
         date,
         amount: Number(amount),
-        unit: kpiUnit || 'tasks',
+        unit: selectedUnit,
+        notes: notes.trim() || null,
       })
       .select()
       .single();
@@ -46,7 +71,8 @@ export default function KpiTrackerWidget({ userId, kpiUnit, initialEntries }: Kp
     } else if (data) {
       setEntries([data as KpiEntryRecord, ...entries]);
       setAmount('');
-      setMsg({ text: 'KPI log recorded successfully!', error: false });
+      setNotes('');
+      setMsg({ text: t('kpiSuccess'), error: false });
     }
     setLoading(false);
   };
@@ -59,17 +85,19 @@ export default function KpiTrackerWidget({ userId, kpiUnit, initialEntries }: Kp
             <Target className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="font-bold text-lg text-white">Daily Production & KPI Tracking</h3>
+            <h3 className="font-bold text-lg text-white">{t('kpiTitle')}</h3>
             <p className="text-xs text-gray-400">
-              Assigned Metric Unit: <span className="font-bold text-purple-300 capitalize">{kpiUnit || 'tasks'}</span>
+              {t('assignedMetric')}:{' '}
+              <span className="font-bold text-purple-300 capitalize">{kpiUnit || 'tasks'}</span>
             </p>
           </div>
         </div>
 
         <div className="text-right">
-          <span className="text-[11px] text-gray-400 uppercase tracking-wider block">Total Logged</span>
+          <span className="text-[11px] text-gray-400 uppercase tracking-wider block">{t('totalLogged')}</span>
           <span className="text-xl font-extrabold text-purple-400">
-            {totalAchieved.toLocaleString()} <span className="text-xs font-normal text-gray-400">{kpiUnit || 'tasks'}</span>
+            {totalAchieved.toLocaleString()}{' '}
+            <span className="text-xs font-normal text-gray-400">{selectedUnit}</span>
           </span>
         </div>
       </div>
@@ -88,66 +116,104 @@ export default function KpiTrackerWidget({ userId, kpiUnit, initialEntries }: Kp
       )}
 
       {/* Entry Input Form */}
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
-        <div>
-          <label className="block text-xs font-medium text-gray-400 mb-1.5">Date</label>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            required
-            className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-purple-500"
-          />
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+          <div>
+            <label className="block text-xs font-medium text-gray-400 mb-1.5">{t('date')}</label>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              required
+              className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-purple-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-400 mb-1.5">{t('chooseUnit')}</label>
+            <select
+              value={selectedUnit}
+              onChange={(e) => setSelectedUnit(e.target.value)}
+              className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-purple-500"
+            >
+              {kpiUnits.map((unit) => (
+                <option key={unit} value={unit}>
+                  {unit}
+                </option>
+              ))}
+              {kpiUnits.length === 0 && <option value={selectedUnit}>{selectedUnit}</option>}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-400 mb-1.5">
+              {t('quantity')}
+            </label>
+            <input
+              type="number"
+              min="1"
+              step="1"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
+              placeholder="e.g. 45"
+              required
+              className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-purple-500"
+            />
+          </div>
         </div>
 
+        {/* Optional Notes Box */}
         <div>
           <label className="block text-xs font-medium text-gray-400 mb-1.5">
-            Achieved Amount ({kpiUnit || 'tasks'})
+            {t('notes')} <span className="text-[10px] text-gray-500">({t('optional')})</span>
           </label>
-          <input
-            type="number"
-            min="1"
-            step="1"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
-            placeholder="e.g. 45"
-            required
-            className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-purple-500"
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder={t('notesPlaceholder')}
+            rows={2}
+            className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-sm text-gray-100 focus:outline-none focus:border-purple-500 resize-none"
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="gradient-btn py-2.5 rounded-xl font-bold text-sm text-white shadow-md flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-        >
-          <Plus className="w-4 h-4" /> Log Production
-        </button>
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full sm:w-auto gradient-btn px-6 py-2.5 rounded-xl font-bold text-sm text-white shadow-md flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+          >
+            <Plus className="w-4 h-4" /> {t('logProduction')}
+          </button>
+        </div>
       </form>
 
       {/* Production History */}
       <div>
-        <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Recent Production Log</h4>
+        <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">{t('recentLog')}</h4>
         {entries.length === 0 ? (
           <div className="text-center py-5 text-xs text-gray-500 bg-gray-900/30 rounded-xl border border-gray-800">
-            No KPI entries recorded yet.
+            {isRtl ? 'لا توجد بيانات إنتاجية مسجلة.' : 'No KPI entries recorded yet.'}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-gray-300">
               <thead className="bg-gray-900/80 text-gray-400 uppercase text-[10px] tracking-wider">
                 <tr>
-                  <th className="px-4 py-2.5 rounded-l-lg">Date</th>
-                  <th className="px-4 py-2.5">Achieved Quantity</th>
-                  <th className="px-4 py-2.5 rounded-r-lg">Unit</th>
+                  <th className="px-4 py-2.5 rounded-l-lg">{t('date')}</th>
+                  <th className="px-4 py-2.5">{t('quantity')}</th>
+                  <th className="px-4 py-2.5">{t('unit')}</th>
+                  <th className="px-4 py-2.5 rounded-r-lg">{t('notes')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800/60">
-                {entries.slice(0, 5).map((e) => (
+                {entries.slice(0, 10).map((e) => (
                   <tr key={e.id} className="hover:bg-gray-900/40">
                     <td className="px-4 py-3 text-gray-400">{formatDate(e.date)}</td>
                     <td className="px-4 py-3 font-bold text-purple-300">{e.amount}</td>
                     <td className="px-4 py-3 text-gray-400 capitalize">{e.unit}</td>
+                    <td className="px-4 py-3 text-gray-400 text-xs italic max-w-xs truncate">
+                      {e.notes || '--'}
+                    </td>
                   </tr>
                 ))}
               </tbody>
