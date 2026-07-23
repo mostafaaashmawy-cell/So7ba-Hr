@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { UserProfile, UserRole } from '@/lib/types/database';
-import { Shield, Edit3, Save, X, CheckCircle2, AlertCircle, Plus, Trash2 } from 'lucide-react';
+import { Shield, Edit3, Save, X, CheckCircle2, AlertCircle, Plus, Trash2, Target } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/lib/context/LanguageContext';
 
