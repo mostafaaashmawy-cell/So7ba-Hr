@@ -43,6 +43,7 @@ export default function KpiTrackerWidget({ userId, kpiUnit, initialEntries }: Kp
       }
     };
     fetchKpiUnits();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kpiUnit]);
 
   const totalAchieved = entries.reduce((sum, e) => sum + Number(e.amount), 0);

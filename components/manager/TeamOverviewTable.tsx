@@ -191,7 +191,7 @@ export default function TeamOverviewTable({
               <label className="block text-[11px] text-gray-500 mb-1">{t('filterByType')}</label>
               <select
                 value={leavesType}
-                onChange={(e) => setLeavesType(e.target.value as any)}
+                onChange={(e) => setLeavesType(e.target.value as 'all' | 'leave' | 'permission')}
                 className="bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
               >
                 <option value="all">{t('all')}</option>

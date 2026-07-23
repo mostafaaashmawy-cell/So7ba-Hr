@@ -34,20 +34,19 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
 
   const supabase = createClient();
 
-  const fetchKpiUnits = async () => {
-    const { data, error } = await supabase
-      .from('kpi_units')
-      .select('id, name')
-      .order('name', { ascending: true });
-
-    if (data && !error) {
-      setKpiUnits(data);
-    }
-  };
-
   useEffect(() => {
+    const fetchKpiUnits = async () => {
+      const { data, error } = await supabase
+        .from('kpi_units')
+        .select('id, name')
+        .order('name', { ascending: true });
+
+      if (data && !error) {
+        setKpiUnits(data);
+      }
+    };
     fetchKpiUnits();
-  }, []);
+  }, [supabase]);
 
   const startEdit = (user: UserProfile) => {
     setEditingUserId(user.id);

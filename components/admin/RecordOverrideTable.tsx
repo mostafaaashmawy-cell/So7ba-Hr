@@ -21,7 +21,7 @@ export default function RecordOverrideTable({
   initialKpis,
 }: RecordOverrideProps) {
   const { t, isRtl } = useLanguage();
-  const [attendance, setAttendance] = useState<AttendanceRecord[]>(initialAttendance);
+  const [attendance] = useState<AttendanceRecord[]>(initialAttendance);
   const [leaves, setLeaves] = useState<LeavePermissionRecord[]>(initialLeaves);
   const [advances, setAdvances] = useState<AdvanceRecord[]>(initialAdvances);
   const [kpis, setKpis] = useState<KpiEntryRecord[]>(initialKpis);
@@ -197,7 +197,7 @@ export default function RecordOverrideTable({
               <label className="block text-[11px] text-gray-500 mb-1">{t('filterByType')}</label>
               <select
                 value={leavesType}
-                onChange={(e) => setLeavesType(e.target.value as any)}
+                onChange={(e) => setLeavesType(e.target.value as 'all' | 'leave' | 'permission')}
                 className="bg-gray-950 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
               >
                 <option value="all">{t('all')}</option>
