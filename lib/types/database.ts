@@ -30,6 +30,8 @@ export interface LeavePermissionRecord {
   type: LeavePermType;
   date: string;
   status: string;
+  timeframe?: string | null;
+  excuse_time?: string | null;
   created_at?: string;
   user?: UserProfile;
 }
@@ -49,6 +51,7 @@ export interface KpiEntryRecord {
   date: string;
   amount: number;
   unit: string;
+  notes?: string | null;
   created_at?: string;
   user?: UserProfile;
 }
