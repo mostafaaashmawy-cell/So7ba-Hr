@@ -8,20 +8,20 @@
     --card: 224 71% 6%;
     --card-foreground: 213 31% 91%;
 
-    --primary: 263 70% 50%;
+    --primary: 197 100% 47%; /* Sky Blue #00aeef */
     --primary-foreground: 210 40% 98%;
 
     --secondary: 217 19% 15%;
     --secondary-foreground: 210 40% 98%;
 
-    --accent: 199 89% 48%;
+    --accent: 85 57% 51%; /* Lime Green #8cc63f */
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 216 34% 17%;
-    --ring: 263 70% 50%;
+    --ring: 197 100% 47%;
   }
 }
 
@@ -47,26 +47,26 @@ body {
 }
 
 .glass-card-hover:hover {
-  border-color: rgba(139, 92, 246, 0.4);
+  border-color: rgba(0, 174, 239, 0.4);
   transform: translateY(-2px);
-  box-shadow: 0 12px 40px 0 rgba(139, 92, 246, 0.15);
+  box-shadow: 0 12px 40px 0 rgba(0, 174, 239, 0.15);
 }
 
-/* Custom Gradients */
+/* Custom Gradients - Brand Specific */
 .gradient-text {
-  background: linear-gradient(135deg, #a855f7 0%, #3b82f6 50%, #06b6d4 100%);
+  background: linear-gradient(135deg, #00aeef 0%, #8cc63f 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .gradient-btn {
-  background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
+  background: linear-gradient(135deg, #00aeef 0%, #8cc63f 100%);
   transition: all 0.3s ease;
 }
 
 .gradient-btn:hover {
-  background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%);
-  box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+  background: linear-gradient(135deg, #009fe3 0%, #7ab332 100%);
+  box-shadow: 0 0 20px rgba(0, 174, 239, 0.5);
 }
 
 .pulse-emerald {

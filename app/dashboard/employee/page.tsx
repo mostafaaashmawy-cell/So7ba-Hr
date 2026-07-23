@@ -37,7 +37,7 @@ export default async function EmployeeDashboardPage() {
     .select('*')
     .eq('user_id', authUser.id)
     .eq('date', todayStr)
-    .maybeSingle();
+    .order('check_in_time', { ascending: false });
 
   // Fetch Leaves & Permissions History
   const { data: leavesHistory } = await supabase
@@ -74,7 +74,7 @@ export default async function EmployeeDashboardPage() {
         {/* Attendance Widget */}
         <AttendanceWidget
           userId={authUser.id}
-          initialAttendance={todayAttendance as AttendanceRecord | null}
+          initialAttendance={(todayAttendance as AttendanceRecord[]) || []}
         />
 
         {/* Leaves & Permissions Management */}

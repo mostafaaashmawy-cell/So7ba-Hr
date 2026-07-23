@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Trash2, ShieldAlert, Clock, Calendar, Wallet, Target, CheckCircle2, AlertCircle, Filter } from 'lucide-react';
+import { Trash2, ShieldAlert, Clock, Calendar, Wallet, Target, CheckCircle2, AlertCircle, Filter, User } from 'lucide-react';
 import { AttendanceRecord, LeavePermissionRecord, AdvanceRecord, KpiEntryRecord } from '@/lib/types/database';
 import { formatDate, formatTime } from '@/lib/utils/dateUtils';
 import { createClient } from '@/lib/supabase/client';
@@ -21,7 +21,6 @@ export default function RecordOverrideTable({
   initialKpis,
 }: RecordOverrideProps) {
   const { t, isRtl } = useLanguage();
-  const [attendance] = useState<AttendanceRecord[]>(initialAttendance);
   const [leaves, setLeaves] = useState<LeavePermissionRecord[]>(initialLeaves);
   const [advances, setAdvances] = useState<AdvanceRecord[]>(initialAdvances);
   const [kpis, setKpis] = useState<KpiEntryRecord[]>(initialKpis);
@@ -30,7 +29,10 @@ export default function RecordOverrideTable({
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ text: string; error: boolean } | null>(null);
 
-  // FILTERS STATE
+  // GLOBAL FILTER BY EMPLOYEE
+  const [selectedUser, setSelectedUser] = useState<string>('all');
+
+  // ADVANCED FILTERS STATE
   // Attendance
   const [attendanceDate, setAttendanceDate] = useState<string>('');
   // Leaves
@@ -47,6 +49,15 @@ export default function RecordOverrideTable({
   const [kpisMaxQty, setKpisMaxQty] = useState<number | ''>('');
 
   const supabase = createClient();
+
+  // Extract all unique users across all records to build the filter dropdown
+  const uniqueUsersMap = new Map<string, string>();
+  initialAttendance.forEach((r) => { if (r.user) uniqueUsersMap.set(r.user_id, r.user.full_name); });
+  leaves.forEach((r) => { if (r.user) uniqueUsersMap.set(r.user_id, r.user.full_name); });
+  advances.forEach((r) => { if (r.user) uniqueUsersMap.set(r.user_id, r.user.full_name); });
+  kpis.forEach((r) => { if (r.user) uniqueUsersMap.set(r.user_id, r.user.full_name); });
+
+  const uniqueUsersList = Array.from(uniqueUsersMap.entries()).map(([id, name]) => ({ id, name }));
 
   const handleDelete = async (table: string, id: string) => {
     if (!confirm(isRtl ? 'هل أنت متأكد أنك تريد حذف هذا السجل نهائياً؟' : 'Are you sure you want to permanently delete this record?')) return;
@@ -69,17 +80,20 @@ export default function RecordOverrideTable({
   };
 
   // FILTER LOGIC
-  const filteredAttendance = attendance.filter((r) => {
+  const filteredAttendance = initialAttendance.filter((r) => {
+    if (selectedUser !== 'all' && r.user_id !== selectedUser) return false;
     if (attendanceDate && r.date !== attendanceDate) return false;
     return true;
   });
 
   const filteredLeaves = leaves.filter((r) => {
+    if (selectedUser !== 'all' && r.user_id !== selectedUser) return false;
     if (leavesType !== 'all' && r.type !== leavesType) return false;
     return true;
   });
 
   const filteredAdvances = advances.filter((r) => {
+    if (selectedUser !== 'all' && r.user_id !== selectedUser) return false;
     const amt = Number(r.amount);
     if (advMin !== '' && amt < advMin) return false;
     if (advMax !== '' && amt > advMax) return false;
@@ -92,6 +106,7 @@ export default function RecordOverrideTable({
   const uniqueKpiUnits = Array.from(new Set(kpis.map((k) => k.unit)));
 
   const filteredKpis = kpis.filter((r) => {
+    if (selectedUser !== 'all' && r.user_id !== selectedUser) return false;
     if (kpisUnit !== 'all' && r.unit !== kpisUnit) return false;
     if (kpisDate && r.date !== kpisDate) return false;
     const qty = Number(r.amount);
@@ -105,7 +120,7 @@ export default function RecordOverrideTable({
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-bold text-lg text-white flex items-center gap-2">
-            <ShieldAlert className="w-5 h-5 text-rose-400" /> {t('recordCenter')}
+            <ShieldAlert className="w-5 h-5 text-sky-400" /> {t('recordCenter')}
           </h3>
           <p className="text-xs text-gray-400">{t('recordCenterDesc')}</p>
         </div>
@@ -124,13 +139,33 @@ export default function RecordOverrideTable({
         </div>
       )}
 
+      {/* Global User Filter */}
+      <div className="p-4 rounded-xl bg-gray-900 border border-gray-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-2 text-xs font-semibold text-gray-300">
+          <User className="w-4 h-4 text-sky-400" />
+          <span>{isRtl ? 'تصفية الجدول بالكامل حسب الموظف:' : 'Filter Entire Dashboard by Employee:'}</span>
+        </div>
+        <select
+          value={selectedUser}
+          onChange={(e) => setSelectedUser(e.target.value)}
+          className="bg-gray-950 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full sm:w-64"
+        >
+          <option value="all">{isRtl ? 'جميع الموظفين' : 'All Employees'}</option>
+          {uniqueUsersList.map((usr) => (
+            <option key={usr.id} value={usr.id}>
+              {usr.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {/* Tabs */}
       <div className="flex gap-2 border-b border-gray-800 pb-2 overflow-x-auto">
         <button
           onClick={() => setActiveTab('attendance')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 ${
             activeTab === 'attendance'
-              ? 'bg-indigo-600 text-white shadow-md'
+              ? 'bg-sky-500 text-white shadow-md'
               : 'text-gray-400 hover:text-gray-200'
           }`}
         >
@@ -141,7 +176,7 @@ export default function RecordOverrideTable({
           onClick={() => setActiveTab('leaves')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 ${
             activeTab === 'leaves'
-              ? 'bg-purple-600 text-white shadow-md'
+              ? 'bg-sky-500 text-white shadow-md'
               : 'text-gray-400 hover:text-gray-200'
           }`}
         >
@@ -152,7 +187,7 @@ export default function RecordOverrideTable({
           onClick={() => setActiveTab('advances')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 ${
             activeTab === 'advances'
-              ? 'bg-emerald-600 text-white shadow-md'
+              ? 'bg-sky-500 text-white shadow-md'
               : 'text-gray-400 hover:text-gray-200'
           }`}
         >
@@ -163,7 +198,7 @@ export default function RecordOverrideTable({
           onClick={() => setActiveTab('kpis')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 ${
             activeTab === 'kpis'
-              ? 'bg-blue-600 text-white shadow-md'
+              ? 'bg-sky-500 text-white shadow-md'
               : 'text-gray-400 hover:text-gray-200'
           }`}
         >
@@ -173,8 +208,8 @@ export default function RecordOverrideTable({
 
       {/* FILTER CONTROLS PANEL */}
       <div className="p-4 rounded-xl bg-gray-900/60 border border-gray-800 space-y-3">
-        <h4 className="text-xs font-bold text-gray-400 flex items-center gap-1.5 uppercase tracking-wider">
-          <Filter className="w-3.5 h-3.5 text-purple-400" /> {t('filters')}
+        <h4 className="text-xs font-bold text-gray-400 flex items-center gap-1.5 uppercase tracking-wider font-sans">
+          <Filter className="w-3.5 h-3.5 text-sky-400" /> {t('filters')}
         </h4>
 
         {activeTab === 'attendance' && (
@@ -185,7 +220,7 @@ export default function RecordOverrideTable({
                 type="date"
                 value={attendanceDate}
                 onChange={(e) => setAttendanceDate(e.target.value)}
-                className="bg-gray-950 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                className="bg-gray-955 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
               />
             </div>
           </div>
@@ -198,7 +233,7 @@ export default function RecordOverrideTable({
               <select
                 value={leavesType}
                 onChange={(e) => setLeavesType(e.target.value as 'all' | 'leave' | 'permission')}
-                className="bg-gray-950 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                className="bg-gray-955 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
               >
                 <option value="all">{t('all')}</option>
                 <option value="leave">{t('annualLeave')}</option>
@@ -217,7 +252,7 @@ export default function RecordOverrideTable({
                 value={advMin}
                 onChange={(e) => setAdvMin(e.target.value === '' ? '' : Number(e.target.value))}
                 placeholder="e.g. 500"
-                className="bg-gray-950 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                className="bg-gray-955 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
               />
             </div>
             <div>
@@ -227,7 +262,7 @@ export default function RecordOverrideTable({
                 value={advMax}
                 onChange={(e) => setAdvMax(e.target.value === '' ? '' : Number(e.target.value))}
                 placeholder="e.g. 2000"
-                className="bg-gray-950 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                className="bg-gray-955 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
               />
             </div>
             <div>
@@ -236,7 +271,7 @@ export default function RecordOverrideTable({
                 type="month"
                 value={advMonth ? advMonth.substring(0, 7) : ''}
                 onChange={(e) => setAdvMonth(e.target.value ? `${e.target.value}-01` : '')}
-                className="bg-gray-950 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                className="bg-gray-955 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
               />
             </div>
             <div>
@@ -245,7 +280,7 @@ export default function RecordOverrideTable({
                 type="date"
                 value={advDate}
                 onChange={(e) => setAdvDate(e.target.value)}
-                className="bg-gray-950 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                className="bg-gray-955 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
               />
             </div>
           </div>
@@ -258,7 +293,7 @@ export default function RecordOverrideTable({
               <select
                 value={kpisUnit}
                 onChange={(e) => setKpisUnit(e.target.value)}
-                className="bg-gray-950 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                className="bg-gray-955 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
               >
                 <option value="all">{t('all')}</option>
                 {uniqueKpiUnits.map((u) => (
@@ -274,7 +309,7 @@ export default function RecordOverrideTable({
                 type="date"
                 value={kpisDate}
                 onChange={(e) => setKpisDate(e.target.value)}
-                className="bg-gray-950 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                className="bg-gray-955 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
               />
             </div>
             <div>
@@ -284,7 +319,7 @@ export default function RecordOverrideTable({
                 value={kpisMinQty}
                 onChange={(e) => setKpisMinQty(e.target.value === '' ? '' : Number(e.target.value))}
                 placeholder="e.g. 10"
-                className="bg-gray-950 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                className="bg-gray-955 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
               />
             </div>
             <div>
@@ -294,7 +329,7 @@ export default function RecordOverrideTable({
                 value={kpisMaxQty}
                 onChange={(e) => setKpisMaxQty(e.target.value === '' ? '' : Number(e.target.value))}
                 placeholder="e.g. 100"
-                className="bg-gray-950 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                className="bg-gray-955 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
               />
             </div>
           </div>
@@ -305,7 +340,7 @@ export default function RecordOverrideTable({
       <div className="overflow-x-auto">
         {/* Attendance */}
         {activeTab === 'attendance' && (
-          <table className="w-full text-left text-xs text-gray-300">
+          <table className="w-full text-left text-xs text-gray-300 font-sans">
             <thead className="bg-gray-900/80 text-gray-400 uppercase text-[10px] tracking-wider">
               <tr>
                 <th className="px-4 py-3 rounded-l-lg">{t('fullName')}</th>
@@ -314,7 +349,7 @@ export default function RecordOverrideTable({
                 <th className="px-4 py-3 rounded-r-lg">{t('checkOutTime')}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800/60">
+            <tbody className="divide-y divide-gray-800/60 font-sans">
               {filteredAttendance.map((r) => (
                 <tr key={r.id} className="hover:bg-gray-900/40">
                   <td className="px-4 py-3 font-semibold text-white">{r.user?.full_name || r.user_id}</td>
@@ -336,7 +371,7 @@ export default function RecordOverrideTable({
 
         {/* Leaves */}
         {activeTab === 'leaves' && (
-          <table className="w-full text-left text-xs text-gray-300">
+          <table className="w-full text-left text-xs text-gray-300 font-sans">
             <thead className="bg-gray-900/80 text-gray-400 uppercase text-[10px] tracking-wider">
               <tr>
                 <th className="px-4 py-3 rounded-l-lg">{t('fullName')}</th>
@@ -347,7 +382,7 @@ export default function RecordOverrideTable({
                 <th className="px-4 py-3 text-right rounded-r-lg">{t('actions')}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800/60">
+            <tbody className="divide-y divide-gray-800/60 font-sans">
               {filteredLeaves.map((r) => (
                 <tr key={r.id} className="hover:bg-gray-900/40">
                   <td className="px-4 py-3 font-semibold text-white">{r.user?.full_name || r.user_id}</td>
@@ -391,7 +426,7 @@ export default function RecordOverrideTable({
 
         {/* Advances */}
         {activeTab === 'advances' && (
-          <table className="w-full text-left text-xs text-gray-300">
+          <table className="w-full text-left text-xs text-gray-300 font-sans">
             <thead className="bg-gray-900/80 text-gray-400 uppercase text-[10px] tracking-wider">
               <tr>
                 <th className="px-4 py-3 rounded-l-lg">{t('fullName')}</th>
@@ -401,7 +436,7 @@ export default function RecordOverrideTable({
                 <th className="px-4 py-3 text-right rounded-r-lg">{t('actions')}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800/60">
+            <tbody className="divide-y divide-gray-800/60 font-sans">
               {filteredAdvances.map((r) => (
                 <tr key={r.id} className="hover:bg-gray-900/40">
                   <td className="px-4 py-3 font-semibold text-white">{r.user?.full_name || r.user_id}</td>
@@ -433,7 +468,7 @@ export default function RecordOverrideTable({
 
         {/* KPIs */}
         {activeTab === 'kpis' && (
-          <table className="w-full text-left text-xs text-gray-300">
+          <table className="w-full text-left text-xs text-gray-300 font-sans">
             <thead className="bg-gray-900/80 text-gray-400 uppercase text-[10px] tracking-wider">
               <tr>
                 <th className="px-4 py-3 rounded-l-lg">{t('fullName')}</th>
@@ -444,7 +479,7 @@ export default function RecordOverrideTable({
                 <th className="px-4 py-3 text-right rounded-r-lg">{t('actions')}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800/60">
+            <tbody className="divide-y divide-gray-800/60 font-sans">
               {filteredKpis.map((r) => (
                 <tr key={r.id} className="hover:bg-gray-900/40">
                   <td className="px-4 py-3 font-semibold text-white">{r.user?.full_name || r.user_id}</td>

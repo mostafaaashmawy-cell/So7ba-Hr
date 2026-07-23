@@ -1,9 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { UserProfile } from '@/lib/types/database';
-import { LogOut, User, ShieldCheck, Briefcase, UserCheck, Globe } from 'lucide-react';
+import { LogOut, User, ShieldCheck, Briefcase, UserCheck, Globe, Menu, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/lib/context/LanguageContext';
@@ -17,6 +17,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
   const router = useRouter();
   const supabase = createClient();
   const { language, setLanguage, t } = useLanguage();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -32,13 +33,13 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
     switch (role) {
       case 'super_admin':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-semibold bg-sky-500/20 text-sky-300 border border-sky-500/30">
             <ShieldCheck className="w-3.5 h-3.5" /> {t('superAdmin')}
           </span>
         );
       case 'manager':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-semibold bg-lime-500/20 text-lime-300 border border-lime-500/30">
             <Briefcase className="w-3.5 h-3.5" /> {t('teamView')}
           </span>
         );
@@ -56,7 +57,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* Brand Logo */}
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl gradient-btn flex items-center justify-center text-white font-extrabold text-xl shadow-lg shadow-purple-500/20">
+          <div className="w-10 h-10 rounded-xl gradient-btn flex items-center justify-center text-white font-extrabold text-xl shadow-lg shadow-sky-500/20">
             S
           </div>
           <div>
@@ -69,14 +70,14 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
           </div>
         </Link>
 
-        {/* Navigation Tabs based on Role */}
+        {/* Navigation Tabs (Desktop) */}
         {user && (
           <nav className="hidden md:flex items-center gap-1 bg-gray-900/90 p-1 rounded-xl border border-gray-800">
             <Link
               href="/dashboard/employee"
               className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${
                 activeRoleView === 'employee'
-                  ? 'bg-purple-600 text-white shadow-md'
+                  ? 'bg-sky-500 text-white shadow-md'
                   : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/60'
               }`}
             >
@@ -88,7 +89,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
                 href="/dashboard/manager"
                 className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${
                   activeRoleView === 'manager'
-                    ? 'bg-amber-600 text-white shadow-md'
+                    ? 'bg-lime-600 text-white shadow-md'
                     : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/60'
                 }`}
               >
@@ -101,7 +102,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
                 href="/dashboard/admin"
                 className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${
                   activeRoleView === 'super_admin'
-                    ? 'bg-indigo-600 text-white shadow-md'
+                    ? 'bg-sky-600 text-white shadow-md'
                     : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/60'
                 }`}
               >
@@ -111,15 +112,15 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
           </nav>
         )}
 
-        {/* User Info & Actions */}
-        <div className="flex items-center gap-4">
+        {/* Actions & Mobile Toggle */}
+        <div className="flex items-center gap-3">
           {/* Language Toggle Button */}
           <button
             onClick={toggleLanguage}
             title={language === 'en' ? 'Switch to Arabic' : 'تغيير للإنجليزية'}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-gray-300 hover:text-white border border-gray-800 transition-all text-xs font-semibold"
           >
-            <Globe className="w-4 h-4 text-purple-400" />
+            <Globe className="w-4 h-4 text-sky-400" />
             <span>{language === 'en' ? 'العربية' : 'English'}</span>
           </button>
 
@@ -127,7 +128,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
             <div className="flex items-center gap-3">
               <div className="hidden sm:flex flex-col items-end">
                 <span className="text-sm font-semibold text-gray-100 flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-purple-400" /> {user.full_name}
+                  <User className="w-3.5 h-3.5 text-sky-400" /> {user.full_name}
                 </span>
                 {getRoleBadge(user.role)}
               </div>
@@ -148,8 +149,64 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
               {t('signIn')}
             </Link>
           )}
+
+          {/* Hamburger Menu Icon (Mobile Only) */}
+          {user && (
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 md:hidden rounded-xl bg-gray-900 border border-gray-800 text-gray-400 hover:text-white transition-all"
+              title="Menu"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Mobile Drawer Dropdown Menu */}
+      {user && mobileMenuOpen && (
+        <div className="md:hidden mt-3 p-3 rounded-xl bg-gray-900 border border-gray-800 flex flex-col gap-2 animate-in slide-in-from-top-3 duration-200">
+          <Link
+            href="/dashboard/employee"
+            onClick={() => setMobileMenuOpen(false)}
+            className={`px-4 py-2.5 rounded-lg text-xs font-bold text-center transition-all ${
+              activeRoleView === 'employee'
+                ? 'bg-sky-500 text-white shadow-md'
+                : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+            }`}
+          >
+            {t('myWorkspace')}
+          </Link>
+
+          {(user.role === 'manager' || user.role === 'super_admin') && (
+            <Link
+              href="/dashboard/manager"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`px-4 py-2.5 rounded-lg text-xs font-bold text-center transition-all ${
+                activeRoleView === 'manager'
+                  ? 'bg-lime-600 text-white shadow-md'
+                  : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+              }`}
+            >
+              {t('teamView')}
+            </Link>
+          )}
+
+          {user.role === 'super_admin' && (
+            <Link
+              href="/dashboard/admin"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`px-4 py-2.5 rounded-lg text-xs font-bold text-center transition-all ${
+                activeRoleView === 'super_admin'
+                  ? 'bg-sky-600 text-white shadow-md'
+                  : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+              }`}
+            >
+              {t('superAdmin')}
+            </Link>
+          )}
+        </div>
+      )}
     </header>
   );
 }
