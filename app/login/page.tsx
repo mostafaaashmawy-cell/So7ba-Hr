@@ -73,8 +73,18 @@ export default function LoginPage() {
         }
       }
     } catch (err: unknown) {
-      const errorObj = err as Error;
-      setErrorMsg(errorObj.message || 'Authentication failed');
+      console.error('Auth error details:', err);
+      let message = 'Authentication failed';
+      if (err && typeof err === 'object') {
+        if ('message' in err && typeof err.message === 'string') {
+          message = err.message;
+        } else {
+          message = JSON.stringify(err);
+        }
+      } else if (typeof err === 'string') {
+        message = err;
+      }
+      setErrorMsg(message);
     } finally {
       setLoading(false);
     }
