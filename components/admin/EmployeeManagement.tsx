@@ -123,7 +123,7 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
       // Upload file
       const { error } = await supabase.storage
         .from('employee_documents')
-        .upload(fileName, file, { cacheControl: '3600', overwrite: true });
+        .upload(fileName, file, { cacheControl: '3600', upsert: true });
 
       if (error) throw error;
 
