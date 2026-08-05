@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Calendar, Plus, CheckCircle, AlertCircle, Trash2, ShieldAlert } from 'lucide-react';
+import { Calendar, Plus, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
 import { UserProfile, HolidayWorkRecord } from '@/lib/types/database';
 import { createClient } from '@/lib/supabase/client';
 import { formatDate } from '@/lib/utils/dateUtils';
@@ -50,6 +50,7 @@ export default function HolidayWorkForm({ teamMembers, currentUserId, isSuperAdm
 
   useEffect(() => {
     fetchRecords();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamMembers]);
 
   const handleSubmit = async (e: React.FormEvent) => {

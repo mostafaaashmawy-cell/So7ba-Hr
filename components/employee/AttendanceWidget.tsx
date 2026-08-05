@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { MapPin, Clock, CheckCircle2, LogOut as LogOutIcon, AlertCircle, RefreshCw, ListCollapse } from 'lucide-react';
+import { MapPin, Clock, LogOut as LogOutIcon, AlertCircle, RefreshCw, ListCollapse } from 'lucide-react';
 import { AttendanceRecord } from '@/lib/types/database';
 import { formatTime } from '@/lib/utils/dateUtils';
 import { createClient } from '@/lib/supabase/client';

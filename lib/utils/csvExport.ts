@@ -1,6 +1,7 @@
 /**
  * Utility function to export JSON datasets to UTF-8 CSV with Excel compatibility (BOM)
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function exportToCSV(data: Record<string, any>[], fileName: string) {
   if (!data || data.length === 0) {
     alert('No data available to export.');

@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   Users,
-  Settings,
   FolderOpen,
   Plus,
   Trash2,
@@ -12,7 +11,6 @@ import {
   AlertCircle,
   FileText,
   Search,
-  Filter,
   Download,
   Upload,
   ExternalLink,
@@ -89,6 +87,7 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
   useEffect(() => {
     fetchKpiUnits();
     fetchDepartments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Filtered employees list
@@ -138,8 +137,9 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
         text: isRtl ? 'تم رفع الملف وحفظ الرابط بنجاح!' : 'File uploaded and link saved successfully!',
         error: false,
       });
-    } catch (err: any) {
-      setMsg({ text: err.message || 'Upload failed', error: true });
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Upload failed';
+      setMsg({ text: errMsg, error: true });
     } finally {
       setUploadingField(null);
     }
@@ -434,6 +434,20 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
                 {uniqueJobTitles.map((job) => (
                   <option key={job} value={job}>
                     {job}
+                  </option>
+                ))}
+              </select>
+
+              {/* Payment Method filter */}
+              <select
+                value={filterPayment}
+                onChange={(e) => setFilterPayment(e.target.value)}
+                className="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-gray-200 focus:outline-none"
+              >
+                <option value="all">{isRtl ? 'جميع طرق الدفع' : 'All Payment Methods'}</option>
+                {uniquePaymentMethods.map((pay) => (
+                  <option key={pay} value={pay}>
+                    {pay}
                   </option>
                 ))}
               </select>
