@@ -706,7 +706,7 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
                   onChange={(e) => setEditForm({ ...editForm, manager_id: e.target.value })}
                   className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none"
                 >
-                  <option value="">{t('none')}</option>
+                  <option value="">{isRtl ? 'بلا مدير' : 'None'}</option>
                   {managersList.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.full_name}
