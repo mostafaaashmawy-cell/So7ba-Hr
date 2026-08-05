@@ -474,7 +474,7 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
                   <th className="px-4 py-3">{isRtl ? 'القسم' : 'Department'}</th>
                   <th className="px-4 py-3">{isRtl ? 'المسمى الوظيفي' : 'Job Title'}</th>
                   <th className="px-4 py-3">{isRtl ? 'طريقة الدفع' : 'Payment'}</th>
-                  <th className="px-4 py-3">{t('salary')}</th>
+                  <th className="px-4 py-3">{isRtl ? 'الراتب' : 'Salary'}</th>
                   <th className="px-4 py-3">{isRtl ? 'المستندات' : 'Docs'}</th>
                   <th className="px-4 py-3 text-right rounded-r-lg">{t('actions')}</th>
                 </tr>
@@ -677,7 +677,7 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1">{t('salary')}</label>
+                <label className="block text-xs font-semibold text-gray-400 mb-1">{isRtl ? 'الراتب الأساسي' : 'Basic Salary'}</label>
                 <input
                   type="number"
                   value={editForm.basic_salary}
