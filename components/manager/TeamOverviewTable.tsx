@@ -26,12 +26,16 @@ export default function TeamOverviewTable({
 
   // FILTERS STATE
   // Attendance
-  const [attendanceDate, setAttendanceDate] = useState<string>('');
+  const [attStart, setAttStart] = useState<string>('');
+  const [attEnd, setAttEnd] = useState<string>('');
   // Leaves
   const [leavesType, setLeavesType] = useState<'all' | 'leave' | 'permission'>('all');
+  const [leaveStart, setLeaveStart] = useState<string>('');
+  const [leaveEnd, setLeaveEnd] = useState<string>('');
   // KPIs
   const [kpisUnit, setKpisUnit] = useState<string>('all');
-  const [kpisDate, setKpisDate] = useState<string>('');
+  const [kpiStart, setKpiStart] = useState<string>('');
+  const [kpiEnd, setKpiEnd] = useState<string>('');
   const [kpisMinQty, setKpisMinQty] = useState<number | ''>('');
   const [kpisMaxQty, setKpisMaxQty] = useState<number | ''>('');
 
@@ -55,14 +59,19 @@ export default function TeamOverviewTable({
     (k) => selectedMember === 'all' || k.user_id === selectedMember
   );
 
-  // 2. APPLY ADVANCED FILTERS
+  // 2. APPLY ADVANCED FILTERS WITH DATE RANGE SUPPORT
   const filteredAttendance = memberAttendance.filter((r) => {
-    if (attendanceDate && r.date !== attendanceDate) return false;
+    if (attStart && !attEnd && r.date !== attStart) return false;
+    if (attStart && attEnd && (r.date < attStart || r.date > attEnd)) return false;
+    if (!attStart && attEnd && r.date !== attEnd) return false;
     return true;
   });
 
   const filteredLeaves = memberLeaves.filter((r) => {
     if (leavesType !== 'all' && r.type !== leavesType) return false;
+    if (leaveStart && !leaveEnd && r.date !== leaveStart) return false;
+    if (leaveStart && leaveEnd && (r.date < leaveStart || r.date > leaveEnd)) return false;
+    if (!leaveStart && leaveEnd && r.date !== leaveEnd) return false;
     return true;
   });
 
@@ -70,7 +79,9 @@ export default function TeamOverviewTable({
 
   const filteredKpis = memberKpis.filter((r) => {
     if (kpisUnit !== 'all' && r.unit !== kpisUnit) return false;
-    if (kpisDate && r.date !== kpisDate) return false;
+    if (kpiStart && !kpiEnd && r.date !== kpiStart) return false;
+    if (kpiStart && kpiEnd && (r.date < kpiStart || r.date > kpiEnd)) return false;
+    if (!kpiStart && kpiEnd && r.date !== kpiEnd) return false;
     const qty = Number(r.amount);
     if (kpisMinQty !== '' && qty < kpisMinQty) return false;
     if (kpisMaxQty !== '' && qty > kpisMaxQty) return false;
@@ -241,13 +252,26 @@ export default function TeamOverviewTable({
           </div>
 
           {activeTab === 'attendance' && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[11px] text-gray-500 mb-1">{t('filterByDay')}</label>
+                <label className="block text-[11px] text-gray-500 mb-1">
+                  {isRtl ? 'التاريخ (أو تاريخ البدء):' : 'Date (or Start Date):'}
+                </label>
                 <input
                   type="date"
-                  value={attendanceDate}
-                  onChange={(e) => setAttendanceDate(e.target.value)}
+                  value={attStart}
+                  onChange={(e) => setAttStart(e.target.value)}
+                  className="bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] text-gray-500 mb-1">
+                  {isRtl ? 'تاريخ الانتهاء (اختياري لنطاق التواريخ):' : 'End Date (Optional for date range):'}
+                </label>
+                <input
+                  type="date"
+                  value={attEnd}
+                  onChange={(e) => setAttEnd(e.target.value)}
                   className="bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
                 />
               </div>
@@ -255,7 +279,7 @@ export default function TeamOverviewTable({
           )}
 
           {activeTab === 'leaves' && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-[11px] text-gray-500 mb-1">{t('filterByType')}</label>
                 <select
@@ -268,11 +292,33 @@ export default function TeamOverviewTable({
                   <option value="permission">{t('permission')}</option>
                 </select>
               </div>
+              <div>
+                <label className="block text-[11px] text-gray-500 mb-1">
+                  {isRtl ? 'التاريخ (أو تاريخ البدء):' : 'Date (or Start Date):'}
+                </label>
+                <input
+                  type="date"
+                  value={leaveStart}
+                  onChange={(e) => setLeaveStart(e.target.value)}
+                  className="bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] text-gray-500 mb-1">
+                  {isRtl ? 'تاريخ الانتهاء (اختياري لنطاق التواريخ):' : 'End Date (Optional for date range):'}
+                </label>
+                <input
+                  type="date"
+                  value={leaveEnd}
+                  onChange={(e) => setLeaveEnd(e.target.value)}
+                  className="bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                />
+              </div>
             </div>
           )}
 
           {activeTab === 'kpis' && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               <div>
                 <label className="block text-[11px] text-gray-500 mb-1">{t('filterByUnit')}</label>
                 <select
@@ -289,11 +335,24 @@ export default function TeamOverviewTable({
                 </select>
               </div>
               <div>
-                <label className="block text-[11px] text-gray-500 mb-1">{t('filterByDate')}</label>
+                <label className="block text-[11px] text-gray-500 mb-1">
+                  {isRtl ? 'البدء:' : 'Start Date:'}
+                </label>
                 <input
                   type="date"
-                  value={kpisDate}
-                  onChange={(e) => setKpisDate(e.target.value)}
+                  value={kpiStart}
+                  onChange={(e) => setKpiStart(e.target.value)}
+                  className="bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] text-gray-500 mb-1">
+                  {isRtl ? 'الانتهاء:' : 'End Date:'}
+                </label>
+                <input
+                  type="date"
+                  value={kpiEnd}
+                  onChange={(e) => setKpiEnd(e.target.value)}
                   className="bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
                 />
               </div>
@@ -446,7 +505,7 @@ export default function TeamOverviewTable({
                       <th className="px-4 py-3 rounded-r-lg">{t('notes')}</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-800/60">
+                  <tbody className="divide-y divide-gray-800/60 font-sans">
                     {filteredKpis.map((rec) => (
                       <tr key={rec.id} className="hover:bg-gray-900/40">
                         <td className="px-4 py-3 font-semibold text-white">
@@ -480,7 +539,7 @@ export default function TeamOverviewTable({
                   <select
                     value={reportUser}
                     onChange={(e) => setReportUser(e.target.value)}
-                    className="bg-gray-950 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                    className="bg-gray-955 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
                   >
                     {teamMembers.map((m) => (
                       <option key={m.id} value={m.id}>
@@ -498,7 +557,7 @@ export default function TeamOverviewTable({
                     type="date"
                     value={reportStart}
                     onChange={(e) => setReportStart(e.target.value)}
-                    className="bg-gray-950 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                    className="bg-gray-955 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
                   />
                 </div>
 
@@ -510,13 +569,13 @@ export default function TeamOverviewTable({
                     type="date"
                     value={reportEnd}
                     onChange={(e) => setReportEnd(e.target.value)}
-                    className="bg-gray-950 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                    className="bg-gray-955 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
                   />
                 </div>
               </div>
 
               <button
-                onClick={handlePrint}
+                onClick={() => window.print()}
                 className="gradient-btn px-4 py-2 rounded-xl text-xs font-bold text-white shadow-md flex items-center gap-1.5 shrink-0"
               >
                 <Printer className="w-4 h-4" /> {isRtl ? 'طباعة التقرير المهني' : 'Print Report'}
@@ -540,7 +599,7 @@ export default function TeamOverviewTable({
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
                     {isRtl ? 'فترة التقرير' : 'Report Period'}
                   </span>
-                  <span className="text-xs font-semibold text-sky-300 print:text-black">
+                  <span className="text-xs font-semibold text-sky-300 print:text-black font-sans">
                     {reportStart} {isRtl ? 'إلى' : 'to'} {reportEnd}
                   </span>
                 </div>
@@ -562,7 +621,7 @@ export default function TeamOverviewTable({
                 </div>
                 <div>
                   <span className="text-[10px] text-gray-500 font-bold block">{isRtl ? 'الراتب الأساسي:' : 'Basic Salary:'}</span>
-                  <span className="text-sm font-bold text-emerald-400 print:text-black">
+                  <span className="text-sm font-bold text-emerald-400 print:text-black font-sans">
                     {Number(selectedEmpProfile?.basic_salary || 0).toLocaleString()} EGP
                   </span>
                 </div>
@@ -575,7 +634,7 @@ export default function TeamOverviewTable({
               </div>
 
               {/* Metrics Summary Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 font-sans">
                 <div className="p-4 rounded-xl bg-gray-900 border border-gray-800/80 print:border-black print:bg-gray-100">
                   <span className="text-[10px] font-bold text-gray-400 block mb-1">
                     {isRtl ? 'إجمالي الحضور (ساعات)' : 'Attendance (Hours)'}
@@ -605,7 +664,7 @@ export default function TeamOverviewTable({
               </div>
 
               {/* KPI Production Summary */}
-              <div className="space-y-3">
+              <div className="space-y-3 font-sans">
                 <h4 className="text-xs font-bold text-gray-300 print:text-black uppercase tracking-wider flex items-center gap-1">
                   <ChevronRight className="w-4 h-4 text-sky-400 print:text-black" />{' '}
                   {isRtl ? 'مؤشرات الإنتاجية المحققة خلال الفترة' : 'KPI Production Achievements Breakdown'}
@@ -644,6 +703,3 @@ export default function TeamOverviewTable({
     </div>
   );
 }
-const handlePrint = () => {
-  window.print();
-};

@@ -28,7 +28,7 @@ export default function HolidayWorkForm({ teamMembers, currentUserId, isSuperAdm
   const fetchRecords = async () => {
     let query = supabase
       .from('holiday_work')
-      .select('*, user:users(*)');
+      .select('*, user:users!user_id(*)');
     
     // If not super admin, filter by team members' IDs
     if (!isSuperAdmin) {
@@ -68,7 +68,7 @@ export default function HolidayWorkForm({ teamMembers, currentUserId, isSuperAdm
         notes: notes.trim() || null,
         created_by: currentUserId,
       })
-      .select('*, user:users(*)')
+      .select('*, user:users!user_id(*)')
       .single();
 
     if (error) {

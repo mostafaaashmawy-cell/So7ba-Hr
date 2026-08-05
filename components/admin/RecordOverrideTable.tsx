@@ -29,20 +29,24 @@ export default function RecordOverrideTable({
   // GLOBAL FILTER BY EMPLOYEE
   const [selectedUser, setSelectedUser] = useState<string>('all');
 
-  // ADVANCED FILTERS STATE
+  // ADVANCED DATE RANGE FILTERS
   // Attendance
-  const [attendanceDate, setAttendanceDate] = useState<string>('');
+  const [attStart, setAttStart] = useState<string>('');
+  const [attEnd, setAttEnd] = useState<string>('');
   // Leaves
   const [leavesType, setLeavesType] = useState<'all' | 'leave' | 'permission'>('all');
+  const [leaveStart, setLeaveStart] = useState<string>('');
+  const [leaveEnd, setLeaveEnd] = useState<string>('');
   // KPIs
   const [kpisUnit, setKpisUnit] = useState<string>('all');
-  const [kpisDate, setKpisDate] = useState<string>('');
+  const [kpiStart, setKpiStart] = useState<string>('');
+  const [kpiEnd, setKpiEnd] = useState<string>('');
   const [kpisMinQty, setKpisMinQty] = useState<number | ''>('');
   const [kpisMaxQty, setKpisMaxQty] = useState<number | ''>('');
 
   const supabase = createClient();
 
-  // Extract all unique users across all records to build the filter dropdown
+  // Extract unique users across all records
   const uniqueUsersMap = new Map<string, string>();
   initialAttendance.forEach((r) => { if (r.user) uniqueUsersMap.set(r.user_id, r.user.full_name); });
   leaves.forEach((r) => { if (r.user) uniqueUsersMap.set(r.user_id, r.user.full_name); });
@@ -69,26 +73,41 @@ export default function RecordOverrideTable({
     setLoadingId(null);
   };
 
-  // FILTER LOGIC
+  // FILTER LOGIC WITH DATE RANGE SUPPORT
   const filteredAttendance = initialAttendance.filter((r) => {
     if (selectedUser !== 'all' && r.user_id !== selectedUser) return false;
-    if (attendanceDate && r.date !== attendanceDate) return false;
+    
+    // Date / Date-Range checks
+    if (attStart && !attEnd && r.date !== attStart) return false;
+    if (attStart && attEnd && (r.date < attStart || r.date > attEnd)) return false;
+    if (!attStart && attEnd && r.date !== attEnd) return false;
+
     return true;
   });
 
   const filteredLeaves = leaves.filter((r) => {
     if (selectedUser !== 'all' && r.user_id !== selectedUser) return false;
     if (leavesType !== 'all' && r.type !== leavesType) return false;
+
+    // Date / Date-Range checks
+    if (leaveStart && !leaveEnd && r.date !== leaveStart) return false;
+    if (leaveStart && leaveEnd && (r.date < leaveStart || r.date > leaveEnd)) return false;
+    if (!leaveStart && leaveEnd && r.date !== leaveEnd) return false;
+
     return true;
   });
 
-  // Extract unique KPI units for filtering dropdown
   const uniqueKpiUnits = Array.from(new Set(kpis.map((k) => k.unit)));
 
   const filteredKpis = kpis.filter((r) => {
     if (selectedUser !== 'all' && r.user_id !== selectedUser) return false;
     if (kpisUnit !== 'all' && r.unit !== kpisUnit) return false;
-    if (kpisDate && r.date !== kpisDate) return false;
+
+    // Date / Date-Range checks
+    if (kpiStart && !kpiEnd && r.date !== kpiStart) return false;
+    if (kpiStart && kpiEnd && (r.date < kpiStart || r.date > kpiEnd)) return false;
+    if (!kpiStart && kpiEnd && r.date !== kpiEnd) return false;
+
     const qty = Number(r.amount);
     if (kpisMinQty !== '' && qty < kpisMinQty) return false;
     if (kpisMaxQty !== '' && qty > kpisMaxQty) return false;
@@ -175,20 +194,33 @@ export default function RecordOverrideTable({
         </button>
       </div>
 
-      {/* FILTER CONTROLS PANEL */}
+      {/* FILTER CONTROLS PANEL (With range Date Pickers) */}
       <div className="p-4 rounded-xl bg-gray-900/60 border border-gray-800 space-y-3">
         <h4 className="text-xs font-bold text-gray-400 flex items-center gap-1.5 uppercase tracking-wider">
           <Filter className="w-3.5 h-3.5 text-sky-400" /> {t('filters')}
         </h4>
 
         {activeTab === 'attendance' && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-[11px] text-gray-500 mb-1">{t('filterByDay')}</label>
+              <label className="block text-[11px] text-gray-500 mb-1">
+                {isRtl ? 'التاريخ (أو تاريخ البدء):' : 'Date (or Start Date):'}
+              </label>
               <input
                 type="date"
-                value={attendanceDate}
-                onChange={(e) => setAttendanceDate(e.target.value)}
+                value={attStart}
+                onChange={(e) => setAttStart(e.target.value)}
+                className="bg-gray-955 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] text-gray-500 mb-1">
+                {isRtl ? 'تاريخ الانتهاء (اختياري لنطاق التواريخ):' : 'End Date (Optional for date range):'}
+              </label>
+              <input
+                type="date"
+                value={attEnd}
+                onChange={(e) => setAttEnd(e.target.value)}
                 className="bg-gray-955 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
               />
             </div>
@@ -196,7 +228,7 @@ export default function RecordOverrideTable({
         )}
 
         {activeTab === 'leaves' && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-[11px] text-gray-500 mb-1">{t('filterByType')}</label>
               <select
@@ -209,11 +241,33 @@ export default function RecordOverrideTable({
                 <option value="permission">{t('permission')}</option>
               </select>
             </div>
+            <div>
+              <label className="block text-[11px] text-gray-500 mb-1">
+                {isRtl ? 'التاريخ (أو تاريخ البدء):' : 'Date (or Start Date):'}
+              </label>
+              <input
+                type="date"
+                value={leaveStart}
+                onChange={(e) => setLeaveStart(e.target.value)}
+                className="bg-gray-955 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] text-gray-500 mb-1">
+                {isRtl ? 'تاريخ الانتهاء (اختياري لنطاق التواريخ):' : 'End Date (Optional for date range):'}
+              </label>
+              <input
+                type="date"
+                value={leaveEnd}
+                onChange={(e) => setLeaveEnd(e.target.value)}
+                className="bg-gray-955 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+              />
+            </div>
           </div>
         )}
 
         {activeTab === 'kpis' && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <div>
               <label className="block text-[11px] text-gray-500 mb-1">{t('filterByUnit')}</label>
               <select
@@ -230,11 +284,24 @@ export default function RecordOverrideTable({
               </select>
             </div>
             <div>
-              <label className="block text-[11px] text-gray-500 mb-1">{t('filterByDate')}</label>
+              <label className="block text-[11px] text-gray-500 mb-1">
+                {isRtl ? 'البدء:' : 'Start Date:'}
+              </label>
               <input
                 type="date"
-                value={kpisDate}
-                onChange={(e) => setKpisDate(e.target.value)}
+                value={kpiStart}
+                onChange={(e) => setKpiStart(e.target.value)}
+                className="bg-gray-955 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] text-gray-500 mb-1">
+                {isRtl ? 'الانتهاء:' : 'End Date:'}
+              </label>
+              <input
+                type="date"
+                value={kpiEnd}
+                onChange={(e) => setKpiEnd(e.target.value)}
                 className="bg-gray-955 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
               />
             </div>
