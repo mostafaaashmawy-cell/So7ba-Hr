@@ -104,8 +104,8 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
   });
 
   // Extract filter dropdown contents
-  const uniqueJobTitles = Array.from(new Set(users.map((u) => u.job_title).filter(Boolean)));
-  const uniquePaymentMethods = Array.from(new Set(users.map((u) => u.payment_method).filter(Boolean)));
+  const uniqueJobTitles = Array.from(new Set(users.map((u) => u.job_title).filter((t): t is string => !!t)));
+  const uniquePaymentMethods = Array.from(new Set(users.map((u) => u.payment_method).filter((t): t is string => !!t)));
   const managersList = users.filter((u) => u.role === 'manager' || u.role === 'super_admin');
 
   // File Upload to Supabase Storage
