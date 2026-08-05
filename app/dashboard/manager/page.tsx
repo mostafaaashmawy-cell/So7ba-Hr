@@ -3,7 +3,8 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import Navbar from '@/components/Navbar';
 import TeamOverviewTable from '@/components/manager/TeamOverviewTable';
-import { UserProfile, AttendanceRecord, LeavePermissionRecord, AdvanceRecord, KpiEntryRecord } from '@/lib/types/database';
+import HolidayWorkForm from '@/components/manager/HolidayWorkForm';
+import { UserProfile, AttendanceRecord, LeavePermissionRecord, KpiEntryRecord } from '@/lib/types/database';
 
 export default async function ManagerDashboardPage() {
   const supabase = await createClient();
@@ -52,13 +53,6 @@ export default async function ManagerDashboardPage() {
     .in('user_id', teamIds.length > 0 ? teamIds : ['00000000-0000-0000-0000-000000000000'])
     .order('created_at', { ascending: false });
 
-  // Fetch Advance Records
-  const { data: advanceRecords } = await supabase
-    .from('advances')
-    .select('*, user:users(*)')
-    .in('user_id', teamIds.length > 0 ? teamIds : ['00000000-0000-0000-0000-000000000000'])
-    .order('created_at', { ascending: false });
-
   // Fetch KPI Records
   const { data: kpiRecords } = await supabase
     .from('kpi_entries')
@@ -67,16 +61,23 @@ export default async function ManagerDashboardPage() {
     .order('created_at', { ascending: false });
 
   return (
-    <div className="min-h-screen bg-[#0b0f19] text-gray-100 flex flex-col">
+    <div className="min-h-screen bg-[#0b0f19] text-gray-100 flex flex-col font-sans">
       <Navbar user={manager} activeRoleView="manager" />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-8 space-y-8">
+        {/* Team Overview Dashboard */}
         <TeamOverviewTable
           teamMembers={(teamMembers as UserProfile[]) || []}
           attendanceRecords={(attendanceRecords as AttendanceRecord[]) || []}
           leaveRecords={(leaveRecords as LeavePermissionRecord[]) || []}
-          advanceRecords={(advanceRecords as AdvanceRecord[]) || []}
           kpiRecords={(kpiRecords as KpiEntryRecord[]) || []}
+        />
+
+        {/* Manager-only Holiday Working Days Compensation Section */}
+        <HolidayWorkForm
+          teamMembers={(teamMembers as UserProfile[]) || []}
+          currentUserId={authUser.id}
+          isSuperAdmin={manager.role === 'super_admin'}
         />
       </main>
     </div>

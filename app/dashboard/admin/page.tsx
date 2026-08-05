@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import Navbar from '@/components/Navbar';
 import EmployeeManagement from '@/components/admin/EmployeeManagement';
 import RecordOverrideTable from '@/components/admin/RecordOverrideTable';
-import { UserProfile, AttendanceRecord, LeavePermissionRecord, AdvanceRecord, KpiEntryRecord } from '@/lib/types/database';
+import { UserProfile, AttendanceRecord, LeavePermissionRecord, KpiEntryRecord } from '@/lib/types/database';
 
 import AdminWelcomeHeader from '@/components/admin/AdminWelcomeHeader';
 
@@ -47,12 +47,6 @@ export default async function SuperAdminDashboardPage() {
     .select('*, user:users(*)')
     .order('created_at', { ascending: false });
 
-  // Fetch All Advance Records
-  const { data: allAdvances } = await supabase
-    .from('advances')
-    .select('*, user:users(*)')
-    .order('created_at', { ascending: false });
-
   // Fetch All KPI Records
   const { data: allKpis } = await supabase
     .from('kpi_entries')
@@ -60,7 +54,7 @@ export default async function SuperAdminDashboardPage() {
     .order('created_at', { ascending: false });
 
   return (
-    <div className="min-h-screen bg-[#0b0f19] text-gray-100 flex flex-col">
+    <div className="min-h-screen bg-[#0b0f19] text-gray-100 flex flex-col font-sans">
       <Navbar user={admin} activeRoleView="super_admin" />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-8 space-y-8">
@@ -70,11 +64,10 @@ export default async function SuperAdminDashboardPage() {
         {/* Employee Management Section */}
         <EmployeeManagement initialUsers={(allUsers as UserProfile[]) || []} />
 
-        {/* Global Record Override & Delete Section */}
+        {/* Global Record Override & Delete Section (No Advances) */}
         <RecordOverrideTable
           initialAttendance={(allAttendance as AttendanceRecord[]) || []}
           initialLeaves={(allLeaves as LeavePermissionRecord[]) || []}
-          initialAdvances={(allAdvances as AdvanceRecord[]) || []}
           initialKpis={(allKpis as KpiEntryRecord[]) || []}
         />
       </main>

@@ -10,9 +10,10 @@ import { useLanguage } from '@/lib/context/LanguageContext';
 interface LeavePermissionProps {
   userId: string;
   initialRecords: LeavePermissionRecord[];
+  holidayWorkCount: number;
 }
 
-export default function LeavePermissionForm({ userId, initialRecords }: LeavePermissionProps) {
+export default function LeavePermissionForm({ userId, initialRecords, holidayWorkCount }: LeavePermissionProps) {
   const { t, isRtl } = useLanguage();
   const [records, setRecords] = useState<LeavePermissionRecord[]>(initialRecords);
   const [type, setType] = useState<'leave' | 'permission'>('leave');
@@ -25,8 +26,9 @@ export default function LeavePermissionForm({ userId, initialRecords }: LeavePer
   const supabase = createClient();
 
   const ANNUAL_LIMIT = 21;
+  const totalAllowance = ANNUAL_LIMIT + holidayWorkCount;
   const consumedLeaves = records.filter((r) => r.type === 'leave' && r.status === 'active').length;
-  const remainingLeaves = Math.max(0, ANNUAL_LIMIT - consumedLeaves);
+  const remainingLeaves = Math.max(0, totalAllowance - consumedLeaves);
   
   // Calculate permissions in the current calendar month
   const currentMonthStr = getCairoDate().toISOString().slice(0, 7); // "YYYY-MM"
@@ -90,8 +92,14 @@ export default function LeavePermissionForm({ userId, initialRecords }: LeavePer
             <span className="text-xs font-semibold">{t('totalAllowance')}</span>
             <Calendar className="w-4 h-4 text-purple-400" />
           </div>
-          <div className="text-2xl font-black text-white">
-            {ANNUAL_LIMIT} <span className="text-xs font-normal text-gray-400">{t('days')}</span>
+          <div className="text-2xl font-black text-white flex items-baseline gap-1.5">
+            <span>{totalAllowance}</span>
+            <span className="text-xs font-normal text-gray-400">{t('days')}</span>
+            {holidayWorkCount > 0 && (
+              <span className="text-[10px] text-lime-400 font-bold bg-lime-500/10 px-1.5 py-0.5 rounded">
+                +{holidayWorkCount}
+              </span>
+            )}
           </div>
         </div>
 

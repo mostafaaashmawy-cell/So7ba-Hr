@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Trash2, ShieldAlert, Clock, Calendar, Wallet, Target, CheckCircle2, AlertCircle, Filter, User } from 'lucide-react';
-import { AttendanceRecord, LeavePermissionRecord, AdvanceRecord, KpiEntryRecord } from '@/lib/types/database';
+import { Trash2, ShieldAlert, Clock, Calendar, Target, CheckCircle2, AlertCircle, Filter, User } from 'lucide-react';
+import { AttendanceRecord, LeavePermissionRecord, KpiEntryRecord } from '@/lib/types/database';
 import { formatDate, formatTime } from '@/lib/utils/dateUtils';
 import { createClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/lib/context/LanguageContext';
@@ -10,22 +10,19 @@ import { useLanguage } from '@/lib/context/LanguageContext';
 interface RecordOverrideProps {
   initialAttendance: AttendanceRecord[];
   initialLeaves: LeavePermissionRecord[];
-  initialAdvances: AdvanceRecord[];
   initialKpis: KpiEntryRecord[];
 }
 
 export default function RecordOverrideTable({
   initialAttendance,
   initialLeaves,
-  initialAdvances,
   initialKpis,
 }: RecordOverrideProps) {
   const { t, isRtl } = useLanguage();
   const [leaves, setLeaves] = useState<LeavePermissionRecord[]>(initialLeaves);
-  const [advances, setAdvances] = useState<AdvanceRecord[]>(initialAdvances);
   const [kpis, setKpis] = useState<KpiEntryRecord[]>(initialKpis);
 
-  const [activeTab, setActiveTab] = useState<'attendance' | 'leaves' | 'advances' | 'kpis'>('attendance');
+  const [activeTab, setActiveTab] = useState<'attendance' | 'leaves' | 'kpis'>('attendance');
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ text: string; error: boolean } | null>(null);
 
@@ -37,11 +34,6 @@ export default function RecordOverrideTable({
   const [attendanceDate, setAttendanceDate] = useState<string>('');
   // Leaves
   const [leavesType, setLeavesType] = useState<'all' | 'leave' | 'permission'>('all');
-  // Advances
-  const [advMin, setAdvMin] = useState<number | ''>('');
-  const [advMax, setAdvMax] = useState<number | ''>('');
-  const [advMonth, setAdvMonth] = useState<string>('');
-  const [advDate, setAdvDate] = useState<string>('');
   // KPIs
   const [kpisUnit, setKpisUnit] = useState<string>('all');
   const [kpisDate, setKpisDate] = useState<string>('');
@@ -54,7 +46,6 @@ export default function RecordOverrideTable({
   const uniqueUsersMap = new Map<string, string>();
   initialAttendance.forEach((r) => { if (r.user) uniqueUsersMap.set(r.user_id, r.user.full_name); });
   leaves.forEach((r) => { if (r.user) uniqueUsersMap.set(r.user_id, r.user.full_name); });
-  advances.forEach((r) => { if (r.user) uniqueUsersMap.set(r.user_id, r.user.full_name); });
   kpis.forEach((r) => { if (r.user) uniqueUsersMap.set(r.user_id, r.user.full_name); });
 
   const uniqueUsersList = Array.from(uniqueUsersMap.entries()).map(([id, name]) => ({ id, name }));
@@ -71,7 +62,6 @@ export default function RecordOverrideTable({
       setMsg({ text: error.message, error: true });
     } else {
       if (table === 'leaves_permissions') setLeaves(leaves.filter((r) => r.id !== id));
-      if (table === 'advances') setAdvances(advances.filter((r) => r.id !== id));
       if (table === 'kpi_entries') setKpis(kpis.filter((r) => r.id !== id));
 
       setMsg({ text: isRtl ? 'تم حذف السجل نهائياً من النظام.' : 'Record permanently deleted from system.', error: false });
@@ -89,16 +79,6 @@ export default function RecordOverrideTable({
   const filteredLeaves = leaves.filter((r) => {
     if (selectedUser !== 'all' && r.user_id !== selectedUser) return false;
     if (leavesType !== 'all' && r.type !== leavesType) return false;
-    return true;
-  });
-
-  const filteredAdvances = advances.filter((r) => {
-    if (selectedUser !== 'all' && r.user_id !== selectedUser) return false;
-    const amt = Number(r.amount);
-    if (advMin !== '' && amt < advMin) return false;
-    if (advMax !== '' && amt > advMax) return false;
-    if (advMonth && r.month !== advMonth) return false;
-    if (advDate && !(r.created_at || r.month).startsWith(advDate)) return false;
     return true;
   });
 
@@ -184,17 +164,6 @@ export default function RecordOverrideTable({
         </button>
 
         <button
-          onClick={() => setActiveTab('advances')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 ${
-            activeTab === 'advances'
-              ? 'bg-sky-500 text-white shadow-md'
-              : 'text-gray-400 hover:text-gray-200'
-          }`}
-        >
-          <Wallet className="w-4 h-4" /> {t('advancesTitle')} ({filteredAdvances.length})
-        </button>
-
-        <button
           onClick={() => setActiveTab('kpis')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 ${
             activeTab === 'kpis'
@@ -208,7 +177,7 @@ export default function RecordOverrideTable({
 
       {/* FILTER CONTROLS PANEL */}
       <div className="p-4 rounded-xl bg-gray-900/60 border border-gray-800 space-y-3">
-        <h4 className="text-xs font-bold text-gray-400 flex items-center gap-1.5 uppercase tracking-wider font-sans">
+        <h4 className="text-xs font-bold text-gray-400 flex items-center gap-1.5 uppercase tracking-wider">
           <Filter className="w-3.5 h-3.5 text-sky-400" /> {t('filters')}
         </h4>
 
@@ -239,49 +208,6 @@ export default function RecordOverrideTable({
                 <option value="leave">{t('annualLeave')}</option>
                 <option value="permission">{t('permission')}</option>
               </select>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'advances' && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div>
-              <label className="block text-[11px] text-gray-500 mb-1">{t('minAmount')}</label>
-              <input
-                type="number"
-                value={advMin}
-                onChange={(e) => setAdvMin(e.target.value === '' ? '' : Number(e.target.value))}
-                placeholder="e.g. 500"
-                className="bg-gray-955 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] text-gray-500 mb-1">{t('maxAmount')}</label>
-              <input
-                type="number"
-                value={advMax}
-                onChange={(e) => setAdvMax(e.target.value === '' ? '' : Number(e.target.value))}
-                placeholder="e.g. 2000"
-                className="bg-gray-955 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] text-gray-500 mb-1">{t('filterByMonth')}</label>
-              <input
-                type="month"
-                value={advMonth ? advMonth.substring(0, 7) : ''}
-                onChange={(e) => setAdvMonth(e.target.value ? `${e.target.value}-01` : '')}
-                className="bg-gray-955 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] text-gray-500 mb-1">{t('filterByDate')}</label>
-              <input
-                type="date"
-                value={advDate}
-                onChange={(e) => setAdvDate(e.target.value)}
-                className="bg-gray-955 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
-              />
             </div>
           </div>
         )}
@@ -386,7 +312,7 @@ export default function RecordOverrideTable({
               {filteredLeaves.map((r) => (
                 <tr key={r.id} className="hover:bg-gray-900/40">
                   <td className="px-4 py-3 font-semibold text-white">{r.user?.full_name || r.user_id}</td>
-                  <td className="px-4 py-3 capitalize font-medium text-purple-300">
+                  <td className="px-4 py-3 capitalize font-medium text-sky-300">
                     {r.type === 'leave' ? t('annualLeave') : t('permission')}
                   </td>
                   <td className="px-4 py-3 text-gray-400">{formatDate(r.date)}</td>
@@ -417,48 +343,6 @@ export default function RecordOverrideTable({
                 <tr>
                   <td colSpan={6} className="text-center py-6 text-gray-500">
                     {isRtl ? 'لا توجد طلبات إجازة مطابقة.' : 'No matching requests found.'}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        )}
-
-        {/* Advances */}
-        {activeTab === 'advances' && (
-          <table className="w-full text-left text-xs text-gray-300 font-sans">
-            <thead className="bg-gray-900/80 text-gray-400 uppercase text-[10px] tracking-wider">
-              <tr>
-                <th className="px-4 py-3 rounded-l-lg">{t('fullName')}</th>
-                <th className="px-4 py-3">{t('date')}</th>
-                <th className="px-4 py-3">{t('payrollMonth')}</th>
-                <th className="px-4 py-3">{t('amount')}</th>
-                <th className="px-4 py-3 text-right rounded-r-lg">{t('actions')}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-800/60 font-sans">
-              {filteredAdvances.map((r) => (
-                <tr key={r.id} className="hover:bg-gray-900/40">
-                  <td className="px-4 py-3 font-semibold text-white">{r.user?.full_name || r.user_id}</td>
-                  <td className="px-4 py-3 text-gray-400">{formatDate(r.created_at || r.month)}</td>
-                  <td className="px-4 py-3 text-purple-300">{r.month}</td>
-                  <td className="px-4 py-3 font-bold text-emerald-400">{Number(r.amount).toLocaleString()} EGP</td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => handleDelete('advances', r.id)}
-                      disabled={loadingId === r.id}
-                      className="p-1.5 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/30 rounded-lg transition-all"
-                      title={t('delete')}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {filteredAdvances.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="text-center py-6 text-gray-500">
-                    {isRtl ? 'لا توجد سلف مطابقة.' : 'No matching advances found.'}
                   </td>
                 </tr>
               )}

@@ -1,16 +1,16 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Users, Clock, Calendar, Wallet, Target, MapPin, Filter, FileText, Printer, ChevronRight } from 'lucide-react';
-import { UserProfile, AttendanceRecord, LeavePermissionRecord, AdvanceRecord, KpiEntryRecord } from '@/lib/types/database';
+import { Users, Clock, Calendar, Target, MapPin, Filter, FileText, Printer, ChevronRight, Download } from 'lucide-react';
+import { UserProfile, AttendanceRecord, LeavePermissionRecord, KpiEntryRecord } from '@/lib/types/database';
 import { formatDate, formatTime, calculateWorkingHours } from '@/lib/utils/dateUtils';
 import { useLanguage } from '@/lib/context/LanguageContext';
+import { exportToCSV } from '@/lib/utils/csvExport';
 
 interface TeamOverviewProps {
   teamMembers: UserProfile[];
   attendanceRecords: AttendanceRecord[];
   leaveRecords: LeavePermissionRecord[];
-  advanceRecords: AdvanceRecord[];
   kpiRecords: KpiEntryRecord[];
 }
 
@@ -18,11 +18,10 @@ export default function TeamOverviewTable({
   teamMembers,
   attendanceRecords,
   leaveRecords,
-  advanceRecords,
   kpiRecords,
 }: TeamOverviewProps) {
   const { t, isRtl } = useLanguage();
-  const [activeTab, setActiveTab] = useState<'attendance' | 'leaves' | 'advances' | 'kpis' | 'report'>('attendance');
+  const [activeTab, setActiveTab] = useState<'attendance' | 'leaves' | 'kpis' | 'report'>('attendance');
   const [selectedMember, setSelectedMember] = useState<string>('all');
 
   // FILTERS STATE
@@ -30,11 +29,6 @@ export default function TeamOverviewTable({
   const [attendanceDate, setAttendanceDate] = useState<string>('');
   // Leaves
   const [leavesType, setLeavesType] = useState<'all' | 'leave' | 'permission'>('all');
-  // Advances
-  const [advMin, setAdvMin] = useState<number | ''>('');
-  const [advMax, setAdvMax] = useState<number | ''>('');
-  const [advMonth, setAdvMonth] = useState<string>('');
-  const [advDate, setAdvDate] = useState<string>('');
   // KPIs
   const [kpisUnit, setKpisUnit] = useState<string>('all');
   const [kpisDate, setKpisDate] = useState<string>('');
@@ -57,10 +51,6 @@ export default function TeamOverviewTable({
     (l) => selectedMember === 'all' || l.user_id === selectedMember
   );
 
-  const memberAdvances = advanceRecords.filter(
-    (a) => selectedMember === 'all' || a.user_id === selectedMember
-  );
-
   const memberKpis = kpiRecords.filter(
     (k) => selectedMember === 'all' || k.user_id === selectedMember
   );
@@ -76,15 +66,6 @@ export default function TeamOverviewTable({
     return true;
   });
 
-  const filteredAdvances = memberAdvances.filter((r) => {
-    const amt = Number(r.amount);
-    if (advMin !== '' && amt < advMin) return false;
-    if (advMax !== '' && amt > advMax) return false;
-    if (advMonth && r.month !== advMonth) return false;
-    if (advDate && !(r.created_at || r.month).startsWith(advDate)) return false;
-    return true;
-  });
-
   const uniqueKpiUnits = Array.from(new Set(kpiRecords.map((k) => k.unit)));
 
   const filteredKpis = memberKpis.filter((r) => {
@@ -96,7 +77,39 @@ export default function TeamOverviewTable({
     return true;
   });
 
-  // 3. CALCULATE PERFORMANCE REPORT METRICS
+  // 3. EXPORT REPORTS TO EXCEL (CSV)
+  const handleExportCSV = () => {
+    if (activeTab === 'attendance') {
+      const data = filteredAttendance.map((rec) => ({
+        Employee: rec.user?.full_name || rec.user_id,
+        Date: rec.date,
+        'Check-In': rec.check_in_time ? new Date(rec.check_in_time).toLocaleTimeString() : '',
+        'Check-Out': rec.check_out_time ? new Date(rec.check_out_time).toLocaleTimeString() : '',
+        'Working Hours': calculateWorkingHours(rec.check_in_time, rec.check_out_time),
+      }));
+      exportToCSV(data, `Attendance_Report_${new Date().toISOString().split('T')[0]}`);
+    } else if (activeTab === 'leaves') {
+      const data = filteredLeaves.map((rec) => ({
+        Employee: rec.user?.full_name || rec.user_id,
+        Type: rec.type,
+        Date: rec.date,
+        Details: rec.type === 'permission' ? `${rec.timeframe || ''} (${rec.excuse_time || ''})` : 'Annual Leave',
+        Status: rec.status,
+      }));
+      exportToCSV(data, `Leaves_Report_${new Date().toISOString().split('T')[0]}`);
+    } else if (activeTab === 'kpis') {
+      const data = filteredKpis.map((rec) => ({
+        Employee: rec.user?.full_name || rec.user_id,
+        Date: rec.date,
+        Quantity: rec.amount,
+        Unit: rec.unit,
+        Notes: rec.notes || '',
+      }));
+      exportToCSV(data, `KPIs_Production_Report_${new Date().toISOString().split('T')[0]}`);
+    }
+  };
+
+  // 4. CALCULATE PERFORMANCE REPORT METRICS
   const selectedEmpProfile = teamMembers.find((m) => m.id === reportUser) || null;
 
   const reportAttendance = attendanceRecords.filter(
@@ -107,16 +120,10 @@ export default function TeamOverviewTable({
     (l) => l.user_id === reportUser && l.date >= reportStart && l.date <= reportEnd && l.status === 'active'
   );
 
-  const reportAdvances = advanceRecords.filter((a) => {
-    const dateStr = (a.created_at || a.month).substring(0, 10);
-    return a.user_id === reportUser && dateStr >= reportStart && dateStr <= reportEnd;
-  });
-
   const reportKpis = kpiRecords.filter(
     (k) => k.user_id === reportUser && k.date >= reportStart && k.date <= reportEnd
   );
 
-  // Summarize metrics
   const totalWorkedMinutes = reportAttendance.reduce((sum, rec) => {
     if (!rec.check_in_time || !rec.check_out_time) return sum;
     const start = new Date(rec.check_in_time);
@@ -127,18 +134,13 @@ export default function TeamOverviewTable({
   const reportWorkedHoursText = `${Math.floor(totalWorkedMinutes / 60)}h ${totalWorkedMinutes % 60}m`;
   const totalLeavesCount = reportLeaves.filter((l) => l.type === 'leave').length;
   const totalExcusesCount = reportLeaves.filter((l) => l.type === 'permission').length;
-  const totalAdvancesSum = reportAdvances.reduce((sum, a) => sum + Number(a.amount), 0);
 
-  // Group KPIs by unit for report
+  // Group KPIs by unit
   const kpisSummaryMap = new Map<string, number>();
   reportKpis.forEach((k) => {
     kpisSummaryMap.set(k.unit, (kpisSummaryMap.get(k.unit) || 0) + Number(k.amount));
   });
   const kpisSummaryList = Array.from(kpisSummaryMap.entries()).map(([unit, amount]) => ({ unit, amount }));
-
-  const handlePrint = () => {
-    window.print();
-  };
 
   return (
     <div className="space-y-6">
@@ -195,17 +197,6 @@ export default function TeamOverviewTable({
         </button>
 
         <button
-          onClick={() => setActiveTab('advances')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 ${
-            activeTab === 'advances'
-              ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
-              : 'text-gray-400 hover:text-gray-200'
-          }`}
-        >
-          <Wallet className="w-4 h-4" /> {t('advancesTitle')} ({filteredAdvances.length})
-        </button>
-
-        <button
           onClick={() => setActiveTab('kpis')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 ${
             activeTab === 'kpis'
@@ -234,9 +225,20 @@ export default function TeamOverviewTable({
       {/* FILTER CONTROLS PANEL (Except Report Tab) */}
       {activeTab !== 'report' && (
         <div className="glass-card p-4 rounded-xl border border-gray-800 space-y-3 print:hidden">
-          <h4 className="text-xs font-bold text-gray-400 flex items-center gap-1.5 uppercase tracking-wider">
-            <Filter className="w-3.5 h-3.5 text-sky-400" /> {t('filters')}
-          </h4>
+          <div className="flex justify-between items-center">
+            <h4 className="text-xs font-bold text-gray-400 flex items-center gap-1.5 uppercase tracking-wider">
+              <Filter className="w-3.5 h-3.5 text-sky-400" /> {t('filters')}
+            </h4>
+            
+            {/* Export excel button */}
+            <button
+              onClick={handleExportCSV}
+              className="flex items-center gap-1.5 bg-gray-900 border border-gray-800 rounded-lg px-2.5 py-1 text-[11px] font-bold text-lime-400 hover:text-white hover:bg-lime-500/20 hover:border-lime-500/30 transition-all cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>{isRtl ? 'تصدير إكسل' : 'Export Excel'}</span>
+            </button>
+          </div>
 
           {activeTab === 'attendance' && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -265,49 +267,6 @@ export default function TeamOverviewTable({
                   <option value="leave">{t('annualLeave')}</option>
                   <option value="permission">{t('permission')}</option>
                 </select>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'advances' && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div>
-                <label className="block text-[11px] text-gray-500 mb-1">{t('minAmount')}</label>
-                <input
-                  type="number"
-                  value={advMin}
-                  onChange={(e) => setAdvMin(e.target.value === '' ? '' : Number(e.target.value))}
-                  placeholder="e.g. 500"
-                  className="bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] text-gray-500 mb-1">{t('maxAmount')}</label>
-                <input
-                  type="number"
-                  value={advMax}
-                  onChange={(e) => setAdvMax(e.target.value === '' ? '' : Number(e.target.value))}
-                  placeholder="e.g. 2000"
-                  className="bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] text-gray-500 mb-1">{t('filterByMonth')}</label>
-                <input
-                  type="month"
-                  value={advMonth ? advMonth.substring(0, 7) : ''}
-                  onChange={(e) => setAdvMonth(e.target.value ? `${e.target.value}-01` : '')}
-                  className="bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] text-gray-500 mb-1">{t('filterByDate')}</label>
-                <input
-                  type="date"
-                  value={advDate}
-                  onChange={(e) => setAdvDate(e.target.value)}
-                  className="bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
-                />
               </div>
             </div>
           )}
@@ -383,7 +342,7 @@ export default function TeamOverviewTable({
                       <th className="px-4 py-3 rounded-r-lg">{t('coordinates')}</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-800/60">
+                  <tbody className="divide-y divide-gray-800/60 font-sans">
                     {filteredAttendance.map((rec) => (
                       <tr key={rec.id} className="hover:bg-gray-900/40">
                         <td className="px-4 py-3 font-semibold text-white">
@@ -392,7 +351,7 @@ export default function TeamOverviewTable({
                         <td className="px-4 py-3 text-gray-400">{formatDate(rec.date)}</td>
                         <td className="px-4 py-3 font-medium text-emerald-400">{formatTime(rec.check_in_time)}</td>
                         <td className="px-4 py-3 font-medium text-rose-400">{formatTime(rec.check_out_time)}</td>
-                        <td className="px-4 py-3 font-bold text-amber-300 font-sans">
+                        <td className="px-4 py-3 font-bold text-amber-300">
                           {calculateWorkingHours(rec.check_in_time, rec.check_out_time)}
                         </td>
                         <td className="px-4 py-3 text-gray-400 text-[11px]">
@@ -470,42 +429,6 @@ export default function TeamOverviewTable({
           </div>
         )}
 
-        {/* TAB: Advances */}
-        {activeTab === 'advances' && (
-          <div>
-            {filteredAdvances.length === 0 ? (
-              <div className="py-8 text-center text-xs text-gray-500">{isRtl ? 'لا توجد سلف مالية مطابقة.' : 'No matching advance requests found.'}</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs text-gray-300">
-                  <thead className="bg-gray-900/80 text-gray-400 uppercase text-[10px] tracking-wider">
-                    <tr>
-                      <th className="px-4 py-3 rounded-l-lg">{t('fullName')}</th>
-                      <th className="px-4 py-3">{t('date')}</th>
-                      <th className="px-4 py-3">{t('payrollMonth')}</th>
-                      <th className="px-4 py-3 text-right rounded-r-lg">{t('amount')}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-800/60">
-                    {filteredAdvances.map((rec) => (
-                      <tr key={rec.id} className="hover:bg-gray-900/40">
-                        <td className="px-4 py-3 font-semibold text-white">
-                          {rec.user?.full_name || 'Team Member'}
-                        </td>
-                        <td className="px-4 py-3 text-gray-400">{formatDate(rec.created_at || rec.month)}</td>
-                        <td className="px-4 py-3 text-sky-300">{rec.month}</td>
-                        <td className="px-4 py-3 text-right font-bold text-emerald-400">
-                          {Number(rec.amount).toLocaleString()} EGP
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* TAB: KPIs */}
         {activeTab === 'kpis' && (
           <div>
@@ -544,7 +467,7 @@ export default function TeamOverviewTable({
           </div>
         )}
 
-        {/* TAB: Professional Performance Report Tab */}
+        {/* TAB: Performance Report */}
         {activeTab === 'report' && (
           <div className="space-y-6">
             {/* Filter selection header */}
@@ -575,7 +498,7 @@ export default function TeamOverviewTable({
                     type="date"
                     value={reportStart}
                     onChange={(e) => setReportStart(e.target.value)}
-                    className="bg-gray-955 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                    className="bg-gray-950 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
                   />
                 </div>
 
@@ -587,7 +510,7 @@ export default function TeamOverviewTable({
                     type="date"
                     value={reportEnd}
                     onChange={(e) => setReportEnd(e.target.value)}
-                    className="bg-gray-955 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                    className="bg-gray-950 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
                   />
                 </div>
               </div>
@@ -617,7 +540,7 @@ export default function TeamOverviewTable({
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
                     {isRtl ? 'فترة التقرير' : 'Report Period'}
                   </span>
-                  <span className="text-xs font-semibold text-sky-300 print:text-black font-sans">
+                  <span className="text-xs font-semibold text-sky-300 print:text-black">
                     {reportStart} {isRtl ? 'إلى' : 'to'} {reportEnd}
                   </span>
                 </div>
@@ -652,7 +575,7 @@ export default function TeamOverviewTable({
               </div>
 
               {/* Metrics Summary Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 <div className="p-4 rounded-xl bg-gray-900 border border-gray-800/80 print:border-black print:bg-gray-100">
                   <span className="text-[10px] font-bold text-gray-400 block mb-1">
                     {isRtl ? 'إجمالي الحضور (ساعات)' : 'Attendance (Hours)'}
@@ -679,18 +602,9 @@ export default function TeamOverviewTable({
                     {totalLeavesCount}L / {totalExcusesCount}P
                   </span>
                 </div>
-
-                <div className="p-4 rounded-xl bg-gray-900 border border-gray-800/80 print:border-black print:bg-gray-100">
-                  <span className="text-[10px] font-bold text-gray-400 block mb-1">
-                    {isRtl ? 'إجمالي السلف' : 'Advances Drawn'}
-                  </span>
-                  <span className="text-xl font-extrabold text-emerald-400 print:text-black font-sans">
-                    {totalAdvancesSum.toLocaleString()} EGP
-                  </span>
-                </div>
               </div>
 
-              {/* KPI Production Summary breakdown */}
+              {/* KPI Production Summary */}
               <div className="space-y-3">
                 <h4 className="text-xs font-bold text-gray-300 print:text-black uppercase tracking-wider flex items-center gap-1">
                   <ChevronRight className="w-4 h-4 text-sky-400 print:text-black" />{' '}
@@ -714,7 +628,7 @@ export default function TeamOverviewTable({
                 )}
               </div>
 
-              {/* Signature section (Visible only when printing) */}
+              {/* Signature section */}
               <div className="hidden print:flex justify-between mt-20 text-xs font-bold pt-10">
                 <div className="text-center w-40 border-t border-black pt-2">
                   {isRtl ? 'توقيع الموظف' : "Employee's Signature"}
@@ -730,3 +644,6 @@ export default function TeamOverviewTable({
     </div>
   );
 }
+const handlePrint = () => {
+  window.print();
+};

@@ -10,6 +10,24 @@ export interface UserProfile {
   manager_id: string | null;
   created_at?: string;
   updated_at?: string;
+
+  // Employee details registry (V2)
+  mobile?: string | null;
+  id_number?: string | null;
+  id_photo_url?: string | null;
+  age?: number | null;
+  birth_date?: string | null;
+  birth_cert_url?: string | null;
+  qualification?: string | null;
+  qualification_url?: string | null;
+  address?: string | null;
+  job_title?: string | null;
+  criminal_record_url?: string | null;
+  department_id?: string | null;
+  payment_method?: string | null;
+  
+  // Relations
+  department?: DepartmentRecord | null;
 }
 
 export interface AttendanceRecord {
@@ -36,15 +54,6 @@ export interface LeavePermissionRecord {
   user?: UserProfile;
 }
 
-export interface AdvanceRecord {
-  id: string;
-  user_id: string;
-  amount: number;
-  month: string;
-  created_at?: string;
-  user?: UserProfile;
-}
-
 export interface KpiEntryRecord {
   id: string;
   user_id: string;
@@ -52,6 +61,22 @@ export interface KpiEntryRecord {
   amount: number;
   unit: string;
   notes?: string | null;
+  created_at?: string;
+  user?: UserProfile;
+}
+
+export interface DepartmentRecord {
+  id: string;
+  name: string;
+  created_at?: string;
+}
+
+export interface HolidayWorkRecord {
+  id: string;
+  user_id: string;
+  working_date: string;
+  notes: string | null;
+  created_by?: string | null;
   created_at?: string;
   user?: UserProfile;
 }
