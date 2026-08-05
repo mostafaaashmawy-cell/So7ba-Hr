@@ -693,14 +693,14 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
                   onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
                   className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none"
                 >
-                  <option value="employee">{t('employee')}</option>
-                  <option value="manager">{t('manager')}</option>
+                  <option value="employee">{isRtl ? 'موظف' : 'Employee'}</option>
+                  <option value="manager">{isRtl ? 'مدير' : 'Manager'}</option>
                   <option value="super_admin">{t('superAdmin')}</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1">{t('manager')}</label>
+                <label className="block text-xs font-semibold text-gray-400 mb-1">{isRtl ? 'المدير المباشر' : 'Direct Manager'}</label>
                 <select
                   value={editForm.manager_id}
                   onChange={(e) => setEditForm({ ...editForm, manager_id: e.target.value })}
