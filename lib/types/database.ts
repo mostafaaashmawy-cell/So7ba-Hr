@@ -25,6 +25,12 @@ export interface UserProfile {
   criminal_record_url?: string | null;
   department_id?: string | null;
   payment_method?: string | null;
+  tenant_id?: string | null;
+  social_insurance?: number | null;
+  health_insurance?: number | null;
+  contract_type?: string | null;
+  probation_period?: number | null;
+  contract_end_date?: string | null;
   
   // Relations
   department?: DepartmentRecord | null;

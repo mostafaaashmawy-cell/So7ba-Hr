@@ -5,7 +5,7 @@ import Navbar from '@/components/Navbar';
 import { createClient } from '@/lib/supabase/client';
 import { UserProfile } from '@/lib/types/database';
 import { FileText, CheckCircle2, RefreshCw, AlertCircle, Check, X, Download, DollarSign, Percent } from 'lucide-react';
-import { useLanguage } from '@/lib/context/LanguageContext';
+
 
 interface FinancialAdjustment {
   id: string;
