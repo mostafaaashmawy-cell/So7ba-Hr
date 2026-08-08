@@ -19,10 +19,34 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [coords, setCoords] = useState<{ lat: number | null; lng: number | null }>({ lat: null, lng: null });
   const [geoLocating, setGeoLocating] = useState(false);
+  const [tenantSettings, setTenantSettings] = useState<any>(null);
   const supabase = createClient();
 
-  // Fetch current geolocation on mount
+  function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
+    const R = 6371e3; // metres
+    const phi1 = (lat1 * Math.PI) / 180;
+    const phi2 = (lat2 * Math.PI) / 180;
+    const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
+    const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
+
+    const a =
+      Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+      Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c; // in metres
+  }
+
+  // Fetch current geolocation and tenant settings on mount
   useEffect(() => {
+    const fetchSettings = async () => {
+      const { data } = await supabase.from('tenant_settings').select('*').maybeSingle();
+      if (data) {
+        setTenantSettings(data);
+      }
+    };
+    fetchSettings();
+
     if ('geolocation' in navigator) {
       setGeoLocating(true);
       navigator.geolocation.getCurrentPosition(
@@ -59,6 +83,32 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
         currentLng = position.coords.longitude;
       } catch (e) {
         console.warn('Could not acquire location during check-in', e);
+      }
+    }
+
+    // Geofencing validation check
+    if (tenantSettings && tenantSettings.geofencing_lat && tenantSettings.geofencing_lng) {
+      if (!currentLat || !currentLng) {
+        setErrorMsg(isRtl ? 'عذراً، يجب السماح بمشاركة الموقع الجغرافي لتسجيل الحضور!' : 'GPS coordinates are required to check in. Please enable location services!');
+        setLoading(false);
+        return;
+      }
+
+      const distance = getDistance(
+        currentLat,
+        currentLng,
+        Number(tenantSettings.geofencing_lat),
+        Number(tenantSettings.geofencing_lng)
+      );
+
+      if (distance > Number(tenantSettings.geofencing_radius)) {
+        setErrorMsg(
+          isRtl
+            ? `أنت خارج نطاق العمل المعتمد! المسافة الحالية: ${Math.round(distance)} متر (الحد الأقصى المسموح: ${tenantSettings.geofencing_radius} متر)`
+            : `Outside approved boundary! Distance: ${Math.round(distance)}m (Limit: ${tenantSettings.geofencing_radius}m)`
+        );
+        setLoading(false);
+        return;
       }
     }
 

@@ -1,23 +1,38 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { UserProfile } from '@/lib/types/database';
-import { LogOut, User, ShieldCheck, Briefcase, UserCheck, Globe, Menu, X } from 'lucide-react';
+import { LogOut, User, ShieldCheck, Briefcase, UserCheck, Globe, Menu, X, Bell, CheckSquare } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/lib/context/LanguageContext';
+import { generateDynamicNotifications } from '@/lib/utils/notificationHelper';
 
 interface NavbarProps {
   user: UserProfile | null;
   activeRoleView?: 'employee' | 'manager' | 'super_admin';
 }
 
+interface DBNotification {
+  id: string;
+  title: string;
+  message: string;
+  is_read: boolean;
+  type: string;
+  created_at: string;
+}
+
 export default function Navbar({ user, activeRoleView }: NavbarProps) {
   const router = useRouter();
   const supabase = createClient();
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage, t, isRtl } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Notifications State
+  const [notifications, setNotifications] = useState<DBNotification[]>([]);
+  const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -27,6 +42,54 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
 
   const toggleLanguage = () => {
     setLanguage(language === 'en' ? 'ar' : 'en');
+  };
+
+  // Close notifications dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setShowNotifDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Fetch & Auto-generate notifications
+  const loadNotifications = async () => {
+    if (!user || !user.tenant_id) return;
+    
+    // Auto-generate notifications first
+    await generateDynamicNotifications(supabase, user.id, user.role, user.tenant_id);
+
+    // Fetch unread notifications
+    const { data } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('is_read', false)
+      .order('created_at', { ascending: false });
+
+    if (data) {
+      setNotifications(data as DBNotification[]);
+    }
+  };
+
+  useEffect(() => {
+    loadNotifications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  const markAllAsRead = async () => {
+    if (!user) return;
+    const { error } = await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('user_id', user.id);
+
+    if (!error) {
+      setNotifications([]);
+    }
   };
 
   const getRoleBadge = (role?: string) => {
@@ -46,7 +109,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
       default:
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-            <UserCheck className="w-3.5 h-3.5" /> {t('brand')}
+            <UserCheck className="w-3.5 h-3.5" /> Employee
           </span>
         );
     }
@@ -71,7 +134,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
         </Link>
 
         {/* Navigation Tabs (Desktop) */}
-        {user && (
+        {user && user.tenant_id && (
           <nav className="hidden md:flex items-center gap-1 bg-gray-900/90 p-1 rounded-xl border border-gray-800">
             <Link
               href="/dashboard/employee"
@@ -114,14 +177,68 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
 
         {/* Actions & Mobile Toggle */}
         <div className="flex items-center gap-3">
+          {/* Notifications Dropdown */}
+          {user && (
+            <div className="relative" ref={notifRef}>
+              <button
+                onClick={() => setShowNotifDropdown(!showNotifDropdown)}
+                className="p-2 rounded-xl bg-gray-900 border border-gray-800 text-gray-400 hover:text-white transition-all relative cursor-pointer"
+                title="Notifications"
+              >
+                <Bell className="w-4 h-4" />
+                {notifications.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center animate-pulse">
+                    {notifications.length}
+                  </span>
+                )}
+              </button>
+
+              {showNotifDropdown && (
+                <div className={`absolute top-12 ${isRtl ? 'left-0' : 'right-0'} w-80 bg-gray-950 border border-gray-800 rounded-2xl shadow-2xl p-4 space-y-3 z-50`}>
+                  <div className="flex items-center justify-between border-b border-gray-950 pb-2">
+                    <span className="text-xs font-bold text-gray-200">
+                      {isRtl ? 'الإشعارات الجديدة' : 'Recent Notifications'}
+                    </span>
+                    {notifications.length > 0 && (
+                      <button
+                        onClick={markAllAsRead}
+                        className="text-[10px] text-sky-400 hover:underline flex items-center gap-1 font-bold"
+                      >
+                        <CheckSquare className="w-3 h-3" />
+                        {isRtl ? 'تحديد كمقروء' : 'Mark all read'}
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="max-h-64 overflow-y-auto space-y-2.5 scrollbar-thin">
+                    {notifications.map((notif) => (
+                      <div key={notif.id} className="p-2.5 rounded-xl bg-gray-900 border border-gray-800/80 text-xs">
+                        <div className="font-bold text-gray-200">{notif.title}</div>
+                        <div className="text-gray-400 text-[11px] mt-0.5">{notif.message}</div>
+                        <div className="text-[9px] text-gray-500 mt-1 font-sans">
+                          {new Date(notif.created_at).toLocaleDateString()}
+                        </div>
+                      </div>
+                    ))}
+                    {notifications.length === 0 && (
+                      <div className="py-6 text-center text-xs text-gray-500">
+                        {isRtl ? 'لا توجد إشعارات جديدة.' : 'No new notifications.'}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Language Toggle Button */}
           <button
             onClick={toggleLanguage}
             title={language === 'en' ? 'Switch to Arabic' : 'تغيير للإنجليزية'}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-gray-300 hover:text-white border border-gray-800 transition-all text-xs font-semibold"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-gray-300 hover:text-white border border-gray-800 transition-all text-xs font-semibold cursor-pointer"
           >
             <Globe className="w-4 h-4 text-sky-400" />
-            <span>{language === 'en' ? 'العربية' : 'English'}</span>
+            <span className="hidden sm:inline">{language === 'en' ? 'العربية' : 'English'}</span>
           </button>
 
           {user ? (
@@ -136,7 +253,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
               <button
                 onClick={handleSignOut}
                 title={t('signOut')}
-                className="p-2 rounded-xl bg-gray-900 hover:bg-red-500/20 text-gray-400 hover:text-red-400 border border-gray-800 hover:border-red-500/30 transition-all"
+                className="p-2 rounded-xl bg-gray-900 hover:bg-red-500/20 text-gray-400 hover:text-red-400 border border-gray-800 hover:border-red-500/30 transition-all cursor-pointer"
               >
                 <LogOut className="w-4 h-4" />
               </button>
@@ -151,10 +268,10 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
           )}
 
           {/* Hamburger Menu Icon (Mobile Only) */}
-          {user && (
+          {user && user.tenant_id && (
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 md:hidden rounded-xl bg-gray-900 border border-gray-800 text-gray-400 hover:text-white transition-all"
+              className="p-2 md:hidden rounded-xl bg-gray-900 border border-gray-800 text-gray-400 hover:text-white transition-all cursor-pointer"
               title="Menu"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -164,7 +281,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
       </div>
 
       {/* Mobile Drawer Dropdown Menu */}
-      {user && mobileMenuOpen && (
+      {user && user.tenant_id && mobileMenuOpen && (
         <div className="md:hidden mt-3 p-3 rounded-xl bg-gray-900 border border-gray-800 flex flex-col gap-2 animate-in slide-in-from-top-3 duration-200">
           <Link
             href="/dashboard/employee"

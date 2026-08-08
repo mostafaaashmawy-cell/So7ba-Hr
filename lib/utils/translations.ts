@@ -1,7 +1,7 @@
 export const translations = {
   en: {
     // Brand & General
-    brand: "So7ba HR",
+    brand: "Simply HR System",
     operations: "Operations System",
     welcome: "Welcome back",
     portal: "Employee Operations Portal & Daily Tracking",
@@ -124,7 +124,7 @@ export const translations = {
   },
   ar: {
     // Brand & General
-    brand: "صحبة HR",
+    brand: "نظام Simply HR",
     operations: "نظام إدارة العمليات",
     welcome: "مرحباً بك مجدداً",
     portal: "بوابة العمليات والمتابعة اليومية للموظف",

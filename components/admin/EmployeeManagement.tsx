@@ -70,6 +70,11 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
     criminal_record_url: '',
     department_id: '',
     payment_method: 'Cash',
+    social_insurance: 0,
+    health_insurance: 0,
+    contract_type: 'Full-Time',
+    probation_period: 3,
+    contract_end_date: '',
   });
 
   const supabase = createClient();
@@ -167,6 +172,11 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
       criminal_record_url: user.criminal_record_url || '',
       department_id: user.department_id || '',
       payment_method: user.payment_method || 'Cash',
+      social_insurance: Number(user.social_insurance || 0),
+      health_insurance: Number(user.health_insurance || 0),
+      contract_type: user.contract_type || 'Full-Time',
+      probation_period: Number(user.probation_period || 3),
+      contract_end_date: user.contract_end_date || '',
     });
     setMsg(null);
   };
@@ -200,6 +210,11 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
         criminal_record_url: editForm.criminal_record_url,
         department_id: editForm.department_id || null,
         payment_method: editForm.payment_method,
+        social_insurance: Number(editForm.social_insurance),
+        health_insurance: Number(editForm.health_insurance),
+        contract_type: editForm.contract_type,
+        probation_period: Number(editForm.probation_period),
+        contract_end_date: editForm.contract_end_date || null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', selectedUser.id)
@@ -683,6 +698,59 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
                   value={editForm.basic_salary}
                   onChange={(e) => setEditForm({ ...editForm, basic_salary: Number(e.target.value) })}
                   className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 mb-1">{isRtl ? 'التأمين الاجتماعي' : 'Social Insurance'}</label>
+                <input
+                  type="number"
+                  value={editForm.social_insurance}
+                  onChange={(e) => setEditForm({ ...editForm, social_insurance: Number(e.target.value) })}
+                  className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 mb-1">{isRtl ? 'التأمين الصحي' : 'Health Insurance'}</label>
+                <input
+                  type="number"
+                  value={editForm.health_insurance}
+                  onChange={(e) => setEditForm({ ...editForm, health_insurance: Number(e.target.value) })}
+                  className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 mb-1">{isRtl ? 'نوع العقد' : 'Contract Type'}</label>
+                <select
+                  value={editForm.contract_type}
+                  onChange={(e) => setEditForm({ ...editForm, contract_type: e.target.value })}
+                  className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none"
+                >
+                  <option value="Full-Time">Full-Time</option>
+                  <option value="Part-Time">Part-Time</option>
+                  <option value="Internship">Internship</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 mb-1">{isRtl ? 'فترة الاختبار (أشهر)' : 'Probation Period (Months)'}</label>
+                <input
+                  type="number"
+                  value={editForm.probation_period}
+                  onChange={(e) => setEditForm({ ...editForm, probation_period: Number(e.target.value) })}
+                  className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none font-sans"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 mb-1">{isRtl ? 'تاريخ انتهاء العقد' : 'Contract End Date'}</label>
+                <input
+                  type="date"
+                  value={editForm.contract_end_date}
+                  onChange={(e) => setEditForm({ ...editForm, contract_end_date: e.target.value })}
+                  className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-200 focus:outline-none font-sans"
                 />
               </div>
 

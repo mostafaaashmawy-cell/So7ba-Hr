@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import Navbar from '@/components/Navbar';
@@ -25,6 +26,10 @@ export default async function EmployeeDashboardPage() {
     .select('*')
     .eq('id', authUser.id)
     .single();
+
+  if (userProfile && !userProfile.tenant_id) {
+    redirect('/onboarding');
+  }
 
   const user = userProfile as UserProfile;
   const todayStr = new Date().toISOString().split('T')[0];
@@ -59,6 +64,13 @@ export default async function EmployeeDashboardPage() {
 
   const holidayWorkCount = holidayWorkHistory?.length || 0;
 
+  // Fetch Tenant Settings
+  const { data: tenantSettings } = await supabase
+    .from('tenant_settings')
+    .select('*')
+    .eq('tenant_id', user.tenant_id)
+    .maybeSingle();
+
   return (
     <div className="min-h-screen bg-[#0b0f19] text-gray-100 flex flex-col font-sans">
       <Navbar user={user} activeRoleView="employee" />
@@ -69,6 +81,23 @@ export default async function EmployeeDashboardPage() {
           fullName={user?.full_name}
           kpiUnit={user?.kpi_unit || 'tasks'}
         />
+
+        {/* EMPLOYEE COMMAND CENTER */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {(!tenantSettings || tenantSettings.enable_commissions) && (
+            <Link href="/dashboard/sales" className="p-4 rounded-2xl bg-gray-900 hover:bg-gray-800 border border-gray-800 hover:border-sky-500/30 transition-all text-center space-y-2 group">
+              <span className="text-xl font-bold text-sky-400 block group-hover:scale-105 transition-all">📈</span>
+              <span className="text-xs font-bold text-white block">Log My Sales Achievements</span>
+              <span className="text-[10px] text-gray-500 block">Submit logs to get commissions</span>
+            </Link>
+          )}
+
+          <Link href="/dashboard/targets" className="p-4 rounded-2xl bg-gray-900 hover:bg-gray-800 border border-gray-800 hover:border-sky-500/30 transition-all text-center space-y-2 group">
+            <span className="text-xl font-bold text-sky-400 block group-hover:scale-105 transition-all">🎯</span>
+            <span className="text-xs font-bold text-white block">My Operational Targets</span>
+            <span className="text-[10px] text-gray-500 block">View my assigned targets vs progress</span>
+          </Link>
+        </div>
 
         {/* Attendance Widget */}
         <AttendanceWidget
