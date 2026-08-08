@@ -7,8 +7,8 @@ import { UserProfile } from '@/lib/types/database';
 import { Star, FileText, CheckCircle2, RefreshCw, AlertCircle, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '@/lib/context/LanguageContext';
 
-interface EvaluationRecord {
-  id?: string;
+interface DBEvaluation {
+  id: string;
   user_id: string;
   month: string;
   star_punctuality: number;
@@ -16,10 +16,12 @@ interface EvaluationRecord {
   star_problem_solving: number;
   star_communication: number;
   notes: string;
+  user?: { full_name: string };
+  created_at?: string;
 }
 
 export default function EvaluationsPage() {
-  const { t, isRtl } = useLanguage();
+  const { isRtl } = useLanguage();
   const supabase = createClient();
 
   const [loading, setLoading] = useState(true);
@@ -41,7 +43,7 @@ export default function EvaluationsPage() {
 
   const [msg, setMsg] = useState<{ text: string; error: boolean } | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [evalList, setEvalList] = useState<any[]>([]);
+  const [evalList, setEvalList] = useState<DBEvaluation[]>([]);
 
   // Load User, Team, and existing evaluations
   const loadData = async () => {
@@ -185,8 +187,9 @@ export default function EvaluationsPage() {
         setEvalList(evals);
       }
 
-    } catch (err: any) {
-      setMsg({ text: err.message || 'Submission failed', error: true });
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Submission failed';
+      setMsg({ text: errMsg, error: true });
     } finally {
       setSubmitting(false);
     }
@@ -366,7 +369,7 @@ export default function EvaluationsPage() {
                       <span className="text-[10px] text-gray-400 font-bold ml-1 font-sans">({totalStars.toFixed(1)}/5)</span>
                     </div>
                     {ev.notes && (
-                      <p className="text-[10px] text-gray-500 italic truncate mt-1">"{ev.notes}"</p>
+                      <p className="text-[10px] text-gray-500 italic truncate mt-1">&quot;{ev.notes}&quot;</p>
                     )}
                   </div>
                 );

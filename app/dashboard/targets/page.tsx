@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { createClient } from '@/lib/supabase/client';
 import { UserProfile } from '@/lib/types/database';
-import { Target, Plus, CheckCircle2, RefreshCw, AlertCircle, Trash, ChevronRight, BarChart2 } from 'lucide-react';
+import { Target, Plus, CheckCircle2, RefreshCw, AlertCircle, Trash, BarChart2 } from 'lucide-react';
 import { useLanguage } from '@/lib/context/LanguageContext';
 
 interface EmployeeTarget {
@@ -20,7 +20,7 @@ interface EmployeeTarget {
 }
 
 export default function TargetsTasksPage() {
-  const { t, isRtl } = useLanguage();
+  const { isRtl } = useLanguage();
   const supabase = createClient();
 
   const [loading, setLoading] = useState(true);
@@ -139,8 +139,9 @@ export default function TargetsTasksPage() {
       
       // Reload targets
       loadData();
-    } catch (err: any) {
-      setMsg({ text: err.message || 'Submission failed', error: true });
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Submission failed';
+      setMsg({ text: errMsg, error: true });
     } finally {
       setSubmitting(false);
     }
@@ -159,8 +160,9 @@ export default function TargetsTasksPage() {
       if (error) throw error;
 
       setTargets(targets.filter((t) => t.id !== id));
-    } catch (err: any) {
-      alert(err.message || 'Delete failed');
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Delete failed';
+      alert(errMsg);
     } finally {
       setActionId(null);
     }

@@ -17,7 +17,7 @@ interface SalesLog {
 }
 
 export default function SalesCommissionsPage() {
-  const { t, isRtl } = useLanguage();
+  const { isRtl } = useLanguage();
   const supabase = createClient();
 
   const [loading, setLoading] = useState(true);
@@ -120,8 +120,9 @@ export default function SalesCommissionsPage() {
       
       // Reload logs
       loadData();
-    } catch (err: any) {
-      setMsg({ text: err.message || 'Submission failed', error: true });
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Submission failed';
+      setMsg({ text: errMsg, error: true });
     } finally {
       setSubmitting(false);
     }
@@ -144,8 +145,9 @@ export default function SalesCommissionsPage() {
 
       // Update local state
       setSales(sales.map((s) => s.id === id ? { ...s, status: newStatus } : s));
-    } catch (err: any) {
-      alert(err.message || 'Status update failed');
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Status update failed';
+      alert(errMsg);
     } finally {
       setActionId(null);
     }
@@ -164,8 +166,9 @@ export default function SalesCommissionsPage() {
       if (error) throw error;
 
       setSales(sales.filter((s) => s.id !== id));
-    } catch (err: any) {
-      alert(err.message || 'Delete failed');
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Delete failed';
+      alert(errMsg);
     } finally {
       setActionId(null);
     }

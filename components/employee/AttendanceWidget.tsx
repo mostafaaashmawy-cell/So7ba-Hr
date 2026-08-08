@@ -19,7 +19,21 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [coords, setCoords] = useState<{ lat: number | null; lng: number | null }>({ lat: null, lng: null });
   const [geoLocating, setGeoLocating] = useState(false);
-  const [tenantSettings, setTenantSettings] = useState<any>(null);
+  interface TenantSettings {
+    tenant_id: string;
+    enable_advances: boolean;
+    enable_commissions: boolean;
+    enable_insurances: boolean;
+    enable_shifts: boolean;
+    lateness_policy: {
+      thresholds: Array<{ mins: number; deduction: number }>;
+    };
+    geofencing_lat: number | null;
+    geofencing_lng: number | null;
+    geofencing_radius: number;
+  }
+
+  const [tenantSettings, setTenantSettings] = useState<TenantSettings | null>(null);
   const supabase = createClient();
 
   function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -42,7 +56,7 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
     const fetchSettings = async () => {
       const { data } = await supabase.from('tenant_settings').select('*').maybeSingle();
       if (data) {
-        setTenantSettings(data);
+        setTenantSettings(data as TenantSettings);
       }
     };
     fetchSettings();
@@ -64,6 +78,7 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
         { enableHighAccuracy: true, timeout: 10000 }
       );
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleCheckIn = async () => {

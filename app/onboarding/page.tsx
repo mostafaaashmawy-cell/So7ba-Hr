@@ -53,6 +53,7 @@ export default function OnboardingPage() {
       }
     };
     checkUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleNext = () => {
@@ -112,8 +113,9 @@ export default function OnboardingPage() {
 
       router.push('/dashboard/employee');
       router.refresh();
-    } catch (err: any) {
-      alert(err.message || 'Setup wizard failed');
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Setup wizard failed';
+      alert(errMsg);
     } finally {
       setLoading(false);
     }

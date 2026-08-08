@@ -8,7 +8,7 @@ import { FileText, Save, Download, RefreshCw, AlertCircle, CheckCircle2, FileEdi
 import { useLanguage } from '@/lib/context/LanguageContext';
 
 export default function ContractsPage() {
-  const { t, isRtl } = useLanguage();
+  const { isRtl } = useLanguage();
   const supabase = createClient();
 
   const [loading, setLoading] = useState(true);
@@ -126,8 +126,9 @@ For the Company                         Employee Signature`;
       }
 
       setMsg({ text: isRtl ? 'تم حفظ نموذج العقد الرئيسي!' : 'Master contract template saved!', error: false });
-    } catch (err: any) {
-      setMsg({ text: err.message || 'Failed to save', error: true });
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Failed to save';
+      setMsg({ text: errMsg, error: true });
     } finally {
       setSaving(false);
     }
@@ -161,7 +162,7 @@ For the Company                         Employee Signature`;
     text = text.replace(/{{Employee_Name}}/g, emp.full_name || 'N/A');
     text = text.replace(/{{Job_Title}}/g, emp.job_title || 'N/A');
     text = text.replace(/{{Basic_Salary}}/g, Number(emp.basic_salary || 0).toLocaleString() + ' EGP');
-    text = text.replace(/{{Department_Name}}/g, (emp as any).department?.name || 'N/A');
+    text = text.replace(/{{Department_Name}}/g, ((emp as unknown) as { department?: { name?: string } }).department?.name || 'N/A');
     text = text.replace(/{{Payment_Method}}/g, emp.payment_method || 'Cash');
     text = text.replace(/{{Contract_Type}}/g, emp.contract_type || 'Full-Time');
     text = text.replace(/{{Probation_Period}}/g, String(emp.probation_period || 3));

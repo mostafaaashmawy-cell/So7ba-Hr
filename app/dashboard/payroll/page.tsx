@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { createClient } from '@/lib/supabase/client';
 import { UserProfile } from '@/lib/types/database';
-import { FileText, CheckCircle2, RefreshCw, AlertCircle, TrendingUp, ShieldAlert, Check, X, Download, DollarSign, Percent } from 'lucide-react';
+import { FileText, CheckCircle2, RefreshCw, AlertCircle, Check, X, Download, DollarSign, Percent } from 'lucide-react';
 import { useLanguage } from '@/lib/context/LanguageContext';
 
 interface FinancialAdjustment {
@@ -27,8 +27,26 @@ interface AdvanceRequest {
   user?: { full_name: string };
 }
 
+interface PayslipData {
+  employeeName: string;
+  departmentName: string;
+  jobTitle: string;
+  basicSalary: number;
+  commission: number;
+  totalSales: number;
+  bonuses: number;
+  penalties: number;
+  advances: number;
+  latenessDeductions: number;
+  socialInsurance: number;
+  healthInsurance: number;
+  grossEarnings: number;
+  totalDeductions: number;
+  netPay: number;
+  month: string;
+}
+
 export default function PayrollPage() {
-  const { t, isRtl } = useLanguage();
   const supabase = createClient();
 
   const [loading, setLoading] = useState(true);
@@ -58,7 +76,7 @@ export default function PayrollPage() {
   const [actionId, setActionId] = useState<string | null>(null);
 
   // Payslip compiled states
-  const [payslipData, setPayslipData] = useState<any>(null);
+  const [payslipData, setPayslipData] = useState<PayslipData | null>(null);
   const [showPayslip, setShowPayslip] = useState(false);
 
   const loadData = async () => {
@@ -97,7 +115,7 @@ export default function PayrollPage() {
         .order('date', { ascending: false });
       
       if (adj) {
-        setAdjustments(adj as any[]);
+        setAdjustments(adj as FinancialAdjustment[]);
       }
 
       // Load Advances in Tenant
@@ -108,7 +126,7 @@ export default function PayrollPage() {
         .order('month', { ascending: false });
       
       if (adv) {
-        setAdvances(adv as any[]);
+        setAdvances(adv as AdvanceRequest[]);
       }
     }
     setLoading(false);
@@ -152,8 +170,9 @@ export default function PayrollPage() {
       setAdjNotes('');
 
       loadData();
-    } catch (err: any) {
-      setMsg({ text: err.message || 'Action failed', error: true });
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Action failed';
+      setMsg({ text: errMsg, error: true });
     } finally {
       setSubmitting(false);
     }
@@ -190,8 +209,9 @@ export default function PayrollPage() {
       setAdvAmount('');
 
       loadData();
-    } catch (err: any) {
-      setMsg({ text: err.message || 'Action failed', error: true });
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Action failed';
+      setMsg({ text: errMsg, error: true });
     } finally {
       setSubmitting(false);
     }
@@ -207,8 +227,9 @@ export default function PayrollPage() {
 
       if (error) throw error;
       setAdjustments(adjustments.map((a) => a.id === id ? { ...a, status: newStatus } : a));
-    } catch (e: any) {
-      alert(e.message || 'Status change failed');
+    } catch (e: unknown) {
+      const errMsg = e instanceof Error ? e.message : 'Status change failed';
+      alert(errMsg);
     } finally {
       setActionId(null);
     }
@@ -224,8 +245,9 @@ export default function PayrollPage() {
 
       if (error) throw error;
       setAdvances(advances.map((a) => a.id === id ? { ...a, status: newStatus } : a));
-    } catch (e: any) {
-      alert(e.message || 'Status change failed');
+    } catch (e: unknown) {
+      const errMsg = e instanceof Error ? e.message : 'Status change failed';
+      alert(errMsg);
     } finally {
       setActionId(null);
     }
@@ -302,7 +324,7 @@ export default function PayrollPage() {
           
           // Match policy
           let maxDeductionPct = 0;
-          settings.lateness_policy.thresholds.forEach((rule: any) => {
+          settings.lateness_policy.thresholds.forEach((rule: { mins: number; deduction: number }) => {
             if (delayMins >= rule.mins) {
               maxDeductionPct = Math.max(maxDeductionPct, rule.deduction);
             }
@@ -323,7 +345,7 @@ export default function PayrollPage() {
 
       setPayslipData({
         employeeName: emp.full_name,
-        departmentName: (emp as any).department?.name || 'N/A',
+        departmentName: ((emp as unknown) as { department?: { name?: string } }).department?.name || 'N/A',
         jobTitle: emp.job_title || 'N/A',
         basicSalary: Number(emp.basic_salary),
         commission,
@@ -341,8 +363,9 @@ export default function PayrollPage() {
       });
 
       setShowPayslip(true);
-    } catch (e: any) {
-      alert(e.message || 'Payslip compilation failed');
+    } catch (e: unknown) {
+      const errMsg = e instanceof Error ? e.message : 'Payslip compilation failed';
+      alert(errMsg);
     } finally {
       setLoading(false);
     }
