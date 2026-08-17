@@ -14,7 +14,6 @@ import {
   Download,
   DollarSign,
   Plus,
-  Percent,
 } from 'lucide-react';
 import { useLanguage } from '@/lib/context/LanguageContext';
 

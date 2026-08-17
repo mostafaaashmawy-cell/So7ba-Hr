@@ -176,7 +176,7 @@ export default function RecordOverrideTable({
               : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
           }`}
         >
-          <Clock className="w-4 h-4" /> {t('attendanceTitle')} ({filteredAttendance.length})
+          <Clock className="w-4 h-4" /> {isRtl ? 'سجل الحضور' : 'Attendance Logs'} ({filteredAttendance.length})
         </button>
 
         <button
@@ -188,7 +188,7 @@ export default function RecordOverrideTable({
               : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
           }`}
         >
-          <Calendar className="w-4 h-4" /> {t('leavesTitle')} ({filteredLeaves.length})
+          <Calendar className="w-4 h-4" /> {isRtl ? 'سجل الإجازات والأذونات' : 'Leaves & Permissions'} ({filteredLeaves.length})
         </button>
 
         <button
@@ -200,7 +200,7 @@ export default function RecordOverrideTable({
               : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
           }`}
         >
-          <Target className="w-4 h-4" /> {t('kpiTitle')} ({filteredKpis.length})
+          <Target className="w-4 h-4" /> {isRtl ? 'سجل الإنتاجية ومؤشرات الأداء' : 'KPI & Tasks Logs'} ({filteredKpis.length})
         </button>
       </div>
 
