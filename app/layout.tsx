@@ -19,6 +19,8 @@ export const metadata: Metadata = {
 };
 
 import { LanguageProvider } from "@/lib/context/LanguageContext";
+import { ThemeProvider } from "@/lib/context/ThemeContext";
+import { SidebarProvider } from "@/lib/context/SidebarContext";
 
 export default function RootLayout({
   children,
@@ -29,9 +31,16 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">
-        <LanguageProvider>{children}</LanguageProvider>
+      <body className="min-h-full flex flex-col bg-[--bg] text-[--text-primary] antialiased">
+        <ThemeProvider>
+          <LanguageProvider>
+            <SidebarProvider>
+              {children}
+            </SidebarProvider>
+          </LanguageProvider>
+        </ThemeProvider>
         <script
           dangerouslySetInnerHTML={{
             __html: `
