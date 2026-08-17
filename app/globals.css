@@ -2,78 +2,97 @@
 
 @layer base {
   :root {
-    --background: 224 71% 4%;
-    --foreground: 213 31% 91%;
+    --background: 210 40% 98%; /* #f8fafc */
+    --foreground: 222 47% 11%; /* #0f172a */
 
-    --card: 224 71% 6%;
-    --card-foreground: 213 31% 91%;
+    --card: 0 0% 100%; /* #ffffff */
+    --card-foreground: 222 47% 11%;
 
-    --primary: 197 100% 47%; /* Sky Blue #00aeef */
+    --primary: 221 83% 53%; /* Cleariq Vibrant Blue #2563eb */
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 217 19% 15%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
 
-    --accent: 85 57% 51%; /* Lime Green #8cc63f */
+    --accent: 199 89% 48%; /* Cyan / Sky #0284c7 */
     --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --muted: 215 16% 47%; /* #64748b */
+    --muted-foreground: 215 20% 65%;
 
-    --border: 216 34% 17%;
-    --ring: 197 100% 47%;
+    --border: 214 32% 91%; /* #e2e8f0 */
+    --ring: 221 83% 53%;
   }
 }
 
 body {
-  background-color: #0b0f19;
-  color: #f1f5f9;
+  background-color: #f8fafc;
+  color: #0f172a;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Glassmorphism Card Style */
+/* Cleariq Modern White Card Style */
+.cleariq-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+  border-radius: 1.25rem;
+}
+
+.cleariq-card-hover {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cleariq-card-hover:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.06), 0 8px 10px -6px rgba(37, 99, 235, 0.04);
+  transform: translateY(-2px);
+}
+
+/* Legacy alias for backwards compatibility */
 .glass-card {
-  background: rgba(17, 24, 39, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  border-radius: 1rem;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+  border-radius: 1.25rem;
 }
 
 .glass-card-hover {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.25s ease;
 }
 
 .glass-card-hover:hover {
-  border-color: rgba(0, 174, 239, 0.4);
+  border-color: #cbd5e1;
+  box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.06);
   transform: translateY(-2px);
-  box-shadow: 0 12px 40px 0 rgba(0, 174, 239, 0.15);
 }
 
-/* Custom Gradients - Brand Specific */
+/* Cleariq Vibrant Blue Gradient Button */
+.gradient-btn {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  transition: all 0.25s ease;
+}
+
+.gradient-btn:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+  box-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.35);
+}
+
 .gradient-text {
-  background: linear-gradient(135deg, #00aeef 0%, #8cc63f 100%);
+  background: linear-gradient(135deg, #2563eb 0%, #0284c7 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
-.gradient-btn {
-  background: linear-gradient(135deg, #00aeef 0%, #8cc63f 100%);
-  transition: all 0.3s ease;
+/* Pulse indicator */
+.pulse-blue {
+  animation: pulse-blue 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-.gradient-btn:hover {
-  background: linear-gradient(135deg, #009fe3 0%, #7ab332 100%);
-  box-shadow: 0 0 20px rgba(0, 174, 239, 0.5);
-}
-
-.pulse-emerald {
-  animation: pulse-emerald 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-@keyframes pulse-emerald {
+@keyframes pulse-blue {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.7; transform: scale(1.05); }
 }

@@ -6,7 +6,12 @@ import Navbar from '@/components/Navbar';
 import AttendanceWidget from '@/components/employee/AttendanceWidget';
 import LeavePermissionForm from '@/components/employee/LeavePermissionForm';
 import KpiTrackerWidget from '@/components/employee/KpiTrackerWidget';
-import { UserProfile, AttendanceRecord, LeavePermissionRecord, KpiEntryRecord } from '@/lib/types/database';
+import {
+  UserProfile,
+  AttendanceRecord,
+  LeavePermissionRecord,
+  KpiEntryRecord,
+} from '@/lib/types/database';
 import WelcomeHeader from '@/components/employee/WelcomeHeader';
 import AdvanceRequestModal from '@/components/employee/AdvanceRequestModal';
 
@@ -73,46 +78,49 @@ export default async function EmployeeDashboardPage() {
     .maybeSingle();
 
   return (
-    <div className="min-h-screen bg-[#0b0f19] text-gray-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-sans pb-16 md:pb-8">
       <Navbar user={user} activeRoleView="employee" />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-8 space-y-8">
         {/* Welcome Header */}
-        <WelcomeHeader
-          fullName={user?.full_name}
-          kpiUnit={user?.kpi_unit || 'tasks'}
-        />
+        <WelcomeHeader fullName={user?.full_name} kpiUnit={user?.kpi_unit || 'tasks'} />
 
         {/* EMPLOYEE COMMAND CENTER */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {(!tenantSettings || tenantSettings.enable_commissions) && (
-            <Link href="/dashboard/sales" className="p-5 rounded-2xl bg-gray-900 hover:bg-gray-800 border border-gray-800 hover:border-sky-500/30 transition-all flex flex-col justify-between space-y-4 group">
+            <Link
+              href="/dashboard/sales"
+              className="cleariq-card p-5 cleariq-card-hover flex flex-col justify-between space-y-4 group"
+            >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+                <div className="w-11 h-11 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
                   <span className="text-xl">📈</span>
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-gray-100">Log Sales Achievements</h3>
-                  <p className="text-[11px] text-gray-500">Submit logs to earn commissions</p>
+                  <h3 className="text-sm font-bold text-slate-900">Log Sales Achievements</h3>
+                  <p className="text-[11px] text-slate-400">Submit logs to earn commissions</p>
                 </div>
               </div>
-              <span className="py-2 px-3 rounded-xl bg-sky-500/10 group-hover:bg-sky-500/20 text-sky-300 text-xs font-bold transition-all text-center">
+              <span className="py-2 px-3 rounded-xl bg-blue-50 group-hover:bg-blue-600 group-hover:text-white text-blue-600 text-xs font-bold transition-all text-center">
                 Open Sales Portal
               </span>
             </Link>
           )}
 
-          <Link href="/dashboard/targets" className="p-5 rounded-2xl bg-gray-900 hover:bg-gray-800 border border-gray-800 hover:border-sky-500/30 transition-all flex flex-col justify-between space-y-4 group">
+          <Link
+            href="/dashboard/targets"
+            className="cleariq-card p-5 cleariq-card-hover flex flex-col justify-between space-y-4 group"
+          >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+              <div className="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
                 <span className="text-xl">🎯</span>
               </div>
               <div>
-                <h3 className="text-sm font-bold text-gray-100">Operational Targets</h3>
-                <p className="text-[11px] text-gray-500">View goals vs actual progress</p>
+                <h3 className="text-sm font-bold text-slate-900">Operational Targets</h3>
+                <p className="text-[11px] text-slate-400">View goals vs actual progress</p>
               </div>
             </div>
-            <span className="py-2 px-3 rounded-xl bg-sky-500/10 group-hover:bg-sky-500/20 text-sky-300 text-xs font-bold transition-all text-center">
+            <span className="py-2 px-3 rounded-xl bg-indigo-50 group-hover:bg-indigo-600 group-hover:text-white text-indigo-600 text-xs font-bold transition-all text-center">
               View My Targets
             </span>
           </Link>
@@ -135,18 +143,16 @@ export default async function EmployeeDashboardPage() {
         {/* Leaves & Permissions Management with Holiday comp balance */}
         <LeavePermissionForm
           userId={authUser.id}
-          initialRecords={(leavesHistory as LeavePermissionRecord[]) || []}
-          holidayWorkCount={holidayWorkCount}
+          initialLeaves={(leavesHistory as LeavePermissionRecord[]) || []}
+          holidayCompBalance={holidayWorkCount}
         />
 
-        {/* KPI Tracker only (Advances removed) */}
-        <div>
-          <KpiTrackerWidget
-            userId={authUser.id}
-            kpiUnit={user?.kpi_unit || 'tasks'}
-            initialEntries={(kpiHistory as KpiEntryRecord[]) || []}
-          />
-        </div>
+        {/* KPI / Performance Daily Logs Widget */}
+        <KpiTrackerWidget
+          userId={authUser.id}
+          unitName={user?.kpi_unit || 'tasks'}
+          initialKpis={(kpiHistory as KpiEntryRecord[]) || []}
+        />
       </main>
     </div>
   );
