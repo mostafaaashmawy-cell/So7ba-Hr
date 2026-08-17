@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Users, TrendingUp, DollarSign, Award, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 
 interface StatCardsProps {
   totalEmployees: number;
@@ -103,8 +103,8 @@ export default function StatCards({
           </div>
           <div className="flex items-center gap-1 text-[11px] font-bold text-cyan-600">
             <ArrowUpRight className="w-3.5 h-3.5" />
-            <span>+8% rating</span>
-            <span className="text-slate-400 font-normal ml-1">Reviews</span>
+            <span>{totalLeavesMonth} on leave</span>
+            <span className="text-slate-400 font-normal ml-1">Records</span>
           </div>
         </div>
         <RadialGauge percentage={performanceRate || 84} color="#06b6d4" />

@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { PieChart, Layers } from 'lucide-react';
 
 export default function DepartmentDistributionChart() {
   const departments = [

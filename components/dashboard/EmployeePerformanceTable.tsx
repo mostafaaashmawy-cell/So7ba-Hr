@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { UserProfile } from '@/lib/types/database';
-import { MoreVertical, Star, ShieldCheck, ArrowRight } from 'lucide-react';
+import { MoreVertical, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
 interface EmployeePerformanceTableProps {

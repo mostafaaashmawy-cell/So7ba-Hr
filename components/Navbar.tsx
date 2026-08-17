@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { UserProfile } from '@/lib/types/database';
 import {
   LogOut,
-  User,
   ShieldCheck,
   Briefcase,
   UserCheck,
@@ -21,7 +20,6 @@ import {
   Star,
   TrendingUp,
   FileText,
-  Settings,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, usePathname } from 'next/navigation';

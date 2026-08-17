@@ -176,7 +176,7 @@ export default async function SuperAdminDashboardPage() {
         </div>
 
         {/* 5. Employee Directory & Custom Schedule Override */}
-        <EmployeeManagement users={(allUsers as UserProfile[]) || []} />
+        <EmployeeManagement initialUsers={(allUsers as UserProfile[]) || []} />
 
         {/* 6. Attendance & Record Audit Log Table */}
         <RecordOverrideTable

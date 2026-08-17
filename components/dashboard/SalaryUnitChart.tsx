@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { BarChart3, TrendingUp, Filter } from 'lucide-react';
 
 interface SalaryUnitChartProps {
   title?: string;

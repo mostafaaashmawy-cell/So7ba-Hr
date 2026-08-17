@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useLanguage } from '@/lib/context/LanguageContext';
-import { ShieldCheck, Sparkles } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 
 export default function AdminWelcomeHeader() {
   const { t } = useLanguage();

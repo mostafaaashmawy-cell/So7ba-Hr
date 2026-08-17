@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useLanguage } from '@/lib/context/LanguageContext';
-import { Sparkles, Target } from 'lucide-react';
+import { Target } from 'lucide-react';
 
 interface WelcomeHeaderProps {
   fullName: string;
