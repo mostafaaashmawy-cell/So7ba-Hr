@@ -159,7 +159,11 @@ export default async function ManagerDashboardPage() {
         />
 
         {/* Holiday Work Compensations Form */}
-        <HolidayWorkForm teamMembers={(teamMembers as UserProfile[]) || []} />
+        <HolidayWorkForm
+          teamMembers={(teamMembers as UserProfile[]) || []}
+          currentUserId={authUser.id}
+          isSuperAdmin={manager?.role === 'super_admin'}
+        />
       </main>
     </div>
   );
