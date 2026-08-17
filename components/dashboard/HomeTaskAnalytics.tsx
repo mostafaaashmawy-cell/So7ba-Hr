@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Target, CheckCircle2, TrendingUp, Award } from 'lucide-react';
+import { Target, TrendingUp } from 'lucide-react';
 
 interface EmployeeProgress {
   name: string;

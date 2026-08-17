@@ -13,7 +13,6 @@ import {
   Briefcase,
   ChevronDown,
   ChevronRight,
-  ShieldCheck,
   FileText,
   TrendingUp,
   Star,

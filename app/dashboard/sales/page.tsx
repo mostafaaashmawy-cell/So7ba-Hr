@@ -13,8 +13,6 @@ import {
   RefreshCw,
   AlertCircle,
   Trash,
-  DollarSign,
-  Calendar,
 } from 'lucide-react';
 import { useLanguage } from '@/lib/context/LanguageContext';
 

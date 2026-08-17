@@ -10,7 +10,6 @@ import {
   BranchLocation,
 } from '@/lib/types/database';
 import {
-  Building,
   Settings,
   MapPin,
   Clock,
@@ -23,7 +22,6 @@ import {
   AlertCircle,
   Sparkles,
   Sliders,
-  Calendar,
 } from 'lucide-react';
 import { useLanguage } from '@/lib/context/LanguageContext';
 import Link from 'next/link';

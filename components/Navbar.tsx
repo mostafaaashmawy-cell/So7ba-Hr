@@ -10,19 +10,12 @@ import {
   UserCheck,
   Globe,
   Menu,
-  X,
   Bell,
   Search,
   LayoutDashboard,
   Users,
   Target,
-  FileSpreadsheet,
   Star,
-  TrendingUp,
-  FileText,
-  Sliders,
-  PanelLeftClose,
-  PanelLeft,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, usePathname } from 'next/navigation';

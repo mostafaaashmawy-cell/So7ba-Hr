@@ -5,18 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   HelpCircle,
   X,
-  BookOpen,
   CheckCircle2,
-  Sparkles,
-  Info,
-  Sliders,
-  ShieldAlert,
-  Target,
-  FileSpreadsheet,
-  Clock,
-  DollarSign,
-  MapPin,
-  Star,
 } from 'lucide-react';
 import { useLanguage } from '@/lib/context/LanguageContext';
 
