@@ -116,6 +116,7 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
 
   // Extract filter dropdown contents
   const uniqueJobTitles = Array.from(new Set(users.map((u) => u.job_title).filter((t): t is string => !!t)));
+  const uniquePaymentMethods = Array.from(new Set(users.map((u) => u.payment_method).filter((t): t is string => !!t)));
   const managersList = users.filter((u) => u.role === 'manager' || u.role === 'super_admin');
 
   // File Upload to Supabase Storage
@@ -458,6 +459,20 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
                 {uniqueJobTitles.map((j) => (
                   <option key={j} value={j}>
                     {j}
+                  </option>
+                ))}
+              </select>
+
+              {/* Payment Method filter */}
+              <select
+                value={filterPayment}
+                onChange={(e) => setFilterPayment(e.target.value)}
+                className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none cursor-pointer"
+              >
+                <option value="all">{isRtl ? 'جميع طرق الدفع' : 'All Payments'}</option>
+                {uniquePaymentMethods.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
                   </option>
                 ))}
               </select>

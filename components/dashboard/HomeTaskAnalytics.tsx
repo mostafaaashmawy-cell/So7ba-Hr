@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Target, TrendingUp, ArrowUpRight, CheckCircle2 } from 'lucide-react';
+import { Target, TrendingUp, ArrowUpRight } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/lib/context/LanguageContext';
 
@@ -14,6 +14,24 @@ interface EmployeeProgress {
   tasksTarget: number;
   unit: string;
   completionRate: number;
+}
+
+interface RawTargetRecord {
+  id: string;
+  user_id: string;
+  target_quantity: number;
+  kpi_unit: string | null;
+  user?: {
+    full_name?: string;
+    department?: { name?: string };
+  };
+}
+
+interface KpiEntryItem {
+  id: string;
+  user_id: string;
+  amount: number;
+  unit: string;
 }
 
 export default function HomeTaskAnalytics() {
@@ -63,8 +81,10 @@ export default function HomeTaskAnalytics() {
           .select('*')
           .eq('tenant_id', profile.tenant_id);
 
-        const list: EmployeeProgress[] = targets.slice(0, 8).map((t: any) => {
-          const userKpis = kpis?.filter((k) => k.user_id === t.user_id && (!t.kpi_unit || k.unit === t.kpi_unit)) || [];
+        const typedKpis = (kpis as unknown as KpiEntryItem[]) || [];
+
+        const list: EmployeeProgress[] = (targets as unknown as RawTargetRecord[]).slice(0, 8).map((t) => {
+          const userKpis = typedKpis.filter((k) => k.user_id === t.user_id && (!t.kpi_unit || k.unit === t.kpi_unit));
           const completed = userKpis.reduce((sum, k) => sum + Number(k.amount || 0), 0);
           const targetQty = Number(t.target_quantity) || 1;
           const rate = Math.min(100, Math.round((completed / targetQty) * 100));
