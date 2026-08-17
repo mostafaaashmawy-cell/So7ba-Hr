@@ -143,8 +143,8 @@ export default async function EmployeeDashboardPage() {
         {/* Leaves & Permissions Management with Holiday comp balance */}
         <LeavePermissionForm
           userId={authUser.id}
-          initialLeaves={(leavesHistory as LeavePermissionRecord[]) || []}
-          holidayCompBalance={holidayWorkCount}
+          initialRecords={(leavesHistory as LeavePermissionRecord[]) || []}
+          holidayWorkCount={holidayWorkCount}
         />
 
         {/* KPI / Performance Daily Logs Widget */}
