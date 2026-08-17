@@ -64,6 +64,7 @@ export interface UserProfile {
   contract_type?: string | null;
   probation_period?: number | null;
   contract_end_date?: string | null;
+  commission_rate?: number | null;
 
   // Working Hours Granularity
   custom_schedule_enabled?: boolean | null;

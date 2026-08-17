@@ -4,8 +4,19 @@ import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { createClient } from '@/lib/supabase/client';
 import { UserProfile } from '@/lib/types/database';
-import { FileText, CheckCircle2, RefreshCw, AlertCircle, Check, X, Download, DollarSign, Percent } from 'lucide-react';
-
+import {
+  FileText,
+  CheckCircle2,
+  RefreshCw,
+  AlertCircle,
+  Check,
+  X,
+  Download,
+  DollarSign,
+  Plus,
+  Percent,
+} from 'lucide-react';
+import { useLanguage } from '@/lib/context/LanguageContext';
 
 interface FinancialAdjustment {
   id: string;
@@ -32,6 +43,7 @@ interface PayslipData {
   departmentName: string;
   jobTitle: string;
   basicSalary: number;
+  commissionRate: number;
   commission: number;
   totalSales: number;
   bonuses: number;
@@ -47,6 +59,7 @@ interface PayslipData {
 }
 
 export default function PayrollPage() {
+  const { isRtl } = useLanguage();
   const supabase = createClient();
 
   const [loading, setLoading] = useState(true);
@@ -58,18 +71,16 @@ export default function PayrollPage() {
   const [selectedMonth, setSelectedMonth] = useState<string>(
     new Date().toISOString().substring(0, 7) // 'YYYY-MM'
   );
-  const [commissionRate, setCommissionRate] = useState<number>(5); // default 5%
-  
+
   // Lists
   const [adjustments, setAdjustments] = useState<FinancialAdjustment[]>([]);
   const [advances, setAdvances] = useState<AdvanceRequest[]>([]);
-  
-  // Form input states
+
+  // Adjustment Form State with explicit employee selector
+  const [adjEmployee, setAdjEmployee] = useState<string>('');
   const [adjType, setAdjType] = useState<'bonus' | 'penalty'>('bonus');
   const [adjAmount, setAdjAmount] = useState<number | ''>('');
   const [adjNotes, setAdjNotes] = useState<string>('');
-  
-  const [advAmount, setAdvAmount] = useState<number | ''>('');
 
   const [msg, setMsg] = useState<{ text: string; error: boolean } | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -81,7 +92,9 @@ export default function PayrollPage() {
 
   const loadData = async () => {
     setLoading(true);
-    const { data: { user: authUser } } = await supabase.auth.getUser();
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
     if (!authUser) return;
 
     // Profile
@@ -94,16 +107,17 @@ export default function PayrollPage() {
     if (profile) {
       setCurrentUser(profile as UserProfile);
 
-      // Load all employees
+      // Load all employees in tenant
       const { data: users } = await supabase
         .from('users')
         .select('*, department:departments(name)')
         .eq('tenant_id', profile.tenant_id);
-      
+
       if (users) {
         setEmployees(users as UserProfile[]);
         if (users.length > 0) {
           setSelectedEmployee(users[0].id);
+          setAdjEmployee(users[0].id);
         }
       }
 
@@ -113,10 +127,8 @@ export default function PayrollPage() {
         .select('*, user:users(full_name)')
         .eq('tenant_id', profile.tenant_id)
         .order('date', { ascending: false });
-      
-      if (adj) {
-        setAdjustments(adj as FinancialAdjustment[]);
-      }
+
+      if (adj) setAdjustments(adj as FinancialAdjustment[]);
 
       // Load Advances in Tenant
       const { data: adv } = await supabase
@@ -124,10 +136,8 @@ export default function PayrollPage() {
         .select('*, user:users(full_name)')
         .eq('tenant_id', profile.tenant_id)
         .order('month', { ascending: false });
-      
-      if (adv) {
-        setAdvances(adv as AdvanceRequest[]);
-      }
+
+      if (adv) setAdvances(adv as AdvanceRequest[]);
     }
     setLoading(false);
   };
@@ -139,74 +149,39 @@ export default function PayrollPage() {
 
   const handleCreateAdjustment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser || !adjAmount || !selectedEmployee) return;
+    if (!currentUser || !adjAmount || !adjEmployee) return;
 
     setSubmitting(true);
     setMsg(null);
 
-    // If super admin, auto approve. If manager, set pending.
     const finalStatus = currentUser.role === 'super_admin' ? 'approved' : 'pending';
 
     try {
-      const { error } = await supabase
-        .from('financial_adjustments')
-        .insert({
-          tenant_id: currentUser.tenant_id,
-          user_id: selectedEmployee,
-          type: adjType,
-          amount: Number(adjAmount),
-          notes: adjNotes.trim() || null,
-          status: finalStatus,
-          created_by: currentUser.id
-        });
+      const { error } = await supabase.from('financial_adjustments').insert({
+        tenant_id: currentUser.tenant_id,
+        user_id: adjEmployee,
+        type: adjType,
+        amount: Number(adjAmount),
+        notes: adjNotes.trim() || null,
+        status: finalStatus,
+        created_by: currentUser.id,
+      });
 
       if (error) throw error;
 
       setMsg({
-        text: finalStatus === 'approved' ? 'Adjustment successfully executed!' : 'Adjustment submitted and is pending admin approval!',
-        error: false
+        text:
+          finalStatus === 'approved'
+            ? isRtl
+              ? 'تم تسجيل وتسوية التعديل المالي بنجاح!'
+              : 'Adjustment successfully executed!'
+            : isRtl
+            ? 'تم إرسال التعديل المالي وهو بانتظار موافقة المشرف العام!'
+            : 'Adjustment submitted and pending admin approval!',
+        error: false,
       });
       setAdjAmount('');
       setAdjNotes('');
-
-      loadData();
-    } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : 'Action failed';
-      setMsg({ text: errMsg, error: true });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleCreateAdvance = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentUser || !advAmount || !selectedEmployee) return;
-
-    setSubmitting(true);
-    setMsg(null);
-
-    // If super admin, auto approve. If manager, set pending.
-    const finalStatus = currentUser.role === 'super_admin' ? 'approved' : 'pending';
-    const payrollMonth = `${selectedMonth}-01`;
-
-    try {
-      const { error } = await supabase
-        .from('advances')
-        .insert({
-          tenant_id: currentUser.tenant_id,
-          user_id: selectedEmployee,
-          amount: Number(advAmount),
-          month: payrollMonth,
-          status: finalStatus
-        });
-
-      if (error) throw error;
-
-      setMsg({
-        text: finalStatus === 'approved' ? 'Salary Advance request approved!' : 'Salary Advance submitted and is pending admin approval!',
-        error: false
-      });
-      setAdvAmount('');
 
       loadData();
     } catch (err: unknown) {
@@ -226,10 +201,9 @@ export default function PayrollPage() {
         .eq('id', id);
 
       if (error) throw error;
-      setAdjustments(adjustments.map((a) => a.id === id ? { ...a, status: newStatus } : a));
+      setAdjustments(adjustments.map((a) => (a.id === id ? { ...a, status: newStatus } : a)));
     } catch (e: unknown) {
-      const errMsg = e instanceof Error ? e.message : 'Status change failed';
-      alert(errMsg);
+      console.error(e);
     } finally {
       setActionId(null);
     }
@@ -238,16 +212,12 @@ export default function PayrollPage() {
   const handleStatusAdvance = async (id: string, newStatus: 'approved' | 'rejected') => {
     setActionId(id);
     try {
-      const { error } = await supabase
-        .from('advances')
-        .update({ status: newStatus })
-        .eq('id', id);
+      const { error } = await supabase.from('advances').update({ status: newStatus }).eq('id', id);
 
       if (error) throw error;
-      setAdvances(advances.map((a) => a.id === id ? { ...a, status: newStatus } : a));
+      setAdvances(advances.map((a) => (a.id === id ? { ...a, status: newStatus } : a)));
     } catch (e: unknown) {
-      const errMsg = e instanceof Error ? e.message : 'Status change failed';
-      alert(errMsg);
+      console.error(e);
     } finally {
       setActionId(null);
     }
@@ -255,47 +225,61 @@ export default function PayrollPage() {
 
   // Compile Payslip
   const compilePayslip = async () => {
-    const emp = employees.find((e) => e.id === selectedEmployee);
-    if (!emp || !currentUser) return;
-
+    if (!selectedEmployee || !selectedMonth || !currentUser) return;
     setLoading(true);
-    const startStr = `${selectedMonth}-01`;
-    const endStr = `${selectedMonth}-31`; // fallback or end day of month
 
     try {
-      // 1. Get Approved Sales & calculate Commission
-      const { data: salesLogs } = await supabase
-        .from('sales_logs')
+      const emp = employees.find((e) => e.id === selectedEmployee);
+      if (!emp) throw new Error('Employee record missing');
+
+      const startStr = `${selectedMonth}-01`;
+      const [y, m] = selectedMonth.split('-').map(Number);
+      const lastDay = new Date(y, m, 0).getDate();
+      const endStr = `${selectedMonth}-${lastDay}`;
+
+      // 1. Fetch Verified Sales
+      const { data: sales } = await supabase
+        .from('sales_entries')
         .select('amount')
         .eq('user_id', emp.id)
         .eq('status', 'approved')
-        .gte('date', startStr)
-        .lte('date', endStr);
+        .gte('deal_date', startStr)
+        .lte('deal_date', endStr);
 
-      const totalSales = salesLogs ? salesLogs.reduce((sum, curr) => sum + Number(curr.amount), 0) : 0;
-      const commission = (totalSales * Number(commissionRate)) / 100;
+      const totalSales = sales ? sales.reduce((acc, curr) => acc + Number(curr.amount || 0), 0) : 0;
+      // Read commission rate directly from employee's profile
+      const empCommissionRate = Number(emp.commission_rate ?? 5);
+      const commission = totalSales * (empCommissionRate / 100);
 
-      // 2. Get Approved Bonuses & Penalties
-      const { data: adjLogs } = await supabase
+      // 2. Fetch Adjustments (Bonuses & Penalties)
+      const { data: userAdj } = await supabase
         .from('financial_adjustments')
-        .select('*')
+        .select('amount, type')
         .eq('user_id', emp.id)
         .eq('status', 'approved')
         .gte('date', startStr)
         .lte('date', endStr);
 
-      const bonuses = adjLogs ? adjLogs.filter((a) => a.type === 'bonus').reduce((sum, curr) => sum + Number(curr.amount), 0) : 0;
-      const penalties = adjLogs ? adjLogs.filter((a) => a.type === 'penalty').reduce((sum, curr) => sum + Number(curr.amount), 0) : 0;
+      let bonuses = 0;
+      let penalties = 0;
+      if (userAdj) {
+        userAdj.forEach((a) => {
+          if (a.type === 'bonus') bonuses += Number(a.amount);
+          if (a.type === 'penalty') penalties += Number(a.amount);
+        });
+      }
 
-      // 3. Get Approved Advances
-      const { data: advLogs } = await supabase
+      // 3. Fetch Automatically Approved Advances
+      const { data: userAdv } = await supabase
         .from('advances')
         .select('amount')
         .eq('user_id', emp.id)
-        .eq('status', 'approved')
-        .eq('month', startStr);
+        .eq('month', startStr)
+        .eq('status', 'approved');
 
-      const totalAdvances = advLogs ? advLogs.reduce((sum, curr) => sum + Number(curr.amount), 0) : 0;
+      const totalAdvances = userAdv
+        ? userAdv.reduce((acc, curr) => acc + Number(curr.amount || 0), 0)
+        : 0;
 
       // 4. Calculate Lateness Deductions automatically using HumAi lateness engine
       const { data: settings } = await supabase
@@ -313,9 +297,8 @@ export default function PayrollPage() {
 
       let latenessDeductions = 0;
       if (checkins && settings) {
-        const dailyRate = Number(emp.basic_salary) / 30; // standard daily rate
+        const dailyRate = Number(emp.basic_salary || 5000) / 30;
 
-        // Determine employee's shift start time
         const shiftTimeStr =
           emp.custom_schedule_enabled && emp.custom_start_time
             ? emp.custom_start_time
@@ -356,20 +339,21 @@ export default function PayrollPage() {
         });
       }
 
-      // 5. Insurance deductions (default to 0 if toggle disabled)
+      // 5. Insurance deductions
       const socialIns = Number(emp.social_insurance || 0);
       const healthIns = Number(emp.health_insurance || 0);
 
-      // Calculations
-      const grossEarnings = Number(emp.basic_salary) + commission + bonuses;
+      // Final calculations
+      const grossEarnings = Number(emp.basic_salary || 0) + commission + bonuses;
       const totalDeductions = penalties + totalAdvances + latenessDeductions + socialIns + healthIns;
       const netPay = grossEarnings - totalDeductions;
 
       setPayslipData({
         employeeName: emp.full_name,
-        departmentName: ((emp as unknown) as { department?: { name?: string } }).department?.name || 'N/A',
-        jobTitle: emp.job_title || 'N/A',
-        basicSalary: Number(emp.basic_salary),
+        departmentName: ((emp as unknown) as { department?: { name?: string } }).department?.name || 'Operations',
+        jobTitle: emp.job_title || 'Staff',
+        basicSalary: Number(emp.basic_salary || 0),
+        commissionRate: empCommissionRate,
         commission,
         totalSales,
         bonuses,
@@ -381,7 +365,7 @@ export default function PayrollPage() {
         grossEarnings,
         totalDeductions,
         netPay,
-        month: selectedMonth
+        month: selectedMonth,
       });
 
       setShowPayslip(true);
@@ -393,134 +377,140 @@ export default function PayrollPage() {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
-
+  const handlePrint = () => window.print();
   const isSuperAdmin = currentUser?.role === 'super_admin';
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0b0f19] flex items-center justify-center text-gray-400 text-xs">
-        <RefreshCw className="w-5 h-5 animate-spin text-sky-400 mr-2" />
+      <div className="min-h-screen bg-[--bg] flex items-center justify-center text-slate-400 text-xs font-bold">
+        <RefreshCw className="w-5 h-5 animate-spin text-blue-600 mr-2" />
         Loading payroll engine...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0b0f19] text-gray-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-[--bg] text-slate-900 dark:text-slate-100 flex flex-col font-sans">
       <Navbar user={currentUser} activeRoleView={isSuperAdmin ? 'super_admin' : 'manager'} />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-8 space-y-6 print:bg-white print:text-black print:p-0">
-        
         {/* Printable payslip modal view */}
         {showPayslip && payslipData && (
-          <div className="glass-card p-6 rounded-2xl border border-gray-800 space-y-6 print:border-none print:shadow-none print:bg-white print:text-black print:p-0">
-            <div className="flex justify-between items-center pb-3 border-b border-gray-800 print:hidden">
-              <h3 className="font-bold text-sm text-gray-200">Generated Monthly Payslip</h3>
+          <div className="cleariq-card p-6 cleariq-card-hover space-y-6 print:border-none print:shadow-none print:bg-white print:text-black print:p-0">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-slate-800 print:hidden">
+              <h3 className="font-extrabold text-base text-slate-950 dark:text-white">
+                {isRtl ? 'مفردات الراتب المعتمدة' : 'Official Generated Payslip'}
+              </h3>
               <div className="flex gap-2">
                 <button
+                  type="button"
                   onClick={handlePrint}
-                  className="gradient-btn px-4 py-1.5 rounded-xl text-xs font-bold text-white shadow-md flex items-center gap-1.5 cursor-pointer"
+                  className="gradient-btn px-4 py-1.5 rounded-xl text-xs font-bold text-white shadow-xs flex items-center gap-1.5 cursor-pointer"
                 >
-                  <Download className="w-4 h-4" /> Download / Print Payslip
+                  <Download className="w-4 h-4" /> {isRtl ? 'طباعة / حفظ PDF' : 'Download / Print Payslip'}
                 </button>
                 <button
+                  type="button"
                   onClick={() => setShowPayslip(false)}
-                  className="bg-gray-900 border border-gray-800 text-gray-400 hover:text-white px-3 py-1.5 rounded-xl text-xs cursor-pointer"
+                  className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-200 px-3.5 py-1.5 rounded-xl text-xs font-bold cursor-pointer"
                 >
-                  Close Payslip
+                  {isRtl ? 'إغلاق' : 'Close Payslip'}
                 </button>
               </div>
             </div>
 
             {/* Printing Payslip layout */}
             <div className="space-y-6 p-4 print:p-0 font-sans">
-              <div className="flex justify-between items-center border-b-2 border-black pb-4 mb-4">
+              <div className="flex justify-between items-center border-b-2 border-slate-950 pb-4 mb-4">
                 <div>
-                  <h2 className="text-lg font-black text-black">Simply HR System</h2>
-                  <p className="text-[10px] text-gray-600">Employment Payslip Statement</p>
+                  <h2 className="text-xl font-extrabold text-slate-950">HumAi Operations HR</h2>
+                  <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Official Monthly Payslip</p>
                 </div>
                 <div className="text-right">
-                  <span className="text-xs font-bold text-gray-500 block">Payroll Month</span>
-                  <span className="text-sm font-extrabold text-sky-600 print:text-black">{payslipData.month}</span>
+                  <span className="text-xs font-bold text-slate-500 block">{isRtl ? 'شهر الاستحقاق' : 'Payroll Month'}</span>
+                  <span className="text-base font-extrabold text-blue-600 print:text-black font-sans">{payslipData.month}</span>
                 </div>
               </div>
 
               {/* Bio Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-2 border-b border-gray-100 print:border-black font-sans text-xs text-gray-400 print:text-black">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 py-3 border-b border-slate-200 print:border-black font-sans text-xs">
                 <div>
-                  <span className="font-bold text-gray-500 block">Employee:</span>
-                  <span className="text-sm font-bold text-white print:text-black">{payslipData.employeeName}</span>
+                  <span className="font-bold text-slate-500 block">{isRtl ? 'اسم الموظف:' : 'Employee:'}</span>
+                  <span className="text-sm font-extrabold text-slate-950">{payslipData.employeeName}</span>
                 </div>
                 <div>
-                  <span className="font-bold text-gray-500 block">Job Title:</span>
-                  <span className="text-sm font-bold text-white print:text-black">{payslipData.jobTitle}</span>
+                  <span className="font-bold text-slate-500 block">{isRtl ? 'المسمى الوظيفي:' : 'Job Title:'}</span>
+                  <span className="text-sm font-bold text-slate-900">{payslipData.jobTitle}</span>
                 </div>
                 <div>
-                  <span className="font-bold text-gray-500 block">Department:</span>
-                  <span className="text-sm font-bold text-white print:text-black">{payslipData.departmentName}</span>
+                  <span className="font-bold text-slate-500 block">{isRtl ? 'القسم الإداري:' : 'Department:'}</span>
+                  <span className="text-sm font-bold text-slate-900">{payslipData.departmentName}</span>
                 </div>
               </div>
 
               {/* Financial Breakdowns */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 font-sans">
                 {/* Earnings */}
-                <div className="space-y-2 border border-gray-800/80 rounded-xl p-4 bg-gray-950/20 print:border-black print:bg-transparent">
-                  <h4 className="text-xs font-bold text-sky-400 print:text-black border-b border-gray-800 pb-1 uppercase">Earnings (+)</h4>
-                  <div className="flex justify-between text-xs">
-                    <span>Basic Salary:</span>
-                    <span>{payslipData.basicSalary.toLocaleString()} EGP</span>
+                <div className="space-y-2 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 bg-slate-50 dark:bg-slate-800/40 print:border-black print:bg-transparent">
+                  <h4 className="text-xs font-extrabold text-blue-600 print:text-black border-b border-slate-200 dark:border-slate-700 pb-1.5 uppercase">
+                    {isRtl ? 'الاستحقاقات والإضافات (+)' : 'Earnings (+)'}
+                  </h4>
+                  <div className="flex justify-between text-xs text-slate-800 dark:text-slate-200">
+                    <span>{isRtl ? 'الراتب الأساسي:' : 'Basic Salary:'}</span>
+                    <span className="font-bold font-sans">{payslipData.basicSalary.toLocaleString()} EGP</span>
                   </div>
-                  <div className="flex justify-between text-xs">
-                    <span>Commissions ({commissionRate}%):</span>
-                    <span>{payslipData.commission.toLocaleString()} EGP</span>
+                  <div className="flex justify-between text-xs text-slate-800 dark:text-slate-200">
+                    <span>{isRtl ? `العمولات (${payslipData.commissionRate}%):` : `Commissions (${payslipData.commissionRate}%):`}</span>
+                    <span className="font-bold font-sans">{payslipData.commission.toLocaleString()} EGP</span>
                   </div>
-                  <div className="flex justify-between text-xs">
-                    <span>Approved Bonuses:</span>
-                    <span>{payslipData.bonuses.toLocaleString()} EGP</span>
+                  <div className="flex justify-between text-xs text-slate-800 dark:text-slate-200">
+                    <span>{isRtl ? 'المكافآت المعتمدة:' : 'Approved Bonuses:'}</span>
+                    <span className="font-bold font-sans text-emerald-600 dark:text-emerald-400">{payslipData.bonuses.toLocaleString()} EGP</span>
                   </div>
-                  <div className="flex justify-between text-xs font-bold pt-2 border-t border-gray-800/80 text-gray-200 print:text-black">
-                    <span>Gross Earnings:</span>
-                    <span>{payslipData.grossEarnings.toLocaleString()} EGP</span>
+                  <div className="flex justify-between text-xs font-extrabold pt-2 border-t border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white print:text-black">
+                    <span>{isRtl ? 'إجمالي الاستحقاقات:' : 'Gross Earnings:'}</span>
+                    <span className="font-sans">{payslipData.grossEarnings.toLocaleString()} EGP</span>
                   </div>
                 </div>
 
                 {/* Deductions */}
-                <div className="space-y-2 border border-gray-800/80 rounded-xl p-4 bg-gray-950/20 print:border-black print:bg-transparent">
-                  <h4 className="text-xs font-bold text-red-400 print:text-black border-b border-gray-800 pb-1 uppercase">Deductions (-)</h4>
-                  <div className="flex justify-between text-xs">
-                    <span>Advances Taken:</span>
-                    <span>{payslipData.advances.toLocaleString()} EGP</span>
+                <div className="space-y-2 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 bg-slate-50 dark:bg-slate-800/40 print:border-black print:bg-transparent">
+                  <h4 className="text-xs font-extrabold text-rose-600 print:text-black border-b border-slate-200 dark:border-slate-700 pb-1.5 uppercase">
+                    {isRtl ? 'الاستقطاعات والخصومات (-)' : 'Deductions (-)'}
+                  </h4>
+                  <div className="flex justify-between text-xs text-slate-800 dark:text-slate-200">
+                    <span>{isRtl ? 'السلف المسحوبة:' : 'Advances Deducted:'}</span>
+                    <span className="font-bold font-sans">{payslipData.advances.toLocaleString()} EGP</span>
                   </div>
-                  <div className="flex justify-between text-xs">
-                    <span>Approved Penalties:</span>
-                    <span>{payslipData.penalties.toLocaleString()} EGP</span>
+                  <div className="flex justify-between text-xs text-slate-800 dark:text-slate-200">
+                    <span>{isRtl ? 'الجزاءات والخصومات:' : 'Penalties:'}</span>
+                    <span className="font-bold font-sans text-rose-600 dark:text-rose-400">{payslipData.penalties.toLocaleString()} EGP</span>
                   </div>
-                  <div className="flex justify-between text-xs">
-                    <span>Lateness Deductions:</span>
-                    <span>{payslipData.latenessDeductions.toLocaleString()} EGP</span>
+                  <div className="flex justify-between text-xs text-slate-800 dark:text-slate-200">
+                    <span>{isRtl ? 'خصم التأخير التلقائي:' : 'Lateness Deductions:'}</span>
+                    <span className="font-bold font-sans">{payslipData.latenessDeductions.toLocaleString()} EGP</span>
                   </div>
-                  <div className="flex justify-between text-xs">
-                    <span>Social Insurance:</span>
-                    <span>{payslipData.socialInsurance.toLocaleString()} EGP</span>
+                  <div className="flex justify-between text-xs text-slate-800 dark:text-slate-200">
+                    <span>{isRtl ? 'التأمين الاجتماعي:' : 'Social Insurance:'}</span>
+                    <span className="font-bold font-sans">{payslipData.socialInsurance.toLocaleString()} EGP</span>
                   </div>
-                  <div className="flex justify-between text-xs">
-                    <span>Health Insurance:</span>
-                    <span>{payslipData.healthInsurance.toLocaleString()} EGP</span>
+                  <div className="flex justify-between text-xs text-slate-800 dark:text-slate-200">
+                    <span>{isRtl ? 'التأمين الصحي:' : 'Health Insurance:'}</span>
+                    <span className="font-bold font-sans">{payslipData.healthInsurance.toLocaleString()} EGP</span>
                   </div>
-                  <div className="flex justify-between text-xs font-bold pt-2 border-t border-gray-800/80 text-gray-200 print:text-black">
-                    <span>Total Deductions:</span>
-                    <span>{payslipData.totalDeductions.toLocaleString()} EGP</span>
+                  <div className="flex justify-between text-xs font-extrabold pt-2 border-t border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white print:text-black">
+                    <span>{isRtl ? 'إجمالي الاستقطاعات:' : 'Total Deductions:'}</span>
+                    <span className="font-sans">{payslipData.totalDeductions.toLocaleString()} EGP</span>
                   </div>
                 </div>
               </div>
 
               {/* Net pay summary panel */}
-              <div className="p-4 rounded-xl bg-sky-500/10 border border-sky-500/30 text-center font-sans print:border-black print:bg-transparent">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Net Take-Home Pay</span>
-                <span className="text-2xl font-black text-sky-400 print:text-black">
+              <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-center font-sans print:border-black print:bg-transparent">
+                <span className="text-[10px] font-extrabold text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
+                  {isRtl ? 'صافي الراتب المستحق للصرف' : 'Net Take-Home Pay'}
+                </span>
+                <span className="text-3xl font-black text-blue-700 dark:text-blue-400 print:text-black font-sans">
                   {payslipData.netPay.toLocaleString()} EGP
                 </span>
               </div>
@@ -530,249 +520,310 @@ export default function PayrollPage() {
 
         {!showPayslip && (
           <div className="space-y-6 print:hidden">
-            
             {/* Top Config Engine Card */}
-            <div className="glass-card p-6 rounded-2xl border border-gray-800 space-y-4">
+            <div id="payslips" className="cleariq-card p-6 cleariq-card-hover space-y-4 scroll-mt-24">
               <div>
-                <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-sky-400" /> Payroll Payslip Generator
+                <h2 className="text-base sm:text-lg font-extrabold text-slate-950 dark:text-white flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-blue-600" />
+                  {isRtl ? 'محرك احتساب الرواتب والمفردات الشهرية' : 'Payroll Engine & Payslip Generator'}
                 </h2>
-                <p className="text-xs text-gray-400 mt-0.5">Calculate monthly payouts, deductions, and print payslips.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {isRtl
+                    ? 'احتساب صافي الراتب، استقطاع السلف والتأخير آلياً، واحتساب العمولات المسجلة في ملف الموظف'
+                    : 'Calculate net payouts, auto-deduct lateness & advances, and apply individual commission rates'}
+                </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-400 mb-1">Select Employee</label>
+                  <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">
+                    {isRtl ? 'اختر الموظف' : 'Select Employee'}
+                  </label>
                   <select
                     value={selectedEmployee}
                     onChange={(e) => setSelectedEmployee(e.target.value)}
-                    className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-950 dark:text-white focus:outline-none cursor-pointer"
                   >
                     {employees.map((e) => (
-                      <option key={e.id} value={e.id}>{e.full_name}</option>
+                      <option key={e.id} value={e.id}>
+                        {e.full_name} ({e.job_title || 'Staff'} - Comm: {e.commission_rate ?? 5}%)
+                      </option>
                     ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-400 mb-1">Payroll Month</label>
+                  <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">
+                    {isRtl ? 'شهر الاستحقاق' : 'Payroll Month'}
+                  </label>
                   <input
                     type="month"
                     value={selectedMonth}
                     onChange={(e) => setSelectedMonth(e.target.value)}
-                    className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none font-sans"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-950 dark:text-white focus:outline-none font-sans"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 mb-1">Commission Rate (%)</label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      value={commissionRate}
-                      onChange={(e) => setCommissionRate(Number(e.target.value))}
-                      className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none font-sans"
-                    />
-                    <Percent className="w-4 h-4 text-sky-400" />
-                  </div>
                 </div>
               </div>
 
               <button
+                type="button"
                 onClick={compilePayslip}
-                className="w-full gradient-btn py-2.5 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-1.5 shadow-lg"
+                className="w-full gradient-btn py-3 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-2 shadow-sm cursor-pointer"
               >
-                <FileText className="w-4 h-4" /> Calculate & View Net Payslip
+                <FileText className="w-4 h-4" />
+                <span>{isRtl ? 'احتساب وعرض مفردات المرتب' : 'Calculate & View Net Payslip'}</span>
               </button>
             </div>
 
             {/* Adjustments Logging grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              
-              {/* Request Adjustments & Advances Form */}
-              <div className="glass-card p-6 rounded-2xl border border-gray-800 space-y-6">
+              {/* Form: Bonus & Penalty Adjustments with explicit employee picker */}
+              <div className="cleariq-card p-6 cleariq-card-hover space-y-6">
                 <div>
-                  <h3 className="font-bold text-sm text-gray-200">Submit Adjustments & Advances</h3>
-                  <p className="text-[10px] text-gray-500">Log financial modifications. Manager submissions require Admin validation.</p>
+                  <h3 className="font-extrabold text-sm text-slate-950 dark:text-white">
+                    {isRtl ? 'تسجيل المكافآت والجزاءات المالية' : 'Log Financial Adjustments (Bonus / Penalty)'}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    {isRtl
+                      ? 'حدد الموظف المستهدف ونوع التعديل المالي والمبلغ والسبب.'
+                      : 'Pick the exact employee, adjustment category, amount, and reason.'}
+                  </p>
                 </div>
 
                 {msg && (
-                  <div className={`p-3 rounded-xl border text-xs flex items-center gap-2 ${
-                    msg.error ? 'bg-red-500/10 border-red-500/30 text-red-300' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                  }`}>
+                  <div
+                    className={`p-3.5 rounded-2xl border text-xs flex items-center gap-2 ${
+                      msg.error
+                        ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300'
+                        : 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
+                    }`}
+                  >
                     {msg.error ? <AlertCircle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
-                    <span>{msg.text}</span>
+                    <span className="font-medium">{msg.text}</span>
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  {/* Adjustment Sub-form */}
-                  <form onSubmit={handleCreateAdjustment} className="space-y-3.5 p-3 rounded-xl bg-gray-900/30 border border-gray-800">
-                    <h4 className="text-xs font-bold text-sky-400 border-b border-gray-800 pb-1">Bonus / Penalty Adjustments</h4>
-                    
+                <form onSubmit={handleCreateAdjustment} className="space-y-4">
+                  {/* Explicit Employee Selector */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">
+                      {isRtl ? 'الموظف المستهدف:' : 'Target Employee:'}
+                    </label>
+                    <select
+                      value={adjEmployee}
+                      onChange={(e) => setAdjEmployee(e.target.value)}
+                      required
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none cursor-pointer"
+                    >
+                      <option value="">{isRtl ? 'اختر الموظف...' : 'Select target employee...'}</option>
+                      {employees.map((e) => (
+                        <option key={e.id} value={e.id}>
+                          {e.full_name} ({e.job_title || 'Employee'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[11px] text-gray-500 mb-0.5">Adjustment Type</label>
+                      <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">
+                        {isRtl ? 'نوع التعديل:' : 'Adjustment Type:'}
+                      </label>
                       <select
                         value={adjType}
                         onChange={(e) => setAdjType(e.target.value as 'bonus' | 'penalty')}
-                        className="w-full bg-gray-900 border border-gray-800 rounded-lg px-2.5 py-1.5 text-xs text-gray-100 focus:outline-none"
+                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none cursor-pointer"
                       >
-                        <option value="bonus">Bonus (+)</option>
-                        <option value="penalty">Penalty (-)</option>
+                        <option value="bonus">{isRtl ? 'مكافأة (+)' : 'Bonus (+)'}</option>
+                        <option value="penalty">{isRtl ? 'جزاء / خصم (-)' : 'Penalty (-)'}</option>
                       </select>
                     </div>
 
                     <div>
-                      <label className="block text-[11px] text-gray-500 mb-0.5">Amount (EGP)</label>
+                      <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">
+                        {isRtl ? 'المبلغ (ج.م):' : 'Amount (EGP):'}
+                      </label>
                       <input
                         type="number"
                         required
                         min="1"
                         placeholder="e.g. 500"
                         value={adjAmount}
-                        onChange={(e) => setAdjAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                        className="w-full bg-gray-900 border border-gray-800 rounded-lg px-2.5 py-1.5 text-xs text-gray-100 focus:outline-none font-sans"
+                        onChange={(e) =>
+                          setAdjAmount(e.target.value === '' ? '' : Number(e.target.value))
+                        }
+                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none font-sans"
                       />
                     </div>
+                  </div>
 
-                    <div>
-                      <label className="block text-[11px] text-gray-500 mb-0.5">Adjustment Notes</label>
-                      <input
-                        type="text"
-                        placeholder="Reason..."
-                        value={adjNotes}
-                        onChange={(e) => setAdjNotes(e.target.value)}
-                        className="w-full bg-gray-900 border border-gray-800 rounded-lg px-2.5 py-1.5 text-xs text-gray-100 focus:outline-none"
-                      />
-                    </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">
+                      {isRtl ? 'سبب التعديل / الملاحظات:' : 'Reason / Notes:'}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder={isRtl ? 'اكتب سبب التعديل...' : 'Reason for adjustment...'}
+                      value={adjNotes}
+                      onChange={(e) => setAdjNotes(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-950 dark:text-white focus:outline-none"
+                    />
+                  </div>
 
-                    <button
-                      type="submit"
-                      disabled={submitting || !adjAmount}
-                      className="w-full bg-sky-500/10 border border-sky-500/20 text-sky-400 py-1.5 rounded-lg text-xs font-bold hover:bg-sky-500/20 transition-all cursor-pointer"
-                    >
-                      Submit Adjustment
-                    </button>
-                  </form>
-
-                  {/* Advance Sub-form */}
-                  <form onSubmit={handleCreateAdvance} className="space-y-3.5 p-3 rounded-xl bg-gray-900/30 border border-gray-800 flex flex-col justify-between">
-                    <div className="space-y-3">
-                      <h4 className="text-xs font-bold text-sky-400 border-b border-gray-800 pb-1">Salary Advances</h4>
-                      
-                      <div>
-                        <label className="block text-[11px] text-gray-500 mb-0.5">Loan Amount (EGP)</label>
-                        <input
-                          type="number"
-                          required
-                          min="1"
-                          placeholder="e.g. 2000"
-                          value={advAmount}
-                          onChange={(e) => setAdvAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                          className="w-full bg-gray-900 border border-gray-800 rounded-lg px-2.5 py-1.5 text-xs text-gray-100 focus:outline-none font-sans"
-                        />
-                      </div>
-                      
-                      <p className="text-[10px] text-gray-500 leading-relaxed">Advances are allocated for the configured month above and auto-deducted during payslip generation.</p>
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={submitting || !advAmount}
-                      className="w-full bg-sky-500/10 border border-sky-500/20 text-sky-400 py-1.5 rounded-lg text-xs font-bold hover:bg-sky-500/20 transition-all mt-4 cursor-pointer"
-                    >
-                      Request Advance
-                    </button>
-                  </form>
-                </div>
+                  <button
+                    type="submit"
+                    disabled={submitting || !adjAmount || !adjEmployee}
+                    className="w-full gradient-btn py-2.5 rounded-xl text-xs font-bold text-white shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>{isRtl ? 'تسجيل التعديل المالي' : 'Submit Adjustment'}</span>
+                  </button>
+                </form>
               </div>
 
               {/* Adjustments & Advances Verification Table */}
-              <div className="glass-card p-6 rounded-2xl border border-gray-800 space-y-4 max-h-[480px] overflow-y-auto pr-1">
+              <div id="advances" className="cleariq-card p-6 cleariq-card-hover space-y-4 max-h-[520px] overflow-y-auto pr-1 scroll-mt-24">
                 <div>
-                  <h3 className="font-bold text-sm text-gray-200">Pending Approvals Queue</h3>
-                  <p className="text-[10px] text-gray-500">Super admins approve or reject requests here.</p>
+                  <h3 className="font-extrabold text-sm text-slate-950 dark:text-white">
+                    {isRtl ? 'سجل السلف والتعديلات المالية' : 'Adjustments & Advances Ledger'}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    {isRtl
+                      ? 'مراجعة وتأكيد طلبات السلف والتعديلات المالية.'
+                      : 'Audit and approve pending loans and financial modifications.'}
+                  </p>
                 </div>
 
                 <div className="space-y-3">
-                  <h4 className="text-xs font-bold text-gray-400">Adjustment Requests</h4>
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-slate-300 uppercase tracking-wider">
+                    {isRtl ? 'التعديلات المالية (مكافآت وجزاءات)' : 'Adjustments (Bonuses & Penalties)'}
+                  </h4>
                   {adjustments.map((a) => (
-                    <div key={a.id} className="p-3 bg-gray-900/50 border border-gray-800 rounded-xl flex items-center justify-between text-xs font-sans">
+                    <div
+                      key={a.id}
+                      className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-between text-xs font-sans"
+                    >
                       <div>
-                        <div className="font-bold text-gray-200">
-                          {a.user?.full_name || 'Employee'} - <span className={a.type === 'bonus' ? 'text-emerald-400' : 'text-rose-400'}>{a.type}</span>
+                        <div className="font-bold text-slate-950 dark:text-white">
+                          {a.user?.full_name || 'Employee'} -{' '}
+                          <span
+                            className={
+                              a.type === 'bonus'
+                                ? 'text-emerald-600 dark:text-emerald-400 font-extrabold'
+                                : 'text-rose-600 dark:text-rose-400 font-extrabold'
+                            }
+                          >
+                            {a.type}
+                          </span>
                         </div>
-                        <div className="text-[10px] text-gray-500 mt-0.5">{a.notes || 'No justification'} ({a.date})</div>
-                        <span className="text-[10px] font-bold text-sky-400">{Number(a.amount).toLocaleString()} EGP</span>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                          {a.notes || 'No reason'} ({a.date})
+                        </div>
+                        <span className="text-[11px] font-extrabold text-blue-600 dark:text-blue-400 font-sans">
+                          {Number(a.amount).toLocaleString()} EGP
+                        </span>
                       </div>
-                      
+
                       <div className="flex items-center gap-2">
                         {isSuperAdmin && a.status === 'pending' ? (
                           <>
                             <button
+                              type="button"
                               onClick={() => handleStatusAdjustment(a.id, 'approved')}
                               disabled={actionId === a.id}
-                              className="p-1 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-white rounded-lg border border-emerald-500/20 cursor-pointer"
+                              className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-lg cursor-pointer"
+                              title="Approve"
                             >
                               <Check className="w-3.5 h-3.5" />
                             </button>
                             <button
+                              type="button"
                               onClick={() => handleStatusAdjustment(a.id, 'rejected')}
                               disabled={actionId === a.id}
-                              className="p-1 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white rounded-lg border border-red-500/20 cursor-pointer"
+                              className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-800 rounded-lg cursor-pointer"
+                              title="Reject"
                             >
                               <X className="w-3.5 h-3.5" />
                             </button>
                           </>
                         ) : (
-                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${
-                            a.status === 'approved' ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30' : 'bg-red-500/10 text-red-300'
-                          }`}>{a.status}</span>
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                              a.status === 'approved'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400'
+                                : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400'
+                            }`}
+                          >
+                            {a.status}
+                          </span>
                         )}
                       </div>
                     </div>
                   ))}
 
-                  <h4 className="text-xs font-bold text-gray-400 pt-3 border-t border-gray-900">Advance Loans Requests</h4>
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-slate-300 uppercase tracking-wider pt-3 border-t border-slate-200 dark:border-slate-700">
+                    {isRtl ? 'طلبات السلف المالية (مقدمة من الموظف)' : 'Employee Salary Advance Requests'}
+                  </h4>
                   {advances.map((a) => (
-                    <div key={a.id} className="p-3 bg-gray-900/50 border border-gray-800 rounded-xl flex items-center justify-between text-xs font-sans">
+                    <div
+                      key={a.id}
+                      className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-between text-xs font-sans"
+                    >
                       <div>
-                        <div className="font-bold text-gray-200">
+                        <div className="font-bold text-slate-950 dark:text-white">
                           {a.user?.full_name || 'Employee'}
                         </div>
-                        <div className="text-[10px] text-gray-500 mt-0.5">Month: {a.month.substring(0,7)}</div>
-                        <span className="text-[10px] font-bold text-sky-400">{Number(a.amount).toLocaleString()} EGP</span>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                          Month: {a.month?.substring(0, 7)}
+                        </div>
+                        <span className="text-[11px] font-extrabold text-blue-600 dark:text-blue-400 font-sans">
+                          {Number(a.amount).toLocaleString()} EGP
+                        </span>
                       </div>
-                      
+
                       <div className="flex items-center gap-2">
                         {isSuperAdmin && a.status === 'pending' ? (
                           <>
                             <button
+                              type="button"
                               onClick={() => handleStatusAdvance(a.id, 'approved')}
                               disabled={actionId === a.id}
-                              className="p-1 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-white rounded-lg border border-emerald-500/20 cursor-pointer"
+                              className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-lg cursor-pointer"
+                              title="Approve"
                             >
                               <Check className="w-3.5 h-3.5" />
                             </button>
                             <button
+                              type="button"
                               onClick={() => handleStatusAdvance(a.id, 'rejected')}
                               disabled={actionId === a.id}
-                              className="p-1 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white rounded-lg border border-red-500/20 cursor-pointer"
+                              className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-800 rounded-lg cursor-pointer"
+                              title="Reject"
                             >
                               <X className="w-3.5 h-3.5" />
                             </button>
                           </>
                         ) : (
-                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${
-                            a.status === 'approved' ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30' : 'bg-red-500/10 text-red-300'
-                          }`}>{a.status}</span>
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                              a.status === 'approved'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400'
+                                : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400'
+                            }`}
+                          >
+                            {a.status}
+                          </span>
                         )}
                       </div>
                     </div>
                   ))}
+                  {advances.length === 0 && (
+                    <div className="text-center py-3 text-xs text-slate-400">
+                      {isRtl ? 'لا توجد طلبات سلف مسجلة.' : 'No advance requests found.'}
+                    </div>
+                  )}
                 </div>
               </div>
-
             </div>
           </div>
         )}

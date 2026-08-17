@@ -110,18 +110,18 @@ export default function AdvanceRequestModal({
 
   return (
     <>
-      {/* Workspace Advance Request Card */}
-      <div className="p-5 rounded-2xl bg-gray-900 border border-gray-800 hover:border-emerald-500/30 transition-all flex flex-col justify-between space-y-4">
+      {/* Workspace Advance Request Card — Consistent Cleariq Light & Dark theme */}
+      <div className="cleariq-card p-5 cleariq-card-hover flex flex-col justify-between space-y-4">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
               <DollarSign className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-gray-100">
+              <h3 className="text-sm font-bold text-slate-950 dark:text-white">
                 {isRtl ? 'طلب سلفة على الراتب' : 'Salary Advance Engine'}
               </h3>
-              <p className="text-[11px] text-gray-500">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 {isRtl
                   ? `الحد الأقصى ${maxPct}% من الأساسي (${maxAllowed.toLocaleString()} ج.م)`
                   : `Up to ${maxPct}% of basic salary (${maxAllowed.toLocaleString()} EGP)`}
@@ -129,10 +129,10 @@ export default function AdvanceRequestModal({
             </div>
           </div>
           <span
-            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
               isEligible
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800'
+                : 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800'
             }`}
           >
             {isEligible
@@ -148,7 +148,7 @@ export default function AdvanceRequestModal({
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="w-full py-2 px-3 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-300 text-xs font-bold transition-all text-center"
+          className="w-full py-2.5 px-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 dark:border-emerald-800 dark:text-emerald-300 text-xs font-bold transition-all text-center cursor-pointer shadow-2xs"
         >
           {isRtl ? 'تقديم أو متابعة طلب السلفة' : 'Request / View Advances'}
         </button>
@@ -156,19 +156,21 @@ export default function AdvanceRequestModal({
 
       {/* Modal Dialog */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="w-full max-w-lg bg-gray-900 border border-gray-800 rounded-3xl p-6 shadow-2xl space-y-6 relative max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-gray-800 pb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-6 relative max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
               <div className="flex items-center gap-2.5">
-                <DollarSign className="w-5 h-5 text-emerald-400" />
-                <h3 className="text-base font-bold text-white">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                  <DollarSign className="w-5 h-5" />
+                </div>
+                <h3 className="text-base font-bold text-slate-950 dark:text-white">
                   {isRtl ? 'طلب سلفة مالية شهرية' : 'Monthly Salary Advance Request'}
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="text-gray-400 hover:text-gray-200"
+                className="p-1 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -176,8 +178,8 @@ export default function AdvanceRequestModal({
 
             {/* Eligibility Note */}
             {!isEligible && (
-              <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-3 text-xs text-amber-300">
-                <Clock className="w-4 h-4 shrink-0" />
+              <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 flex items-center gap-3 text-xs text-amber-800 dark:text-amber-300">
+                <Clock className="w-4 h-4 shrink-0 text-amber-600" />
                 <span>
                   {isRtl
                     ? `تنبيه: طلبات السلف تفتح رسمياً ابتداءً من يوم ${eligibilityDay} من كل شهر.`
@@ -191,8 +193,8 @@ export default function AdvanceRequestModal({
               <div
                 className={`p-3.5 rounded-2xl border flex items-center gap-3 text-xs ${
                   msg.error
-                    ? 'bg-rose-500/10 border-rose-500/20 text-rose-300'
-                    : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+                    ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300'
+                    : 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
                 }`}
               >
                 {msg.error ? (
@@ -208,10 +210,10 @@ export default function AdvanceRequestModal({
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <div className="flex justify-between items-center mb-1">
-                  <label className="text-xs font-semibold text-gray-300">
+                  <label className="text-xs font-bold text-slate-900 dark:text-slate-200">
                     {isRtl ? 'مبلغ السلفة المطلوب (ج.م)' : 'Requested Advance Amount (EGP)'}
                   </label>
-                  <span className="text-[10px] text-emerald-400 font-sans">
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-sans font-bold">
                     {isRtl ? 'الحد الأقصى: ' : 'Max allowed: '}
                     {maxAllowed.toLocaleString()} EGP
                   </span>
@@ -224,12 +226,12 @@ export default function AdvanceRequestModal({
                   onChange={(e) =>
                     setAmount(e.target.value === '' ? '' : Number(e.target.value))
                   }
-                  className="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-emerald-500 font-sans"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-950 dark:text-white focus:outline-none focus:border-emerald-500 font-sans"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1">
+                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">
                   {isRtl ? 'ملاحظات أو سبب الطلب (اختياري)' : 'Reason / Notes (Optional)'}
                 </label>
                 <textarea
@@ -239,14 +241,14 @@ export default function AdvanceRequestModal({
                   }
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  className="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-2.5 text-xs text-gray-100 focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-950 dark:text-white focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading || !amount || Number(amount) <= 0 || !isEligible}
-                className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-40 cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-xs font-bold text-white shadow-sm transition-all disabled:opacity-40 cursor-pointer flex items-center justify-center gap-2"
               >
                 {loading && <RefreshCw className="w-4 h-4 animate-spin" />}
                 {isRtl ? 'تأكيد تقديم طلب السلفة' : 'Submit Advance Request'}
@@ -254,31 +256,31 @@ export default function AdvanceRequestModal({
             </form>
 
             {/* Request History */}
-            <div className="space-y-2 pt-2 border-t border-gray-800">
-              <h4 className="text-xs font-bold text-gray-400">
+            <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <h4 className="text-xs font-bold text-slate-900 dark:text-slate-300">
                 {isRtl ? 'سجل طلبات السلف السابقة' : 'My Advance Requests History'}
               </h4>
-              <div className="space-y-2 max-h-40 overflow-y-auto">
+              <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
                 {history.map((item) => (
                   <div
                     key={item.id}
-                    className="p-3 bg-gray-950 border border-gray-800 rounded-xl flex items-center justify-between text-xs"
+                    className="p-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-between text-xs"
                   >
                     <div>
-                      <div className="font-bold text-white font-sans">
+                      <div className="font-extrabold text-slate-950 dark:text-white font-sans">
                         {Number(item.amount).toLocaleString()} EGP
                       </div>
-                      <div className="text-[10px] text-gray-500 font-sans">
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 font-sans">
                         {item.month?.substring(0, 7)}
                       </div>
                     </div>
                     <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                         item.status === 'approved'
-                          ? 'bg-emerald-500/20 text-emerald-300'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800'
                           : item.status === 'rejected'
-                          ? 'bg-rose-500/20 text-rose-300'
-                          : 'bg-amber-500/20 text-amber-300'
+                          ? 'bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800'
+                          : 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800'
                       }`}
                     >
                       {item.status}
@@ -286,7 +288,7 @@ export default function AdvanceRequestModal({
                   </div>
                 ))}
                 {history.length === 0 && (
-                  <div className="text-center py-3 text-[11px] text-gray-600">
+                  <div className="text-center py-4 text-[11px] text-slate-400">
                     {isRtl ? 'لا توجد طلبات سلف سابقة' : 'No previous advance requests logged'}
                   </div>
                 )}

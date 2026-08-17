@@ -14,7 +14,8 @@ import {
   Download,
   Upload,
   ExternalLink,
-  Target
+  Target,
+  Percent,
 } from 'lucide-react';
 import { UserProfile, DepartmentRecord } from '@/lib/types/database';
 import { createClient } from '@/lib/supabase/client';
@@ -55,6 +56,7 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
     full_name: '',
     role: 'employee',
     basic_salary: 5000,
+    commission_rate: 5,
     kpi_unit: 'tasks',
     manager_id: '',
     mobile: '',
@@ -114,53 +116,77 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
 
   // Extract filter dropdown contents
   const uniqueJobTitles = Array.from(new Set(users.map((u) => u.job_title).filter((t): t is string => !!t)));
-  const uniquePaymentMethods = Array.from(new Set(users.map((u) => u.payment_method).filter((t): t is string => !!t)));
   const managersList = users.filter((u) => u.role === 'manager' || u.role === 'super_admin');
 
   // File Upload to Supabase Storage
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
     const file = e.target.files?.[0];
-    if (!file || !selectedUser) return;
+    if (!file) return;
 
     setUploadingField(fieldName);
     setMsg(null);
 
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${fieldName}/${selectedUser.id}_${Date.now()}.${fileExt}`;
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `employee_docs/${fileName}`;
 
-      // Upload file
-      const { error } = await supabase.storage
-        .from('employee_documents')
-        .upload(fileName, file, { cacheControl: '3600', upsert: true });
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, file);
 
-      if (error) throw error;
+      if (uploadError) throw uploadError;
 
-      // Retrieve public url
-      const { data } = supabase.storage.from('employee_documents').getPublicUrl(fileName);
-      const publicUrl = data.publicUrl;
+      const { data: publicUrlData } = supabase.storage
+        .from('documents')
+        .getPublicUrl(filePath);
 
-      // Update form state
-      setEditForm((prev) => ({ ...prev, [fieldName]: publicUrl }));
-      setMsg({
-        text: isRtl ? 'تم رفع الملف وحفظ الرابط بنجاح!' : 'File uploaded and link saved successfully!',
-        error: false,
-      });
+      setEditForm((prev) => ({
+        ...prev,
+        [fieldName]: publicUrlData.publicUrl,
+      }));
+
+      setMsg({ text: isRtl ? 'تم رفع المستند بنجاح!' : 'Document uploaded successfully!', error: false });
     } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : 'Upload failed';
-      setMsg({ text: errMsg, error: true });
+      const errorMsg = err instanceof Error ? err.message : 'File upload failed';
+      setMsg({ text: errorMsg, error: true });
     } finally {
       setUploadingField(null);
     }
   };
 
-  // Open Edit Form Panel
+  // Export CSV
+  const handleExportCSV = () => {
+    const exportData = filteredUsers.map((u) => {
+      const dept = departments.find((d) => d.id === u.department_id);
+      return {
+        'Full Name': u.full_name,
+        Role: u.role,
+        'Job Title': u.job_title || 'N/A',
+        Department: dept?.name || 'N/A',
+        'Mobile Number': u.mobile || 'N/A',
+        'National ID': u.id_number || 'N/A',
+        Age: u.age || 'N/A',
+        'Basic Salary': u.basic_salary,
+        'Commission Rate (%)': u.commission_rate ?? 5,
+        'Social Insurance': u.social_insurance || 0,
+        'Health Insurance': u.health_insurance || 0,
+        'Contract Type': u.contract_type || 'N/A',
+        'Contract End Date': u.contract_end_date || 'N/A',
+        'Payment Method': u.payment_method || 'N/A',
+      };
+    });
+    exportToCSV(exportData, `HumAi_Employee_Registry_${new Date().toISOString().split('T')[0]}.csv`);
+  };
+
+  // Open Edit Form
   const handleEditClick = (user: UserProfile) => {
     setSelectedUser(user);
     setEditForm({
       full_name: user.full_name || '',
       role: user.role || 'employee',
       basic_salary: Number(user.basic_salary || 5000),
+      commission_rate: Number(user.commission_rate ?? 5),
       kpi_unit: user.kpi_unit || 'tasks',
       manager_id: user.manager_id || '',
       mobile: user.mobile || '',
@@ -203,6 +229,7 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
         full_name: editForm.full_name,
         role: editForm.role,
         basic_salary: Number(editForm.basic_salary),
+        commission_rate: Number(editForm.commission_rate),
         kpi_unit: editForm.kpi_unit,
         manager_id: editForm.manager_id || null,
         mobile: editForm.mobile,
@@ -236,7 +263,6 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
     if (error) {
       setMsg({ text: error.message, error: true });
     } else if (data) {
-      // Re-fetch profiles to update departments relation cleanly
       const { data: refreshedUsers } = await supabase
         .from('users')
         .select('*, department:departments(*)');
@@ -248,44 +274,12 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
       }
 
       setSelectedUser(null);
-      setMsg({
-        text: isRtl
-          ? 'تم تحديث بيانات الموظف بنجاح!'
-          : 'Employee details updated successfully!',
-        error: false,
-      });
+      setMsg({ text: isRtl ? 'تم تحديث بيانات الموظف بنجاح!' : 'Employee profile updated successfully!', error: false });
     }
     setLoading(false);
   };
 
-  // EXPORT TO EXCEL (CSV)
-  const handleExportRegistry = () => {
-    const exportData = filteredUsers.map((u) => {
-      const dept = departments.find((d) => d.id === u.department_id);
-      return {
-        Name: u.full_name,
-        Role: u.role,
-        Mobile: u.mobile || '',
-        'ID Number': u.id_number || '',
-        'ID Photo URL': u.id_photo_url || '',
-        Age: u.age || '',
-        'Birth Date': u.birth_date || '',
-        'Birth Certificate URL': u.birth_cert_url || '',
-        Qualification: u.qualification || '',
-        'Qualification Certificate URL': u.qualification_url || '',
-        Address: u.address || '',
-        'Job Title': u.job_title || '',
-        'Criminal Record URL': u.criminal_record_url || '',
-        Department: dept?.name || '',
-        'Salary Payment Method': u.payment_method || '',
-        Salary: u.basic_salary,
-      };
-    });
-
-    exportToCSV(exportData, `Employee_Database_${new Date().toISOString().split('T')[0]}`);
-  };
-
-  // Add Dynamic Department
+  // Add Department
   const handleAddDept = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newDeptName.trim()) return;
@@ -372,35 +366,38 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
   return (
     <div className="space-y-6">
       {/* Tab Selectors */}
-      <div className="flex gap-2 border-b border-gray-800 pb-2 overflow-x-auto">
+      <div className="flex gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 overflow-x-auto">
         <button
+          type="button"
           onClick={() => { setActiveTab('registry'); setSelectedUser(null); }}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
             activeTab === 'registry'
-              ? 'bg-sky-500 text-white shadow-md'
-              : 'text-gray-400 hover:text-gray-200'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
           }`}
         >
-          <Users className="w-4 h-4" /> {isRtl ? 'قاعدة بيانات الموظفين' : 'Employee Database Registry'}
+          <Users className="w-4 h-4" /> {isRtl ? 'قاعدة بيانات وسجل الموظفين' : 'Employee Database Registry'}
         </button>
 
         <button
+          type="button"
           onClick={() => { setActiveTab('departments'); setSelectedUser(null); }}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
             activeTab === 'departments'
-              ? 'bg-sky-500 text-white shadow-md'
-              : 'text-gray-400 hover:text-gray-200'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
           }`}
         >
           <FolderOpen className="w-4 h-4" /> {isRtl ? 'إعدادات الأقسام' : 'Departments Config'}
         </button>
 
         <button
+          type="button"
           onClick={() => { setActiveTab('kpis'); setSelectedUser(null); }}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
             activeTab === 'kpis'
-              ? 'bg-sky-500 text-white shadow-md'
-              : 'text-gray-400 hover:text-gray-200'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
           }`}
         >
           <Target className="w-4 h-4" /> {isRtl ? 'إعدادات مؤشرات الأداء' : 'KPI Metrics Config'}
@@ -409,30 +406,30 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
 
       {msg && (
         <div
-          className={`p-3 rounded-xl border text-xs flex items-center gap-2 ${
+          className={`p-3.5 rounded-2xl border text-xs flex items-center gap-2 ${
             msg.error
-              ? 'bg-red-500/10 border-red-500/30 text-red-300'
-              : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+              ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300'
+              : 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
           }`}
         >
           {msg.error ? <AlertCircle className="w-4 h-4 shrink-0" /> : <CheckCircle className="w-4 h-4 shrink-0" />}
-          <span>{msg.text}</span>
+          <span className="font-medium">{msg.text}</span>
         </div>
       )}
 
       {/* TAB 1: EMPLOYEE REGISTRY DATABASE */}
       {activeTab === 'registry' && !selectedUser && (
-        <div className="glass-card p-6 rounded-2xl border border-gray-800 space-y-6">
+        <div className="cleariq-card p-6 cleariq-card-hover space-y-6">
           {/* Header Controls */}
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2 relative w-full md:w-80">
-              <Search className="w-4 h-4 text-gray-500 absolute left-3" />
+              <Search className="w-4 h-4 text-slate-400 absolute left-3" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={isRtl ? 'ابحث بالاسم أو الهاتف...' : 'Search by Name or Mobile...'}
-                className="w-full bg-gray-900 border border-gray-800 rounded-xl pl-9 pr-4 py-2 text-xs text-gray-200 focus:outline-none focus:border-sky-500"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2 text-xs font-semibold text-slate-950 dark:text-white focus:outline-none focus:border-blue-500"
               />
             </div>
 
@@ -441,7 +438,7 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
               <select
                 value={filterDept}
                 onChange={(e) => setFilterDept(e.target.value)}
-                className="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-gray-200 focus:outline-none"
+                className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none cursor-pointer"
               >
                 <option value="all">{isRtl ? 'جميع الأقسام' : 'All Departments'}</option>
                 {departments.map((d) => (
@@ -451,77 +448,77 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
                 ))}
               </select>
 
-              {/* Job filter */}
+              {/* Job Title filter */}
               <select
                 value={filterJob}
                 onChange={(e) => setFilterJob(e.target.value)}
-                className="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-gray-200 focus:outline-none"
+                className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none cursor-pointer"
               >
                 <option value="all">{isRtl ? 'جميع المسميات' : 'All Job Titles'}</option>
-                {uniqueJobTitles.map((job) => (
-                  <option key={job} value={job}>
-                    {job}
+                {uniqueJobTitles.map((j) => (
+                  <option key={j} value={j}>
+                    {j}
                   </option>
                 ))}
               </select>
 
-              {/* Payment Method filter */}
-              <select
-                value={filterPayment}
-                onChange={(e) => setFilterPayment(e.target.value)}
-                className="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-gray-200 focus:outline-none"
-              >
-                <option value="all">{isRtl ? 'جميع طرق الدفع' : 'All Payment Methods'}</option>
-                {uniquePaymentMethods.map((pay) => (
-                  <option key={pay} value={pay}>
-                    {pay}
-                  </option>
-                ))}
-              </select>
-
-              {/* Excel Exporter */}
+              {/* Export CSV */}
               <button
-                onClick={handleExportRegistry}
-                className="gradient-btn px-4 py-2 rounded-xl text-xs font-bold text-white shadow-md flex items-center gap-1.5 ml-auto"
+                type="button"
+                onClick={handleExportCSV}
+                className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer"
               >
-                <Download className="w-4 h-4" /> {isRtl ? 'تصدير إكسل' : 'Export Excel'}
+                <Download className="w-3.5 h-3.5" />
+                <span>{isRtl ? 'تصدير CSV' : 'Export CSV'}</span>
               </button>
             </div>
           </div>
 
-          {/* Database Grid / Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-gray-300">
-              <thead className="bg-gray-900/80 text-gray-400 uppercase text-[10px] tracking-wider">
+          {/* Registry Table */}
+          <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
+            <table className="w-full text-left text-xs font-sans">
+              <thead className="bg-slate-100 dark:bg-slate-800 text-slate-950 dark:text-slate-200 uppercase text-[10px] tracking-wider font-extrabold">
                 <tr>
-                  <th className="px-4 py-3 rounded-l-lg">{t('fullName')}</th>
-                  <th className="px-4 py-3">{isRtl ? 'الهاتف' : 'Mobile'}</th>
-                  <th className="px-4 py-3">{isRtl ? 'الرقم القومي' : 'ID Number'}</th>
-                  <th className="px-4 py-3">{isRtl ? 'السن' : 'Age'}</th>
-                  <th className="px-4 py-3">{isRtl ? 'القسم' : 'Department'}</th>
-                  <th className="px-4 py-3">{isRtl ? 'المسمى الوظيفي' : 'Job Title'}</th>
-                  <th className="px-4 py-3">{isRtl ? 'طريقة الدفع' : 'Payment'}</th>
-                  <th className="px-4 py-3">{isRtl ? 'الراتب' : 'Salary'}</th>
-                  <th className="px-4 py-3">{isRtl ? 'المستندات' : 'Docs'}</th>
-                  <th className="px-4 py-3 text-right rounded-r-lg">{t('actions')}</th>
+                  <th className="px-4 py-3.5">{t('fullName')}</th>
+                  <th className="px-4 py-3.5">{isRtl ? 'الهاتف' : 'Contact'}</th>
+                  <th className="px-4 py-3.5">{isRtl ? 'القسم' : 'Department'}</th>
+                  <th className="px-4 py-3.5">{isRtl ? 'المسمى الوظيفي' : 'Job Title'}</th>
+                  <th className="px-4 py-3.5">{isRtl ? 'الراتب الأساسي' : 'Basic Salary'}</th>
+                  <th className="px-4 py-3.5">{isRtl ? 'العمولة %' : 'Commission %'}</th>
+                  <th className="px-4 py-3.5">{isRtl ? 'العقد' : 'Contract'}</th>
+                  <th className="px-4 py-3.5">{isRtl ? 'التأمينات' : 'Insurances'}</th>
+                  <th className="px-4 py-3.5">{isRtl ? 'المستندات' : 'Docs'}</th>
+                  <th className="px-4 py-3.5 text-right">{t('actions')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-800/60">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
                 {filteredUsers.map((u) => {
                   const dept = departments.find((d) => d.id === u.department_id);
                   return (
-                    <tr key={u.id} className="hover:bg-gray-900/40">
-                      <td className="px-4 py-3 font-semibold text-white">{u.full_name}</td>
-                      <td className="px-4 py-3 text-gray-400 font-sans">{u.mobile || '--'}</td>
-                      <td className="px-4 py-3 text-gray-400 font-sans">{u.id_number || '--'}</td>
-                      <td className="px-4 py-3 text-gray-400 font-sans">{u.age || '--'}</td>
-                      <td className="px-4 py-3 text-sky-400">{dept?.name || '--'}</td>
-                      <td className="px-4 py-3 text-gray-400">{u.job_title || '--'}</td>
-                      <td className="px-4 py-3 text-gray-400">{u.payment_method || '--'}</td>
-                      <td className="px-4 py-3 font-bold text-emerald-400 font-sans">
-                        {Number(u.basic_salary).toLocaleString()} EGP
+                    <tr key={u.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
+                      <td className="px-4 py-3.5 font-bold text-slate-950 dark:text-white">{u.full_name}</td>
+                      <td className="px-4 py-3.5 text-slate-800 dark:text-slate-300 font-sans font-semibold">{u.mobile || '--'}</td>
+                      <td className="px-4 py-3.5 text-blue-700 dark:text-blue-400 font-bold">{dept?.name || '--'}</td>
+                      <td className="px-4 py-3.5 text-slate-800 dark:text-slate-300 font-medium">{u.job_title || '--'}</td>
+                      <td className="px-4 py-3.5 font-extrabold text-emerald-700 dark:text-emerald-400 font-sans">
+                        {Number(u.basic_salary || 0).toLocaleString()} EGP
                       </td>
-                      <td className="px-4 py-3 text-gray-400">
+                      <td className="px-4 py-3.5 font-extrabold text-blue-700 dark:text-blue-400 font-sans">
+                        {u.commission_rate ?? 5}%
+                      </td>
+                      <td className="px-4 py-3.5 text-slate-800 dark:text-slate-300 font-medium">
+                        <span className="font-semibold">{u.contract_type || 'Full-Time'}</span>
+                        {u.contract_end_date && (
+                          <span className="block text-[10px] text-slate-500 dark:text-slate-400 font-sans">
+                            Exp: {u.contract_end_date}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3.5 text-[11px] text-slate-800 dark:text-slate-300 font-sans">
+                        <div>Soc: {u.social_insurance || 0} EGP</div>
+                        <div>Med: {u.health_insurance || 0} EGP</div>
+                      </td>
+                      <td className="px-4 py-3.5 text-slate-400">
                         <div className="flex gap-2">
                           {u.id_photo_url && (
                             <a
@@ -529,9 +526,9 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
                               target="_blank"
                               rel="noreferrer"
                               title="ID Photo"
-                              className="text-sky-400 hover:text-sky-300"
+                              className="text-blue-600 hover:text-blue-700 p-1 bg-blue-50 dark:bg-blue-950/40 rounded-md"
                             >
-                              <FileText className="w-4 h-4" />
+                              <FileText className="w-3.5 h-3.5" />
                             </a>
                           )}
                           {u.qualification_url && (
@@ -540,9 +537,9 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
                               target="_blank"
                               rel="noreferrer"
                               title="Qualification"
-                              className="text-purple-400 hover:text-purple-300"
+                              className="text-purple-600 hover:text-purple-700 p-1 bg-purple-50 dark:bg-purple-950/40 rounded-md"
                             >
-                              <FileText className="w-4 h-4" />
+                              <FileText className="w-3.5 h-3.5" />
                             </a>
                           )}
                           {u.criminal_record_url && (
@@ -551,17 +548,18 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
                               target="_blank"
                               rel="noreferrer"
                               title="Criminal Record"
-                              className="text-red-400 hover:text-red-300"
+                              className="text-rose-600 hover:text-rose-700 p-1 bg-rose-50 dark:bg-rose-950/40 rounded-md"
                             >
-                              <FileText className="w-4 h-4" />
+                              <FileText className="w-3.5 h-3.5" />
                             </a>
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3.5 text-right">
                         <button
+                          type="button"
                           onClick={() => handleEditClick(u)}
-                          className="p-1.5 bg-sky-500/10 hover:bg-sky-500 text-sky-400 hover:text-white border border-sky-500/30 rounded-lg transition-all"
+                          className="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded-lg transition-all cursor-pointer"
                           title={isRtl ? 'تعديل البيانات' : 'Edit Profile'}
                         >
                           <Edit2 className="w-3.5 h-3.5" />
@@ -578,19 +576,20 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
 
       {/* EDIT PROFILE PANEL */}
       {activeTab === 'registry' && selectedUser && (
-        <div className="glass-card p-6 rounded-2xl border border-gray-800 space-y-6">
-          <div className="flex items-center justify-between border-b border-gray-800 pb-3">
+        <div className="cleariq-card p-6 cleariq-card-hover space-y-6">
+          <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
             <div>
-              <h3 className="font-bold text-lg text-white">
+              <h3 className="font-extrabold text-base sm:text-lg text-slate-950 dark:text-white">
                 {isRtl ? `تعديل ملف الموظف: ${selectedUser.full_name}` : `Edit Profile: ${selectedUser.full_name}`}
               </h3>
-              <p className="text-xs text-gray-400">
-                {isRtl ? 'تحديث السجل الإداري والمستندات الثبوتية' : 'Update registry fields and official documents'}
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {isRtl ? 'تحديث السجل الإداري والعمولات والمستندات الثبوتية' : 'Update registry fields, commissions, and official documents'}
               </p>
             </div>
             <button
+              type="button"
               onClick={() => setSelectedUser(null)}
-              className="text-xs text-gray-400 hover:text-white border border-gray-800 px-3 py-1.5 rounded-lg"
+              className="text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 border border-slate-200 dark:border-slate-700 px-3.5 py-1.5 rounded-xl cursor-pointer"
             >
               {isRtl ? 'إلغاء' : 'Cancel'}
             </button>
@@ -600,85 +599,85 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
             {/* 1. Core Bio Info */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1">{t('fullName')}</label>
+                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{t('fullName')}</label>
                 <input
                   type="text"
                   required
                   value={editForm.full_name}
                   onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
-                  className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1">{isRtl ? 'رقم الهاتف' : 'Mobile Number'}</label>
+                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{isRtl ? 'رقم الهاتف' : 'Mobile Number'}</label>
                 <input
                   type="text"
                   value={editForm.mobile}
                   onChange={(e) => setEditForm({ ...editForm, mobile: e.target.value })}
-                  className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1">{isRtl ? 'الرقم القومي' : 'ID National Number'}</label>
+                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{isRtl ? 'الرقم القومي' : 'ID National Number'}</label>
                 <input
                   type="text"
                   value={editForm.id_number}
                   onChange={(e) => setEditForm({ ...editForm, id_number: e.target.value })}
-                  className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1">{isRtl ? 'السن' : 'Age'}</label>
+                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{isRtl ? 'السن' : 'Age'}</label>
                 <input
                   type="number"
                   value={editForm.age}
                   onChange={(e) => setEditForm({ ...editForm, age: Number(e.target.value) })}
-                  className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1">{isRtl ? 'تاريخ الميلاد' : 'Birth Date'}</label>
+                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{isRtl ? 'تاريخ الميلاد' : 'Birth Date'}</label>
                 <input
                   type="date"
                   value={editForm.birth_date}
                   onChange={(e) => setEditForm({ ...editForm, birth_date: e.target.value })}
-                  className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1">{isRtl ? 'المؤهل الدراسي' : 'Academic Qualification'}</label>
+                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{isRtl ? 'المؤهل الدراسي' : 'Academic Qualification'}</label>
                 <input
                   type="text"
                   value={editForm.qualification}
                   onChange={(e) => setEditForm({ ...editForm, qualification: e.target.value })}
-                  className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none"
                 />
               </div>
             </div>
 
-            {/* 2. Job & Financial Settings */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* 2. Job & Financial Settings (Including Commission Rate) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-slate-200 dark:border-slate-800 pt-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1">{isRtl ? 'المسمى الوظيفي' : 'Job Title'}</label>
+                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{isRtl ? 'المسمى الوظيفي' : 'Job Title'}</label>
                 <input
                   type="text"
                   value={editForm.job_title}
                   onChange={(e) => setEditForm({ ...editForm, job_title: e.target.value })}
-                  className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1">{isRtl ? 'القسم' : 'Department'}</label>
+                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{isRtl ? 'القسم' : 'Department'}</label>
                 <select
                   value={editForm.department_id}
                   onChange={(e) => setEditForm({ ...editForm, department_id: e.target.value })}
-                  className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none cursor-pointer"
                 >
                   <option value="">{isRtl ? 'لا يوجد قسم' : 'No department'}</option>
                   {departments.map((d) => (
@@ -690,11 +689,38 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1">{isRtl ? 'طريقة دفع الراتب' : 'Salary Payment Method'}</label>
+                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{isRtl ? 'الراتب الأساسي (ج.م)' : 'Basic Salary (EGP)'}</label>
+                <input
+                  type="number"
+                  value={editForm.basic_salary}
+                  onChange={(e) => setEditForm({ ...editForm, basic_salary: Number(e.target.value) })}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none font-sans"
+                />
+              </div>
+
+              {/* Commission Rate field inside Employee Profile */}
+              <div>
+                <label className="block text-xs font-bold text-blue-600 dark:text-blue-400 mb-1 flex items-center gap-1">
+                  <Percent className="w-3.5 h-3.5" />
+                  {isRtl ? 'نسبة العمولة من المبيعات (%)' : 'Sales Commission Rate (%)'}
+                </label>
+                <input
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  max="100"
+                  value={editForm.commission_rate}
+                  onChange={(e) => setEditForm({ ...editForm, commission_rate: Number(e.target.value) })}
+                  className="w-full bg-blue-50/50 dark:bg-blue-950/20 border border-blue-300 dark:border-blue-800 rounded-xl px-3.5 py-2 text-xs font-extrabold text-blue-700 dark:text-blue-300 focus:outline-none font-sans"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{isRtl ? 'طريقة دفع الراتب' : 'Salary Payment Method'}</label>
                 <select
                   value={editForm.payment_method}
                   onChange={(e) => setEditForm({ ...editForm, payment_method: e.target.value })}
-                  className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none cursor-pointer"
                 >
                   <option value="Cash">{isRtl ? 'نقداً' : 'Cash'}</option>
                   <option value="Bank Transfer">{isRtl ? 'تحويل بنكي' : 'Bank Transfer'}</option>
@@ -704,41 +730,11 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1">{isRtl ? 'الراتب الأساسي' : 'Basic Salary'}</label>
-                <input
-                  type="number"
-                  value={editForm.basic_salary}
-                  onChange={(e) => setEditForm({ ...editForm, basic_salary: Number(e.target.value) })}
-                  className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1">{isRtl ? 'التأمين الاجتماعي' : 'Social Insurance'}</label>
-                <input
-                  type="number"
-                  value={editForm.social_insurance}
-                  onChange={(e) => setEditForm({ ...editForm, social_insurance: Number(e.target.value) })}
-                  className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1">{isRtl ? 'التأمين الصحي' : 'Health Insurance'}</label>
-                <input
-                  type="number"
-                  value={editForm.health_insurance}
-                  onChange={(e) => setEditForm({ ...editForm, health_insurance: Number(e.target.value) })}
-                  className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1">{isRtl ? 'نوع العقد' : 'Contract Type'}</label>
+                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{isRtl ? 'نوع العقد' : 'Contract Type'}</label>
                 <select
                   value={editForm.contract_type}
                   onChange={(e) => setEditForm({ ...editForm, contract_type: e.target.value })}
-                  className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none cursor-pointer"
                 >
                   <option value="Full-Time">Full-Time</option>
                   <option value="Part-Time">Part-Time</option>
@@ -747,127 +743,41 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1">{isRtl ? 'فترة الاختبار (أشهر)' : 'Probation Period (Months)'}</label>
+                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{isRtl ? 'التأمين الاجتماعي (ج.م)' : 'Social Insurance (EGP)'}</label>
                 <input
                   type="number"
-                  value={editForm.probation_period}
-                  onChange={(e) => setEditForm({ ...editForm, probation_period: Number(e.target.value) })}
-                  className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none font-sans"
+                  value={editForm.social_insurance}
+                  onChange={(e) => setEditForm({ ...editForm, social_insurance: Number(e.target.value) })}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none font-sans"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1">{isRtl ? 'تاريخ انتهاء العقد' : 'Contract End Date'}</label>
+                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{isRtl ? 'التأمين الصحي (ج.م)' : 'Health Insurance (EGP)'}</label>
+                <input
+                  type="number"
+                  value={editForm.health_insurance}
+                  onChange={(e) => setEditForm({ ...editForm, health_insurance: Number(e.target.value) })}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none font-sans"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{isRtl ? 'تاريخ انتهاء العقد' : 'Contract End Date'}</label>
                 <input
                   type="date"
                   value={editForm.contract_end_date}
                   onChange={(e) => setEditForm({ ...editForm, contract_end_date: e.target.value })}
-                  className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-200 focus:outline-none font-sans"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none font-sans"
                 />
               </div>
 
-              {/* Working Hours Granularity & Custom Schedule Override */}
-              <div className="col-span-full p-4 bg-gray-900/80 border border-gray-800 rounded-2xl space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-xs font-bold text-sky-400 block">
-                      {isRtl ? 'تخصيص مواعيد عمل خاصة بالموظف' : 'Custom Schedule & Shift Override'}
-                    </span>
-                    <span className="text-[10px] text-gray-500 block">
-                      {isRtl
-                        ? 'تجاوز ساعات وأيام العمل الافتراضية للشركة لهذا الموظف تحديداً'
-                        : 'Override company-wide default working hours and days for this specific employee'}
-                    </span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={editForm.custom_schedule_enabled}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, custom_schedule_enabled: e.target.checked })
-                    }
-                    className="w-4 h-4 accent-sky-500 rounded cursor-pointer"
-                  />
-                </div>
-
-                {editForm.custom_schedule_enabled && (
-                  <div className="space-y-3 pt-3 border-t border-gray-800/80">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[10px] text-gray-400 mb-1">
-                          {isRtl ? 'وقت بدء الوردية' : 'Custom Start Time'}
-                        </label>
-                        <input
-                          type="time"
-                          value={editForm.custom_start_time}
-                          onChange={(e) =>
-                            setEditForm({ ...editForm, custom_start_time: e.target.value })
-                          }
-                          className="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-1.5 text-xs text-gray-100 font-sans"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] text-gray-400 mb-1">
-                          {isRtl ? 'وقت نهاية الوردية' : 'Custom End Time'}
-                        </label>
-                        <input
-                          type="time"
-                          value={editForm.custom_end_time}
-                          onChange={(e) =>
-                            setEditForm({ ...editForm, custom_end_time: e.target.value })
-                          }
-                          className="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-1.5 text-xs text-gray-100 font-sans"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] text-gray-400 mb-1.5">
-                        {isRtl ? 'أيام العمل المعتمدة' : 'Custom Active Work Days'}
-                      </label>
-                      <div className="flex flex-wrap gap-1.5">
-                        {[
-                          'Sunday',
-                          'Monday',
-                          'Tuesday',
-                          'Wednesday',
-                          'Thursday',
-                          'Friday',
-                          'Saturday',
-                        ].map((d) => {
-                          const active = editForm.custom_work_days?.includes(d);
-                          return (
-                            <button
-                              key={d}
-                              type="button"
-                              onClick={() => {
-                                const current = editForm.custom_work_days || [];
-                                const next = active
-                                  ? current.filter((day) => day !== d)
-                                  : [...current, d];
-                                setEditForm({ ...editForm, custom_work_days: next });
-                              }}
-                              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
-                                active
-                                  ? 'bg-sky-500 text-white shadow-sm shadow-sky-500/20'
-                                  : 'bg-gray-950 border border-gray-800 text-gray-400 hover:border-gray-700'
-                              }`}
-                            >
-                              {d.slice(0, 3)}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1">{t('role')}</label>
+                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{t('role')}</label>
                 <select
                   value={editForm.role}
                   onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
-                  className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none cursor-pointer"
                 >
                   <option value="employee">{isRtl ? 'موظف' : 'Employee'}</option>
                   <option value="manager">{isRtl ? 'مدير' : 'Manager'}</option>
@@ -876,11 +786,11 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1">{isRtl ? 'المدير المباشر' : 'Direct Manager'}</label>
+                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{isRtl ? 'المدير المباشر' : 'Direct Manager'}</label>
                 <select
                   value={editForm.manager_id}
                   onChange={(e) => setEditForm({ ...editForm, manager_id: e.target.value })}
-                  className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none cursor-pointer"
                 >
                   <option value="">{isRtl ? 'بلا مدير' : 'None'}</option>
                   {managersList.map((m) => (
@@ -893,25 +803,25 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-400 mb-1">{isRtl ? 'العنوان بالكامل' : 'Full Home Address'}</label>
+              <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{isRtl ? 'العنوان بالكامل' : 'Full Home Address'}</label>
               <input
                 type="text"
                 value={editForm.address}
                 onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
-                className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none"
               />
             </div>
 
             {/* 3. Official Documents Upload Section */}
-            <div className="space-y-4 border-t border-gray-800 pt-4">
-              <h4 className="text-xs font-bold text-sky-400 uppercase tracking-wider">
+            <div className="space-y-4 border-t border-slate-200 dark:border-slate-800 pt-4">
+              <h4 className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
                 {isRtl ? 'المستندات الرسمية والشهادات' : 'Official Documents & Certifications'}
               </h4>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* ID Photo */}
-                <div className="p-4 rounded-xl bg-gray-900/60 border border-gray-800 space-y-2">
-                  <span className="block text-xs font-bold text-gray-300">{isRtl ? 'صورة بطاقة الرقم القومي:' : 'National ID Photo:'}</span>
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2">
+                  <span className="block text-xs font-bold text-slate-900 dark:text-slate-200">{isRtl ? 'صورة بطاقة الرقم القومي:' : 'National ID Photo:'}</span>
                   <div className="flex items-center gap-3">
                     <input
                       type="file"
@@ -922,9 +832,9 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
                     />
                     <label
                       htmlFor="upload-id-photo"
-                      className="cursor-pointer flex items-center gap-1.5 bg-gray-800 border border-gray-700 px-3 py-1.5 rounded-lg text-xs hover:bg-gray-700 transition-all font-semibold"
+                      className="cursor-pointer flex items-center gap-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-3 py-1.5 rounded-xl text-xs hover:bg-slate-100 font-bold transition-all text-slate-800 dark:text-slate-200"
                     >
-                      <Upload className="w-3.5 h-3.5 text-sky-400" />
+                      <Upload className="w-3.5 h-3.5 text-blue-600" />
                       <span>{uploadingField === 'id_photo_url' ? 'Uploading...' : 'Choose File'}</span>
                     </label>
                     {editForm.id_photo_url && (
@@ -932,7 +842,7 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
                         href={editForm.id_photo_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-xs text-sky-400 hover:underline flex items-center gap-1"
+                        className="text-xs text-blue-600 hover:underline flex items-center gap-1 font-bold"
                       >
                         <ExternalLink className="w-3.5 h-3.5" /> View Uploaded
                       </a>
@@ -941,8 +851,8 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
                 </div>
 
                 {/* Birth Cert */}
-                <div className="p-4 rounded-xl bg-gray-900/60 border border-gray-800 space-y-2">
-                  <span className="block text-xs font-bold text-gray-300">{isRtl ? 'شهادة الميلاد:' : 'Birth Certificate Photo:'}</span>
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2">
+                  <span className="block text-xs font-bold text-slate-900 dark:text-slate-200">{isRtl ? 'شهادة الميلاد:' : 'Birth Certificate Photo:'}</span>
                   <div className="flex items-center gap-3">
                     <input
                       type="file"
@@ -953,9 +863,9 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
                     />
                     <label
                       htmlFor="upload-birth-cert"
-                      className="cursor-pointer flex items-center gap-1.5 bg-gray-800 border border-gray-700 px-3 py-1.5 rounded-lg text-xs hover:bg-gray-700 transition-all font-semibold"
+                      className="cursor-pointer flex items-center gap-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-3 py-1.5 rounded-xl text-xs hover:bg-slate-100 font-bold transition-all text-slate-800 dark:text-slate-200"
                     >
-                      <Upload className="w-3.5 h-3.5 text-sky-400" />
+                      <Upload className="w-3.5 h-3.5 text-blue-600" />
                       <span>{uploadingField === 'birth_cert_url' ? 'Uploading...' : 'Choose File'}</span>
                     </label>
                     {editForm.birth_cert_url && (
@@ -963,69 +873,7 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
                         href={editForm.birth_cert_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-xs text-sky-400 hover:underline flex items-center gap-1"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" /> View Uploaded
-                      </a>
-                    )}
-                  </div>
-                </div>
-
-                {/* Qualification */}
-                <div className="p-4 rounded-xl bg-gray-900/60 border border-gray-800 space-y-2">
-                  <span className="block text-xs font-bold text-gray-300">{isRtl ? 'صورة المؤهل الدراسي:' : 'Academic Qualification Photo:'}</span>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="file"
-                      accept="image/*,application/pdf"
-                      onChange={(e) => handleFileUpload(e, 'qualification_url')}
-                      className="hidden"
-                      id="upload-qualification"
-                    />
-                    <label
-                      htmlFor="upload-qualification"
-                      className="cursor-pointer flex items-center gap-1.5 bg-gray-800 border border-gray-700 px-3 py-1.5 rounded-lg text-xs hover:bg-gray-700 transition-all font-semibold"
-                    >
-                      <Upload className="w-3.5 h-3.5 text-sky-400" />
-                      <span>{uploadingField === 'qualification_url' ? 'Uploading...' : 'Choose File'}</span>
-                    </label>
-                    {editForm.qualification_url && (
-                      <a
-                        href={editForm.qualification_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs text-sky-400 hover:underline flex items-center gap-1"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" /> View Uploaded
-                      </a>
-                    )}
-                  </div>
-                </div>
-
-                {/* Criminal Record */}
-                <div className="p-4 rounded-xl bg-gray-900/60 border border-gray-800 space-y-2">
-                  <span className="block text-xs font-bold text-gray-300">{isRtl ? 'صحيفة الحالة الجنائية (الفيش):' : 'Criminal Record Photo:'}</span>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="file"
-                      accept="image/*,application/pdf"
-                      onChange={(e) => handleFileUpload(e, 'criminal_record_url')}
-                      className="hidden"
-                      id="upload-criminal-record"
-                    />
-                    <label
-                      htmlFor="upload-criminal-record"
-                      className="cursor-pointer flex items-center gap-1.5 bg-gray-800 border border-gray-700 px-3 py-1.5 rounded-lg text-xs hover:bg-gray-700 transition-all font-semibold"
-                    >
-                      <Upload className="w-3.5 h-3.5 text-sky-400" />
-                      <span>{uploadingField === 'criminal_record_url' ? 'Uploading...' : 'Choose File'}</span>
-                    </label>
-                    {editForm.criminal_record_url && (
-                      <a
-                        href={editForm.criminal_record_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs text-sky-400 hover:underline flex items-center gap-1"
+                        className="text-xs text-blue-600 hover:underline flex items-center gap-1 font-bold"
                       >
                         <ExternalLink className="w-3.5 h-3.5" /> View Uploaded
                       </a>
@@ -1035,18 +883,18 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 border-t border-gray-800 pt-4">
+            <div className="flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4">
               <button
                 type="button"
                 onClick={() => setSelectedUser(null)}
-                className="bg-gray-900 border border-gray-800 px-5 py-2 rounded-xl text-xs text-gray-400 font-bold hover:text-white"
+                className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 px-5 py-2 rounded-xl text-xs text-slate-800 dark:text-slate-200 font-bold cursor-pointer"
               >
                 {isRtl ? 'إلغاء' : 'Cancel'}
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="gradient-btn px-6 py-2 rounded-xl text-xs text-white font-bold shadow-md disabled:opacity-50"
+                className="gradient-btn px-6 py-2 rounded-xl text-xs text-white font-bold shadow-sm disabled:opacity-50 cursor-pointer"
               >
                 {loading ? 'Saving...' : t('save')}
               </button>
@@ -1057,10 +905,10 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
 
       {/* TAB 2: DEPARTMENTS CONFIGURATOR */}
       {activeTab === 'departments' && (
-        <div className="glass-card p-6 rounded-2xl border border-gray-800 space-y-6">
+        <div className="cleariq-card p-6 cleariq-card-hover space-y-6">
           <div>
-            <h3 className="font-bold text-lg text-white">{isRtl ? 'إعدادات الأقسام الإدارية' : 'Departments Registry Config'}</h3>
-            <p className="text-xs text-gray-400">{isRtl ? 'إضافة وتعديل الأقسام التي تظهر في قاعدة بيانات الموظفين' : 'Manage core administrative departments for registry dropdowns'}</p>
+            <h3 className="font-extrabold text-base sm:text-lg text-slate-950 dark:text-white">{isRtl ? 'إعدادات الأقسام الإدارية' : 'Departments Registry Config'}</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{isRtl ? 'إضافة وتعديل الأقسام التي تظهر في قاعدة بيانات الموظفين' : 'Manage core administrative departments for registry dropdowns'}</p>
           </div>
 
           <form onSubmit={handleAddDept} className="flex gap-3 max-w-md">
@@ -1070,28 +918,29 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
               value={newDeptName}
               onChange={(e) => setNewDeptName(e.target.value)}
               placeholder={isRtl ? 'اسم القسم الجديد...' : 'New Department name...'}
-              className="flex-1 bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-200 focus:outline-none"
+              className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none"
             />
             <button
               type="submit"
               disabled={loading}
-              className="gradient-btn px-4 py-2 rounded-xl text-xs font-bold text-white shadow-md flex items-center gap-1 shrink-0"
+              className="gradient-btn px-4 py-2 rounded-xl text-xs font-bold text-white shadow-sm flex items-center gap-1 shrink-0 cursor-pointer"
             >
               <Plus className="w-4 h-4" /> {isRtl ? 'إضافة قسم' : 'Add Department'}
             </button>
           </form>
 
-          <div className="space-y-2 max-w-md border-t border-gray-800 pt-4">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">{isRtl ? 'الأقسام المسجلة' : 'Registered Departments'}</h4>
+          <div className="space-y-2 max-w-md border-t border-slate-200 dark:border-slate-800 pt-4">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">{isRtl ? 'الأقسام المسجلة' : 'Registered Departments'}</h4>
             {departments.length === 0 ? (
-              <div className="text-center text-xs text-gray-500 py-4">{isRtl ? 'لا توجد أقسام مسجلة.' : 'No departments found.'}</div>
+              <div className="text-center text-xs text-slate-400 py-4">{isRtl ? 'لا توجد أقسام مسجلة.' : 'No departments found.'}</div>
             ) : (
               departments.map((d) => (
-                <div key={d.id} className="p-3 bg-gray-900/40 border border-gray-800/80 rounded-xl flex justify-between items-center text-xs">
-                  <span className="font-semibold text-white">{d.name}</span>
+                <div key={d.id} className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl flex justify-between items-center text-xs">
+                  <span className="font-bold text-slate-950 dark:text-white">{d.name}</span>
                   <button
+                    type="button"
                     onClick={() => handleDeleteDept(d.id, d.name)}
-                    className="p-1 text-red-400 hover:text-red-200"
+                    className="p-1 text-rose-600 hover:text-rose-800 dark:text-rose-400 cursor-pointer"
                     title="Delete"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -1105,10 +954,10 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
 
       {/* TAB 3: KPI CONFIGURATOR */}
       {activeTab === 'kpis' && (
-        <div className="glass-card p-6 rounded-2xl border border-gray-800 space-y-6">
+        <div className="cleariq-card p-6 cleariq-card-hover space-y-6">
           <div>
-            <h3 className="font-bold text-lg text-white">{isRtl ? 'إعدادات مؤشرات الأداء' : 'KPI Metrics Settings'}</h3>
-            <p className="text-xs text-gray-400">{isRtl ? 'إدارة وحدات قياس مؤشرات الإنتاجية للموظفين' : 'Manage metric units allowed for logging productivity entries'}</p>
+            <h3 className="font-extrabold text-base sm:text-lg text-slate-950 dark:text-white">{isRtl ? 'إعدادات مؤشرات الأداء' : 'KPI Metrics Settings'}</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{isRtl ? 'إدارة وحدات قياس مؤشرات الإنتاجية للموظفين' : 'Manage metric units allowed for logging productivity entries'}</p>
           </div>
 
           <form onSubmit={handleAddUnit} className="flex gap-3 max-w-md">
@@ -1118,28 +967,29 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
               value={newUnitName}
               onChange={(e) => setNewUnitName(e.target.value)}
               placeholder="e.g. calls, pieces, pages..."
-              className="flex-1 bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-200 focus:outline-none"
+              className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none"
             />
             <button
               type="submit"
               disabled={loading}
-              className="gradient-btn px-4 py-2 rounded-xl text-xs font-bold text-white shadow-md flex items-center gap-1 shrink-0"
+              className="gradient-btn px-4 py-2 rounded-xl text-xs font-bold text-white shadow-sm flex items-center gap-1 shrink-0 cursor-pointer"
             >
               <Plus className="w-4 h-4" /> {isRtl ? 'إضافة معيار' : 'Add Metric'}
             </button>
           </form>
 
-          <div className="space-y-2 max-w-md border-t border-gray-800 pt-4">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">{isRtl ? 'المعايير المعتمدة' : 'Approved KPI Metric Units'}</h4>
+          <div className="space-y-2 max-w-md border-t border-slate-200 dark:border-slate-800 pt-4">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">{isRtl ? 'المعايير المعتمدة' : 'Approved KPI Metric Units'}</h4>
             {kpiUnits.length === 0 ? (
-              <div className="text-center text-xs text-gray-500 py-4">{isRtl ? 'لا توجد وحدات قياس.' : 'No units configured.'}</div>
+              <div className="text-center text-xs text-slate-400 py-4">{isRtl ? 'لا توجد وحدات قياس.' : 'No units configured.'}</div>
             ) : (
               kpiUnits.map((u) => (
-                <div key={u.id} className="p-3 bg-gray-900/40 border border-gray-800/80 rounded-xl flex justify-between items-center text-xs">
-                  <span className="font-semibold text-white capitalize">{u.name}</span>
+                <div key={u.id} className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl flex justify-between items-center text-xs">
+                  <span className="font-bold text-slate-950 dark:text-white capitalize">{u.name}</span>
                   <button
+                    type="button"
                     onClick={() => handleDeleteUnit(u.id, u.name)}
-                    className="p-1 text-red-400 hover:text-red-200"
+                    className="p-1 text-rose-600 hover:text-rose-800 dark:text-rose-400 cursor-pointer"
                     title="Delete"
                   >
                     <Trash2 className="w-3.5 h-3.5" />

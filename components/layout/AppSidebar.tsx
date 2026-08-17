@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -13,8 +13,7 @@ import { UserProfile } from '@/lib/types/database';
 import { useLanguage } from '@/lib/context/LanguageContext';
 import {
   NAV_SECTIONS,
-  GLOBAL_NAV_ANCHORS,
-  getActiveDomain,
+  MOBILE_CORE_ANCHORS,
 } from '@/lib/config/navConfig';
 
 interface AppSidebarProps {
@@ -34,23 +33,33 @@ export default function AppSidebar({
 }: AppSidebarProps) {
   const pathname = usePathname();
   const { isRtl } = useLanguage();
+  const [currentHash, setCurrentHash] = useState('');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setCurrentHash(window.location.hash);
+      const handleHashChange = () => setCurrentHash(window.location.hash);
+      window.addEventListener('hashchange', handleHashChange);
+      return () => window.removeEventListener('hashchange', handleHashChange);
+    }
+  }, [pathname]);
 
   const userRole = user?.role ?? 'employee';
-  const activeDomain = getActiveDomain(pathname);
 
-  // Track which sections are expanded in the accordion
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
-    const init: Record<string, boolean> = {};
-    NAV_SECTIONS.forEach((s) => {
-      init[s.id] = s.id === activeDomain || s.id === 'dashboard';
-    });
-    return init;
+  // Track expanded accordion sections — fixed, predictable defaults
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    dashboard: true,
+    company: true,
+    operations: true,
+    performance: true,
+    payroll: true,
+    workspace: true,
   });
 
   const toggleSection = (id: string) =>
     setExpandedSections((prev) => ({ ...prev, [id]: !prev[id] }));
 
-  // Filter sections and sub-items by user role
+  // Filter sections and sub-items strictly by user role
   const visibleSections = NAV_SECTIONS.filter(
     (s) => !s.roles || s.roles.includes(userRole)
   ).map((s) => ({
@@ -60,17 +69,19 @@ export default function AppSidebar({
     ),
   }));
 
-  const visibleAnchors = GLOBAL_NAV_ANCHORS.filter((a) => {
-    if (a.id === 'company') return userRole === 'super_admin';
-    if (a.id === 'operations' && userRole === 'employee') return false;
-    if (a.id === 'payroll' && userRole === 'employee') return false;
-    return true;
-  });
+  const visibleMobileAnchors = MOBILE_CORE_ANCHORS.filter(
+    (a) => !a.roles || a.roles.includes(userRole)
+  );
 
-  // The contextual sub-items for the currently active domain
-  const contextualSection = visibleSections.find((s) => s.id === activeDomain);
-
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
+  // Exact matching for active route highlight
+  const isItemActive = (href: string) => {
+    if (href.includes('#')) {
+      const [path, hash] = href.split('#');
+      return pathname === path && currentHash === `#${hash}`;
+    }
+    // For non-hash routes: exact pathname match
+    return pathname === href;
+  };
 
   return (
     <>
@@ -105,15 +116,13 @@ export default function AppSidebar({
                 H
               </div>
               <div className="min-w-0">
-                <div className="font-extrabold text-base tracking-tight flex items-center gap-1.5 truncate"
-                  style={{ color: 'var(--text-primary)' }}>
+                <div className="font-extrabold text-base tracking-tight flex items-center gap-1.5 truncate text-slate-950 dark:text-white">
                   HumAi
                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400 uppercase tracking-wider font-sans">
                     SaaS
                   </span>
                 </div>
-                <div className="text-[10px] tracking-wider uppercase truncate"
-                  style={{ color: 'var(--text-muted)' }}>
+                <div className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 tracking-wider uppercase truncate">
                   Smart Operations
                 </div>
               </div>
@@ -130,157 +139,125 @@ export default function AppSidebar({
           <button
             type="button"
             onClick={onToggleCollapse}
-            className="hidden lg:flex p-1.5 rounded-lg transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 shrink-0 ml-auto"
-            style={{ color: 'var(--text-muted)' }}
+            className="hidden lg:flex p-1.5 rounded-lg transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 shrink-0 ml-auto text-slate-500 dark:text-slate-400"
             title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             {isCollapsed ? <PanelLeft className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
           </button>
         </div>
 
-        {/* ── Scrollable Navigation ──────────────────────────────── */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden py-3 space-y-1 px-2">
-
-          {/* ── GLOBAL FAST-SWITCH ANCHORS ──────────────────────── */}
-          {!isCollapsed && (
-            <div className="mb-3">
-              <p className="text-[10px] font-bold uppercase tracking-widest px-2 mb-2"
-                style={{ color: 'var(--text-muted)' }}>
-                {isRtl ? 'انتقال سريع' : 'Quick Nav'}
-              </p>
-              <div className="grid grid-cols-3 gap-1.5">
-                {visibleAnchors.map((anchor) => {
-                  const Icon = anchor.icon;
-                  const isThisActive = activeDomain === anchor.id;
-                  return (
-                    <button
-                      key={anchor.id}
-                      type="button"
-                      onClick={() => setExpandedSections((prev) => ({ ...prev, [anchor.id]: true }))}
-                      className={`flex flex-col items-center gap-1 p-2 rounded-xl text-[10px] font-semibold transition-all cursor-pointer ${
-                        isThisActive
-                          ? 'bg-blue-600 text-white shadow-sm'
-                          : 'hover:bg-blue-50 dark:hover:bg-blue-900/20'
-                      }`}
-                      style={isThisActive ? {} : { color: 'var(--text-secondary)' }}
-                    >
-                      <Icon className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate w-full text-center">
-                        {isRtl ? anchor.titleAr : anchor.titleEn}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          <div className="h-px mx-2 mb-3" style={{ backgroundColor: 'var(--border)' }} />
-
-          {/* ── CONTEXTUAL SUB-NAV for the active domain ────────── */}
-          {!isCollapsed && contextualSection && contextualSection.subItems.length > 0 && (
-            <div className="mb-3">
-              <p className="text-[10px] font-bold uppercase tracking-widest px-2 mb-1.5"
-                style={{ color: 'var(--text-muted)' }}>
-                {isRtl ? contextualSection.titleAr : contextualSection.titleEn}
-              </p>
-              {contextualSection.subItems.map((sub) => {
-                const SubIcon = sub.icon;
-                const active = isActive(sub.href);
-                return (
-                  <Link
-                    key={sub.titleEn + sub.href}
-                    href={sub.href}
-                    onClick={() => { if (onClose && window.innerWidth < 1024) onClose(); }}
-                    className={`nav-active-item flex items-center gap-2.5 px-3 py-2 rounded-xl text-[11px] font-semibold transition-all mb-0.5 ${
-                      active ? 'nav-active' : 'hover:bg-blue-50 dark:hover:bg-blue-900/15'
-                    }`}
-                    style={active ? {} : { color: 'var(--text-secondary)' }}
-                  >
-                    <SubIcon className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate">{isRtl ? sub.titleAr : sub.titleEn}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-
-          {/* ── FULL ACCORDION MENU ─────────────────────────────── */}
-          <div className="space-y-0.5">
-            {visibleSections.map((section) => {
-              const SectionIcon = section.icon;
-              const isExpanded = expandedSections[section.id];
-              const isSectionActive = section.subItems.some((s) => isActive(s.href));
-
-              if (isCollapsed) {
-                // Icon-only mode for collapsed sidebar
-                return (
-                  <div key={section.id} className="relative group/section">
-                    <Link
-                      href={section.subItems[0]?.href ?? '#'}
-                      className={`flex items-center justify-center w-10 h-10 mx-auto rounded-xl transition-all ${
-                        isSectionActive ? 'nav-active' : 'hover:bg-blue-50 dark:hover:bg-blue-900/20'
-                      }`}
-                      style={isSectionActive ? {} : { color: 'var(--text-secondary)' }}
-                      title={isRtl ? section.titleAr : section.titleEn}
-                    >
-                      <SectionIcon className="w-4 h-4" />
-                    </Link>
-                  </div>
-                );
-              }
-
+        {/* ── Mobile Pinned Core Anchors (At Top of Drawer) ────────── */}
+        <div className="lg:hidden p-2.5 border-b" style={{ borderColor: 'var(--border)' }}>
+          <div className="grid grid-cols-3 gap-1.5">
+            {visibleMobileAnchors.map((anchor) => {
+              const Icon = anchor.icon;
+              const active = pathname === anchor.href;
               return (
-                <div key={section.id}>
-                  {/* Section accordion header */}
-                  <button
-                    type="button"
-                    onClick={() => toggleSection(section.id)}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                      isSectionActive ? 'text-blue-600 dark:text-blue-400' : ''
-                    }`}
-                    style={isSectionActive ? {} : { color: 'var(--text-primary)' }}
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <SectionIcon className={`w-4 h-4 shrink-0 ${isSectionActive ? 'text-blue-600 dark:text-blue-400' : ''}`}
-                        style={isSectionActive ? {} : { color: 'var(--text-muted)' }} />
-                      <span className="truncate">{isRtl ? section.titleAr : section.titleEn}</span>
-                    </div>
-                    {isExpanded
-                      ? <ChevronDown className="w-3 h-3 shrink-0" style={{ color: 'var(--text-muted)' }} />
-                      : <ChevronRight className="w-3 h-3 shrink-0" style={{ color: 'var(--text-muted)' }} />}
-                  </button>
-
-                  {/* Sub-items */}
-                  {isExpanded && (
-                    <div
-                      className="ml-5 pl-2 py-0.5 space-y-0.5 border-l"
-                      style={{ borderColor: 'var(--border)' }}
-                    >
-                      {section.subItems.map((sub) => {
-                        const SubIcon = sub.icon;
-                        const active = isActive(sub.href);
-                        return (
-                          <Link
-                            key={sub.titleEn + sub.href}
-                            href={sub.href}
-                            onClick={() => { if (onClose && window.innerWidth < 1024) onClose(); }}
-                            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all ${
-                              active ? 'nav-active' : 'hover:bg-blue-50 dark:hover:bg-blue-900/15'
-                            }`}
-                            style={active ? {} : { color: 'var(--text-secondary)' }}
-                          >
-                            <SubIcon className="w-3.5 h-3.5 shrink-0" />
-                            <span className="truncate">{isRtl ? sub.titleAr : sub.titleEn}</span>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
+                <Link
+                  key={anchor.id}
+                  href={anchor.href}
+                  onClick={() => { if (onClose) onClose(); }}
+                  className={`flex flex-col items-center gap-1 p-2 rounded-xl text-[10px] font-bold transition-all text-center ${
+                    active
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate w-full">{isRtl ? anchor.titleAr : anchor.titleEn}</span>
+                </Link>
               );
             })}
           </div>
+        </div>
+
+        {/* ── Scrollable Navigation Menu (Fixed Predictable Order) ── */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden py-3 space-y-1 px-2">
+          {visibleSections.map((section) => {
+            const SectionIcon = section.icon;
+            const isExpanded = expandedSections[section.id];
+            const isSectionActive = section.subItems.some((s) => isItemActive(s.href));
+
+            if (isCollapsed) {
+              return (
+                <div key={section.id} className="relative group/section my-1">
+                  <Link
+                    href={section.subItems[0]?.href ?? '#'}
+                    className={`flex items-center justify-center w-10 h-10 mx-auto rounded-xl transition-all ${
+                      isSectionActive
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                    }`}
+                    title={isRtl ? section.titleAr : section.titleEn}
+                  >
+                    <SectionIcon className="w-4 h-4" />
+                  </Link>
+                </div>
+              );
+            }
+
+            return (
+              <div key={section.id} className="mb-1">
+                {/* Section Accordion Header */}
+                <button
+                  type="button"
+                  onClick={() => toggleSection(section.id)}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                    isSectionActive
+                      ? 'text-blue-700 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/20'
+                      : 'text-slate-900 dark:text-slate-100 hover:bg-slate-100/80 dark:hover:bg-slate-800/60'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <SectionIcon
+                      className={`w-4 h-4 shrink-0 ${
+                        isSectionActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'
+                      }`}
+                    />
+                    <span className="truncate">{isRtl ? section.titleAr : section.titleEn}</span>
+                  </div>
+                  {isExpanded ? (
+                    <ChevronDown className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+                  ) : (
+                    <ChevronRight className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+                  )}
+                </button>
+
+                {/* Sub-Items List */}
+                {isExpanded && (
+                  <div
+                    className="ml-4 pl-2 py-0.5 space-y-0.5 border-l"
+                    style={{ borderColor: 'var(--border)' }}
+                  >
+                    {section.subItems.map((sub) => {
+                      const SubIcon = sub.icon;
+                      const active = isItemActive(sub.href);
+                      return (
+                        <Link
+                          key={sub.titleEn + sub.href}
+                          href={sub.href}
+                          onClick={() => {
+                            if (sub.href.includes('#')) {
+                              setCurrentHash('#' + sub.href.split('#')[1]);
+                            }
+                            if (onClose && window.innerWidth < 1024) onClose();
+                          }}
+                          className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-[11px] font-bold transition-all ${
+                            active
+                              ? 'bg-blue-600 text-white shadow-xs dark:bg-blue-500/20 dark:text-blue-400 dark:border-r-2 dark:border-blue-500'
+                              : 'text-slate-800 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                          }`}
+                        >
+                          <SubIcon className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate">{isRtl ? sub.titleAr : sub.titleEn}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* ── User Profile Footer ────────────────────────────────── */}
@@ -288,28 +265,23 @@ export default function AppSidebar({
           <div className="px-3 py-3 border-t shrink-0" style={{ borderColor: 'var(--border)' }}>
             {isCollapsed ? (
               <div
-                className="w-9 h-9 mx-auto rounded-xl flex items-center justify-center text-xs font-bold"
-                style={{ backgroundColor: 'var(--primary-light)', color: 'var(--primary)' }}
+                className="w-9 h-9 mx-auto rounded-xl flex items-center justify-center text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400"
               >
                 {user.full_name?.charAt(0).toUpperCase() ?? 'U'}
               </div>
             ) : (
               <div className="flex items-center gap-2.5 min-w-0">
                 <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 border"
-                  style={{
-                    backgroundColor: 'var(--primary-light)',
-                    color: 'var(--primary)',
-                    borderColor: 'var(--border)',
-                  }}
+                  className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 border bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400"
+                  style={{ borderColor: 'var(--border)' }}
                 >
                   {user.full_name?.charAt(0).toUpperCase() ?? 'U'}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+                  <div className="text-xs font-extrabold truncate text-slate-950 dark:text-white">
                     {user.full_name ?? 'User'}
                   </div>
-                  <div className="text-[10px] uppercase tracking-wider truncate" style={{ color: 'var(--text-muted)' }}>
+                  <div className="text-[10px] font-semibold uppercase tracking-wider truncate text-slate-500 dark:text-slate-400">
                     {user.job_title ?? user.role}
                   </div>
                 </div>

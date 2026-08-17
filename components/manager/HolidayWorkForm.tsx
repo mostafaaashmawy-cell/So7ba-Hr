@@ -14,7 +14,7 @@ interface HolidayWorkFormProps {
 }
 
 export default function HolidayWorkForm({ teamMembers, currentUserId, isSuperAdmin }: HolidayWorkFormProps) {
-  const { t, isRtl } = useLanguage();
+  const { isRtl } = useLanguage();
   const [selectedEmployee, setSelectedEmployee] = useState<string>(teamMembers[0]?.id || '');
   const [workingDate, setWorkingDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState<string>('');
@@ -36,7 +36,6 @@ export default function HolidayWorkForm({ teamMembers, currentUserId, isSuperAdm
       if (ids.length > 0) {
         query = query.in('user_id', ids);
       } else {
-        // Return empty if no team members
         setRecords([]);
         return;
       }
@@ -102,16 +101,16 @@ export default function HolidayWorkForm({ teamMembers, currentUserId, isSuperAdm
   };
 
   return (
-    <div className="glass-card p-6 rounded-2xl border border-gray-800 space-y-6">
+    <div className="cleariq-card p-6 cleariq-card-hover space-y-6">
       <div className="flex items-center gap-3">
-        <div className="p-2.5 rounded-xl bg-lime-500/10 text-lime-400 border border-lime-500/20">
+        <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 flex items-center justify-center">
           <Calendar className="w-5 h-5" />
         </div>
         <div>
-          <h3 className="font-bold text-lg text-white">
+          <h3 className="font-extrabold text-base sm:text-lg text-slate-950 dark:text-white">
             {isRtl ? 'أيام العمل في العطلات الرسمية' : 'Holidays Working Days Compensation'}
           </h3>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             {isRtl
               ? 'تسجيل الموظفين الذين عملوا في أيام العطلات الرسمية لإضافة يوم إجازة إضافي لرصيدهم'
               : 'Log holiday working days for team members to credit them with extra leaves'}
@@ -121,40 +120,40 @@ export default function HolidayWorkForm({ teamMembers, currentUserId, isSuperAdm
 
       {msg && (
         <div
-          className={`p-3 rounded-xl border text-xs flex items-center gap-2 ${
+          className={`p-3.5 rounded-2xl border text-xs flex items-center gap-2 ${
             msg.error
-              ? 'bg-red-500/10 border-red-500/30 text-red-300'
-              : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+              ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300'
+              : 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
           }`}
         >
           {msg.error ? <AlertCircle className="w-4 h-4 shrink-0" /> : <CheckCircle className="w-4 h-4 shrink-0" />}
-          <span>{msg.text}</span>
+          <span className="font-medium">{msg.text}</span>
         </div>
       )}
 
       {/* Log Form */}
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end bg-gray-900/40 p-4 rounded-xl border border-gray-800">
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-700">
         <div>
-          <label className="block text-xs font-medium text-gray-400 mb-1.5">
+          <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1.5">
             {isRtl ? 'الموظف:' : 'Employee:'}
           </label>
           <select
             value={selectedEmployee}
             onChange={(e) => setSelectedEmployee(e.target.value)}
             required
-            className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-lime-500"
+            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-950 dark:text-white focus:outline-none focus:border-blue-500 cursor-pointer"
           >
             <option value="">{isRtl ? 'اختر الموظف' : 'Select employee'}</option>
             {teamMembers.map((m) => (
               <option key={m.id} value={m.id}>
-                {m.full_name}
+                {m.full_name} ({m.job_title || 'Staff'})
               </option>
             ))}
           </select>
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-gray-400 mb-1.5">
+          <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1.5">
             {isRtl ? 'يوم العمل:' : 'Working Day:'}
           </label>
           <input
@@ -162,21 +161,21 @@ export default function HolidayWorkForm({ teamMembers, currentUserId, isSuperAdm
             value={workingDate}
             onChange={(e) => setWorkingDate(e.target.value)}
             required
-            className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-lime-500"
+            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-950 dark:text-white focus:outline-none focus:border-blue-500 font-sans"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-gray-400 mb-1.5">
-            {isRtl ? 'ملاحظة:' : 'Note:'}
+          <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1.5">
+            {isRtl ? 'المناسبة / الملاحظة:' : 'Occasion / Note:'}
           </label>
           <input
             type="text"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder={isRtl ? 'المناسبة (مثال: عيد الفطر)' : 'e.g. Eid Holiday'}
+            placeholder={isRtl ? 'المناسبة (مثال: عيد الفطر)' : 'e.g. Eid Holiday Shift'}
             required
-            className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-lime-500"
+            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-950 dark:text-white focus:outline-none focus:border-blue-500"
           />
         </div>
 
@@ -184,49 +183,54 @@ export default function HolidayWorkForm({ teamMembers, currentUserId, isSuperAdm
           <button
             type="submit"
             disabled={loading}
-            className="w-full md:w-auto gradient-btn px-6 py-2.5 rounded-xl font-bold text-sm text-white shadow-md flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+            className="gradient-btn w-full md:w-auto px-6 py-2.5 rounded-xl font-bold text-xs text-white shadow-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer"
           >
             <Plus className="w-4 h-4" /> {isRtl ? 'تسجيل وإضافة رصيد' : 'Log & Credit Leave'}
           </button>
         </div>
       </form>
 
-      {/* Log History */}
+      {/* Log History Table */}
       <div>
-        <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">
+        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
           {isRtl ? 'سجل العمل في العطلات المسجل' : 'Logged Holiday Compensation History'}
         </h4>
         {records.length === 0 ? (
-          <div className="text-center py-5 text-xs text-gray-500 bg-gray-900/30 rounded-xl border border-gray-800">
-            {isRtl ? 'لا يوجد سجلات مسجلة.' : 'No holiday work records found.'}
+          <div className="text-center py-6 text-xs text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700">
+            {isRtl ? 'لا توجد سجلات عمل في العطلات بعد.' : 'No holiday compensation records logged yet.'}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-gray-300">
-              <thead className="bg-gray-900/80 text-gray-400 uppercase text-[10px] tracking-wider">
+          <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-100 dark:bg-slate-800 text-slate-950 dark:text-slate-200 uppercase text-[10px] tracking-wider font-extrabold">
                 <tr>
-                  <th className="px-4 py-2.5 rounded-l-lg">{t('fullName')}</th>
-                  <th className="px-4 py-2.5">{isRtl ? 'التاريخ' : 'Date'}</th>
-                  <th className="px-4 py-2.5">{t('notes')}</th>
-                  <th className="px-4 py-2.5 text-right rounded-r-lg">{t('actions')}</th>
+                  <th className="px-4 py-3.5">{isRtl ? 'الموظف' : 'Employee'}</th>
+                  <th className="px-4 py-3.5">{isRtl ? 'تاريخ العمل' : 'Working Date'}</th>
+                  <th className="px-4 py-3.5">{isRtl ? 'الملاحظات' : 'Notes'}</th>
+                  <th className="px-4 py-3.5 text-right">{isRtl ? 'الإجراءات' : 'Actions'}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-800/60">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
                 {records.map((r) => (
-                  <tr key={r.id} className="hover:bg-gray-900/40">
-                    <td className="px-4 py-3 font-semibold text-white">{r.user?.full_name || r.user_id}</td>
-                    <td className="px-4 py-3 text-lime-400">{formatDate(r.working_date)}</td>
-                    <td className="px-4 py-3 text-gray-400 text-xs italic">{r.notes || '--'}</td>
-                    <td className="px-4 py-3 text-right">
-                      {(isSuperAdmin || r.created_by === currentUserId) && (
-                        <button
-                          onClick={() => handleDelete(r.id)}
-                          className="p-1.5 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/30 rounded-lg transition-all"
-                          title={t('delete')}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
+                  <tr key={r.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
+                    <td className="px-4 py-3.5 font-bold text-slate-950 dark:text-white">
+                      {r.user?.full_name || 'Staff Member'}
+                    </td>
+                    <td className="px-4 py-3.5 font-semibold text-slate-900 dark:text-slate-200 font-sans">
+                      {formatDate(r.working_date)}
+                    </td>
+                    <td className="px-4 py-3.5 text-slate-800 dark:text-slate-300 font-medium">
+                      {r.notes || '--'}
+                    </td>
+                    <td className="px-4 py-3.5 text-right">
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(r.id)}
+                        className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-800 rounded-lg transition-all cursor-pointer"
+                        title={isRtl ? 'حذف السجل' : 'Delete record'}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </td>
                   </tr>
                 ))}

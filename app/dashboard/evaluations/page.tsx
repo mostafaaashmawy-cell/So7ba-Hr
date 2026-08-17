@@ -80,44 +80,56 @@ export default function EvaluationsPage() {
       setCurrentUser(profile as UserProfile);
 
       // 2. Hierarchy Permissions:
-      // Managers can only evaluate and view direct subordinates
-      // Super Admins can evaluate and view anyone in the tenant
-      const teamQuery = supabase
-        .from('users')
-        .select('*')
-        .eq('tenant_id', profile.tenant_id);
+      // - Employee: Read-only access to own evaluations. Cannot submit.
+      // - Manager: Can evaluate & view direct subordinates only.
+      // - Super Admin: Can evaluate & view all employees.
+      if (profile.role === 'super_admin') {
+        const { data: allMembers } = await supabase
+          .from('users')
+          .select('*')
+          .eq('tenant_id', profile.tenant_id);
+        const membersList = (allMembers as UserProfile[]) || [];
+        setTeamMembers(membersList);
+        if (membersList.length > 0) setSelectedMember(membersList[0].id);
 
-      if (profile.role === 'manager') {
-        teamQuery.eq('manager_id', authUser.id);
-      }
+        const { data: evals } = await supabase
+          .from('evaluations')
+          .select('*, user:users!user_id(full_name), reviewer:users!evaluated_by(full_name)')
+          .eq('tenant_id', profile.tenant_id)
+          .order('month', { ascending: false });
+        if (evals) setEvalList(evals as unknown as EvaluationItem[]);
+      } else if (profile.role === 'manager') {
+        const { data: subMembers } = await supabase
+          .from('users')
+          .select('*')
+          .eq('tenant_id', profile.tenant_id)
+          .eq('manager_id', authUser.id);
+        const membersList = (subMembers as UserProfile[]) || [];
+        setTeamMembers(membersList);
+        if (membersList.length > 0) setSelectedMember(membersList[0].id);
 
-      const { data: members } = await teamQuery;
-      const loadedMembers = (members as UserProfile[]) || [];
-      setTeamMembers(loadedMembers);
-
-      if (loadedMembers.length > 0) {
-        setSelectedMember(loadedMembers[0].id);
-      }
-
-      // 3. Evaluations Log query
-      const evalQuery = supabase
-        .from('evaluations')
-        .select('*, user:users!user_id(full_name), reviewer:users!evaluated_by(full_name)')
-        .eq('tenant_id', profile.tenant_id)
-        .order('month', { ascending: false });
-
-      if (profile.role === 'manager') {
-        const subIds = loadedMembers.map((m) => m.id);
+        const subIds = membersList.map((m) => m.id);
         if (subIds.length > 0) {
-          evalQuery.in('user_id', subIds);
+          const { data: evals } = await supabase
+            .from('evaluations')
+            .select('*, user:users!user_id(full_name), reviewer:users!evaluated_by(full_name)')
+            .eq('tenant_id', profile.tenant_id)
+            .in('user_id', subIds)
+            .order('month', { ascending: false });
+          if (evals) setEvalList(evals as unknown as EvaluationItem[]);
         } else {
-          evalQuery.eq('user_id', '00000000-0000-0000-0000-000000000000');
+          setEvalList([]);
         }
-      }
-
-      const { data: evals } = await evalQuery;
-      if (evals) {
-        setEvalList(evals as unknown as EvaluationItem[]);
+      } else {
+        // Employee role: strictly read-only for own evaluations
+        setTeamMembers([]);
+        const { data: evals } = await supabase
+          .from('evaluations')
+          .select('*, user:users!user_id(full_name), reviewer:users!evaluated_by(full_name)')
+          .eq('tenant_id', profile.tenant_id)
+          .eq('user_id', authUser.id)
+          .order('month', { ascending: false });
+        if (evals) setEvalList(evals as unknown as EvaluationItem[]);
       }
     }
     setLoading(false);
@@ -148,7 +160,6 @@ export default function EvaluationsPage() {
         setStarsCommunication(data.star_communication);
         setNotes(data.notes || '');
       } else {
-        // Reset to default
         setStarsPunctuality(3);
         setStarsQuality(3);
         setStarsProblemSolving(3);
@@ -170,7 +181,6 @@ export default function EvaluationsPage() {
     const monthDate = `${selectedMonth}-01`;
 
     try {
-      // Upsert evaluation
       const { data: existing } = await supabase
         .from('evaluations')
         .select('id')
@@ -216,57 +226,63 @@ export default function EvaluationsPage() {
         });
       }
 
-      // Reload evaluation list
-      const evalQuery = supabase
-        .from('evaluations')
-        .select('*, user:users!user_id(full_name), reviewer:users!evaluated_by(full_name)')
-        .eq('tenant_id', currentUser.tenant_id)
-        .order('month', { ascending: false });
-
-      if (currentUser.role === 'manager') {
-        const subIds = teamMembers.map((m) => m.id);
-        if (subIds.length > 0) {
-          evalQuery.in('user_id', subIds);
-        }
-      }
-
-      const { data: evals } = await evalQuery;
-      if (evals) {
-        setEvalList(evals as unknown as EvaluationItem[]);
-      }
+      loadData();
     } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : 'Submission failed';
-      setMsg({ text: errMsg, error: true });
+      const errorMsg = err instanceof Error ? err.message : 'Evaluation submission failed';
+      setMsg({ text: errorMsg, error: true });
     } finally {
       setSubmitting(false);
     }
   };
 
-  const renderStars = (rating: number, setRating?: (r: number) => void) => {
-    return (
-      <div className="flex gap-1">
+  const currentDay = new Date().getDate();
+  const showNudge = currentDay >= 22 && currentDay <= 25 && currentUser?.role !== 'employee';
+  const isPrivileged = currentUser?.role === 'super_admin' || currentUser?.role === 'manager';
+
+  const StarRating = ({
+    value,
+    onChange,
+    label,
+  }: {
+    value: number;
+    onChange: (v: number) => void;
+    label: string;
+  }) => (
+    <div className="flex items-center justify-between py-1">
+      <span className="text-xs font-bold text-slate-900 dark:text-slate-200">{label}</span>
+      <div className="flex items-center gap-1">
         {[1, 2, 3, 4, 5].map((star) => (
           <button
             key={star}
             type="button"
-            disabled={!setRating}
-            onClick={() => setRating && setRating(star)}
-            className={`transition-all ${
-              star <= rating ? 'text-amber-400 fill-amber-400' : 'text-gray-700'
-            } ${setRating ? 'hover:scale-110 cursor-pointer' : ''}`}
+            onClick={() => onChange(star)}
+            className="p-1 hover:scale-125 transition-transform cursor-pointer"
           >
-            <Star className="w-4 h-4" />
+            <Star
+              className={`w-4 h-4 ${
+                star <= value
+                  ? 'text-amber-400 fill-amber-400'
+                  : 'text-slate-300 dark:text-slate-600'
+              }`}
+            />
           </button>
         ))}
+        <span className="text-xs font-extrabold text-amber-600 dark:text-amber-400 ml-1 font-sans">
+          {value}/5
+        </span>
       </div>
-    );
+    </div>
+  );
+
+  const calculateScore = (e: EvaluationItem) => {
+    const sum =
+      e.star_punctuality +
+      e.star_quality +
+      e.star_problem_solving +
+      e.star_communication;
+    return (sum / 4).toFixed(1);
   };
 
-  const today = new Date();
-  const dayOfMonth = today.getDate();
-  const showNudge = dayOfMonth >= 22 && dayOfMonth <= 25;
-
-  // Filtered Evaluation List
   const filteredEvals = evalList.filter((item) => {
     const matchName = item.user?.full_name?.toLowerCase().includes(searchQuery.toLowerCase());
     if (searchQuery && !matchName) return false;
@@ -276,33 +292,39 @@ export default function EvaluationsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0b0f19] flex items-center justify-center text-gray-400 text-xs">
-        <RefreshCw className="w-5 h-5 animate-spin text-sky-400 mr-2" />
-        Loading HumAi evaluation manager...
+      <div className="min-h-screen bg-[--bg] flex items-center justify-center text-slate-400 text-xs font-bold">
+        <RefreshCw className="w-5 h-5 animate-spin text-blue-600 mr-2" />
+        Loading evaluations...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0b0f19] text-gray-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-[--bg] text-slate-900 dark:text-slate-100 flex flex-col font-sans">
       <Navbar
         user={currentUser}
-        activeRoleView={currentUser?.role === 'super_admin' ? 'super_admin' : 'manager'}
+        activeRoleView={
+          currentUser?.role === 'super_admin'
+            ? 'super_admin'
+            : currentUser?.role === 'manager'
+            ? 'manager'
+            : 'employee'
+        }
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-8 space-y-8">
         {/* Warning nudge for managers */}
         {showNudge && (
-          <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-start gap-3 text-xs text-amber-300">
-            <AlertTriangle className="w-5 h-5 shrink-0 text-amber-400" />
+          <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-2xl flex items-start gap-3 text-xs text-amber-800 dark:text-amber-300">
+            <AlertTriangle className="w-5 h-5 shrink-0 text-amber-600" />
             <div>
-              <span className="font-bold block">
-                {isRtl ? 'تذكير التقييم الشهري للذكاء الاصطناعي' : 'Smart Monthly Evaluation Nudge'}
+              <span className="font-extrabold block">
+                {isRtl ? 'تذكير التقييم الشهري' : 'Monthly Evaluation Review Period'}
               </span>
-              <span>
+              <span className="font-medium">
                 {isRtl
-                  ? 'نحن الآن في الفترة بين يوم 22 و25 من الشهر. يرجى إتمام تقييمات الفريق. التقييمات التي لم تسجل سيتم اعتماد 3/5 نجوم افتراضياً في حساب الرواتب.'
-                  : 'We are currently between the 22nd and 25th of the month. Please complete all evaluations. Unsubmitted records will automatically fall back to 3/5 on the 25th.'}
+                  ? 'يرجى إتمام تقييمات أعضاء الفريق لشهر الاستحقاق قبل إغلاق مسير الرواتب.'
+                  : 'Please submit evaluation reviews for all team members before the 25th of this month.'}
               </span>
             </div>
           </div>
@@ -311,272 +333,242 @@ export default function EvaluationsPage() {
         {/* Top Header & Role Permissions Status */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold text-white flex items-center gap-2">
+            <h1 className="text-xl font-extrabold text-slate-950 dark:text-white flex items-center gap-2">
               <Star className="w-6 h-6 text-amber-400 fill-amber-400" />
               {isRtl ? 'سجل وإدارة تقييمات الأداء' : 'Performance Evaluation & Review Engine'}
             </h1>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               {currentUser?.role === 'super_admin'
                 ? isRtl
                   ? 'صلاحية المشرف العام: مراجعة وتقييم كافة موظفي الشركة'
                   : 'Super Admin Access: Review and evaluate all employees across the company'
+                : currentUser?.role === 'manager'
+                ? isRtl
+                  ? 'صلاحية المدير المباشر: مراجعة وتقييم أعضاء فريقك المباشر فقط'
+                  : 'Manager Access: Review and evaluate your direct team members only'
                 : isRtl
-                ? 'صلاحية المدير المباشر: مراجعة وتقييم أعضاء فريقك المباشر فقط'
-                : 'Manager Access: Review and evaluate your direct subordinates only'}
+                ? 'عرض سجل تقييمات أدائي الشخصية'
+                : 'My Personal Performance Review History'}
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-1 rounded-full text-xs font-bold bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center gap-1.5">
-              <UserCheck className="w-3.5 h-3.5" />
-              {teamMembers.length}{' '}
-              {isRtl ? 'موظف متاح للتقييم' : 'subordinates assigned'}
-            </span>
-          </div>
+          {isPrivileged && (
+            <div className="flex items-center gap-2">
+              <span className="px-3.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800 flex items-center gap-1.5 font-sans">
+                <UserCheck className="w-3.5 h-3.5" />
+                {teamMembers.length}{' '}
+                {isRtl ? 'موظف متاح للتقييم' : 'subordinates assigned'}
+              </span>
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Rate Performance Form */}
-          <div className="lg:col-span-1 glass-card p-6 rounded-3xl border border-gray-800 space-y-6">
-            <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <FileText className="w-4 h-4 text-sky-400" />
-                {isRtl ? 'إدخال تقييم موظف' : 'Submit Evaluation'}
-              </h2>
-              <p className="text-[11px] text-gray-400 mt-0.5">
-                {isRtl
-                  ? 'حدد الموظف والشهر لاحتساب درجات التقييم'
-                  : 'Select an employee and month to log ratings'}
-              </p>
-            </div>
-
-            {msg && (
-              <div
-                className={`p-3 rounded-xl border text-xs flex items-center gap-2 ${
-                  msg.error
-                    ? 'bg-red-500/10 border-red-500/30 text-red-300'
-                    : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                }`}
-              >
-                {msg.error ? <AlertCircle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
-                <span>{msg.text}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-4">
+        <div className={`grid grid-cols-1 ${isPrivileged ? 'lg:grid-cols-3' : 'lg:grid-cols-1'} gap-8`}>
+          {/* Rate Performance Form — Only for Super Admin & Manager */}
+          {isPrivileged && (
+            <div className="lg:col-span-1 cleariq-card p-6 cleariq-card-hover space-y-6">
               <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1">
-                  {isRtl ? 'الموظف المستهدف' : 'Target Employee'}
-                </label>
-                <select
-                  value={selectedMember}
-                  onChange={(e) => setSelectedMember(e.target.value)}
-                  className="w-full bg-gray-950 border border-gray-800 rounded-xl px-3.5 py-2.5 text-xs text-gray-100 focus:outline-none focus:border-sky-500"
-                >
-                  {teamMembers.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.full_name} ({m.job_title || 'Employee'})
-                    </option>
-                  ))}
-                  {teamMembers.length === 0 && (
-                    <option value="">No subordinates assigned</option>
-                  )}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1">
-                  {isRtl ? 'شهر التقييم' : 'Evaluation Month'}
-                </label>
-                <input
-                  type="month"
-                  required
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="w-full bg-gray-950 border border-gray-800 rounded-xl px-3.5 py-2.5 text-xs text-gray-100 focus:outline-none font-sans"
-                />
-              </div>
-
-              {/* 4 Ratings Criteria */}
-              <div className="space-y-3 pt-3 border-t border-gray-800">
-                <div className="flex items-center justify-between p-3 bg-gray-950/70 rounded-xl border border-gray-800">
-                  <div>
-                    <span className="text-xs font-bold text-gray-200 block">
-                      {isRtl ? 'الانضباط والالتزام بالمواعيد' : 'Punctuality & Shift Adherence'}
-                    </span>
-                    <span className="text-[10px] text-gray-500">
-                      {isRtl ? 'حضور الوردية والانضباط' : 'Arrival timing & attendance'}
-                    </span>
-                  </div>
-                  {renderStars(starsPunctuality, setStarsPunctuality)}
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-gray-950/70 rounded-xl border border-gray-800">
-                  <div>
-                    <span className="text-xs font-bold text-gray-200 block">
-                      {isRtl ? 'جودة ودقة تنفيذ المهام' : 'Quality of Work'}
-                    </span>
-                    <span className="text-[10px] text-gray-500">
-                      {isRtl ? 'دقة الإنجاز وعدم وجود أخطاء' : 'Accuracy and execution'}
-                    </span>
-                  </div>
-                  {renderStars(starsQuality, setStarsQuality)}
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-gray-950/70 rounded-xl border border-gray-800">
-                  <div>
-                    <span className="text-xs font-bold text-gray-200 block">
-                      {isRtl ? 'حل المشكلات والمبادرة' : 'Problem Solving & Initiative'}
-                    </span>
-                    <span className="text-[10px] text-gray-500">
-                      {isRtl ? 'سرعة التعامل مع التحديات' : 'Self-starter abilities'}
-                    </span>
-                  </div>
-                  {renderStars(starsProblemSolving, setStarsProblemSolving)}
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-gray-950/70 rounded-xl border border-gray-800">
-                  <div>
-                    <span className="text-xs font-bold text-gray-200 block">
-                      {isRtl ? 'التواصل والتعاون مع الفريق' : 'Communication & Collaboration'}
-                    </span>
-                    <span className="text-[10px] text-gray-500">
-                      {isRtl ? 'التعاون مع الإدارة والزملاء' : 'Teamwork and responsiveness'}
-                    </span>
-                  </div>
-                  {renderStars(starsCommunication, setStarsCommunication)}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1">
-                  {isRtl ? 'ملاحظات وتوجيهات المدير (اختياري)' : 'Manager Notes / Feedback'}
-                </label>
-                <textarea
-                  rows={2}
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder={
-                    isRtl
-                      ? 'أضف ملاحظاتك وتوجيهاتك للموظف...'
-                      : 'Provide constructive feedback or rationale...'
-                  }
-                  className="w-full bg-gray-950 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={submitting || teamMembers.length === 0}
-                className="gradient-btn py-2.5 rounded-xl text-xs font-bold text-white w-full flex items-center justify-center gap-1.5 shadow-lg shadow-sky-500/20 transition-all cursor-pointer disabled:opacity-40"
-              >
-                {submitting && <RefreshCw className="w-4 h-4 animate-spin" />}
-                {isRtl ? 'حفظ واعتماد التقييم' : 'Save & Authorize Evaluation'}
-              </button>
-            </form>
-          </div>
-
-          {/* Evaluations History Logs Table */}
-          <div className="lg:col-span-2 glass-card p-6 rounded-3xl border border-gray-800 space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h3 className="font-bold text-base text-gray-100 flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-sky-400" />
-                  {isRtl ? 'سجل تقييمات الأداء التاريخي' : 'Evaluation History Logs'}
-                </h3>
-                <p className="text-[11px] text-gray-500 mt-0.5">
+                <h2 className="text-base font-extrabold text-slate-950 dark:text-white flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  {isRtl ? 'إدخال تقييم موظف' : 'Submit Evaluation'}
+                </h2>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                   {isRtl
-                    ? 'سجل مفصل بالدرجات والملاحظات والمدير المقيّم'
-                    : 'Detailed record of scores, criteria, comments, and reviewer names'}
+                    ? 'حدد الموظف والشهر لاحتساب درجات التقييم'
+                    : 'Select an employee and month to log ratings'}
                 </p>
               </div>
 
-              {/* Filters */}
-              <div className="flex items-center gap-2">
-                <div className="relative">
-                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+              {msg && (
+                <div
+                  className={`p-3.5 rounded-2xl border text-xs flex items-center gap-2 ${
+                    msg.error
+                      ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300'
+                      : 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
+                  }`}
+                >
+                  {msg.error ? <AlertCircle className="w-4 h-4 shrink-0" /> : <CheckCircle2 className="w-4 h-4 shrink-0" />}
+                  <span className="font-medium">{msg.text}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">
+                    {isRtl ? 'الموظف المستهدف' : 'Target Employee'}
+                  </label>
+                  <select
+                    value={selectedMember}
+                    onChange={(e) => setSelectedMember(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-950 dark:text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                  >
+                    {teamMembers.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.full_name} ({m.job_title || 'Employee'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">
+                    {isRtl ? 'شهر التقييم' : 'Evaluation Month'}
+                  </label>
                   <input
-                    type="text"
-                    placeholder={isRtl ? 'بحث بالاسم...' : 'Search employee...'}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="bg-gray-950 border border-gray-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-gray-100 focus:outline-none w-36 sm:w-48"
+                    type="month"
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none focus:border-blue-500 font-sans"
                   />
                 </div>
 
-                <select
-                  value={filterMonth}
-                  onChange={(e) => setFilterMonth(e.target.value)}
-                  className="bg-gray-950 border border-gray-800 rounded-xl px-2.5 py-1.5 text-xs text-gray-200 focus:outline-none"
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-2">
+                  <StarRating
+                    label={isRtl ? 'الالتزام والانضباط' : 'Punctuality & Discipline'}
+                    value={starsPunctuality}
+                    onChange={setStarsPunctuality}
+                  />
+                  <StarRating
+                    label={isRtl ? 'جودة ودقة العمل' : 'Quality of Work'}
+                    value={starsQuality}
+                    onChange={setStarsQuality}
+                  />
+                  <StarRating
+                    label={isRtl ? 'حل المشكلات والمبادرة' : 'Problem Solving'}
+                    value={starsProblemSolving}
+                    onChange={setStarsProblemSolving}
+                  />
+                  <StarRating
+                    label={isRtl ? 'التواصل والتعاون' : 'Communication & Teamwork'}
+                    value={starsCommunication}
+                    onChange={setStarsCommunication}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">
+                    {isRtl ? 'ملاحظات وتوجيهات المدير' : 'Manager Notes & Recommendations'}
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder={
+                      isRtl
+                        ? 'أضف نقاط القوة أو مجالات التحسين...'
+                        : 'Highlight achievements and improvement areas...'
+                    }
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-950 dark:text-white focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={submitting || teamMembers.length === 0}
+                  className="w-full py-2.5 rounded-xl gradient-btn text-xs font-bold text-white shadow-xs transition-all disabled:opacity-40 cursor-pointer flex items-center justify-center gap-2"
                 >
-                  <option value="all">{isRtl ? 'كل الشهور' : 'All Months'}</option>
-                  {Array.from(new Set(evalList.map((e) => e.month.substring(0, 7)))).map((m) => (
-                    <option key={m} value={m}>
-                      {m}
-                    </option>
-                  ))}
-                </select>
+                  {submitting && <RefreshCw className="w-4 h-4 animate-spin" />}
+                  {isRtl ? 'حفظ واعتماد التقييم' : 'Save & Certify Evaluation'}
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* Evaluations History Logs */}
+          <div className={`${isPrivileged ? 'lg:col-span-2' : 'lg:col-span-1'} cleariq-card p-6 cleariq-card-hover space-y-6`}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+              <div>
+                <h2 className="text-base font-extrabold text-slate-950 dark:text-white flex items-center gap-2">
+                  <Star className="w-4 h-4 text-amber-500" />
+                  {isPrivileged
+                    ? isRtl
+                      ? 'سجل التقييمات المعتمدة'
+                      : 'Certified Reviews History'
+                    : isRtl
+                    ? 'سجل تقييماتي الشهرية'
+                    : 'My Certified Reviews'}
+                </h2>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  {isRtl ? 'عرض نتائج التقييم الشهرية وملاحظات الإدارة' : 'Monthly evaluation scores and performance breakdowns'}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {isPrivileged && (
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                    <input
+                      type="text"
+                      placeholder={isRtl ? 'بحث بالاسم...' : 'Search employee...'}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-8 pr-3 py-1.5 text-xs font-semibold text-slate-950 dark:text-white focus:outline-none w-36 sm:w-44"
+                    />
+                  </div>
+                )}
+
+                <div className="flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                  <input
+                    type="month"
+                    value={filterMonth === 'all' ? '' : filterMonth}
+                    onChange={(e) => setFilterMonth(e.target.value || 'all')}
+                    className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-950 dark:text-white focus:outline-none font-sans"
+                  />
+                </div>
               </div>
             </div>
 
-            {/* Table Container */}
-            <div className="overflow-x-auto border border-gray-800/80 rounded-2xl">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead className="bg-gray-950/80 text-gray-400 font-semibold border-b border-gray-800 text-[11px]">
+            <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
+              <table className="w-full text-left text-xs font-sans">
+                <thead className="bg-slate-100 dark:bg-slate-800 text-slate-950 dark:text-slate-200 uppercase text-[10px] tracking-wider font-extrabold">
                   <tr>
-                    <th className="p-3.5">{isRtl ? 'الموظف' : 'Employee'}</th>
-                    <th className="p-3.5">{isRtl ? 'المُقيِّم' : 'Reviewer'}</th>
-                    <th className="p-3.5">{isRtl ? 'الشهر' : 'Month'}</th>
-                    <th className="p-3.5 text-center">{isRtl ? 'التفاصيل' : 'Scores'}</th>
-                    <th className="p-3.5 text-center">{isRtl ? 'التقييم الإجمالي' : 'Overall'}</th>
-                    <th className="p-3.5">{isRtl ? 'ملاحظات' : 'Feedback'}</th>
+                    <th className="px-4 py-3.5">{isRtl ? 'الموظف' : 'Employee'}</th>
+                    <th className="px-4 py-3.5">{isRtl ? 'الشهر' : 'Month'}</th>
+                    <th className="px-4 py-3.5">{isRtl ? 'المتوسط' : 'Avg Score'}</th>
+                    <th className="px-4 py-3.5">{isRtl ? 'الانضباط' : 'Punctuality'}</th>
+                    <th className="px-4 py-3.5">{isRtl ? 'الجودة' : 'Quality'}</th>
+                    <th className="px-4 py-3.5">{isRtl ? 'المشاكل' : 'Solving'}</th>
+                    <th className="px-4 py-3.5">{isRtl ? 'التواصل' : 'Comm'}</th>
+                    <th className="px-4 py-3.5">{isRtl ? 'الملاحظات' : 'Notes'}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-800/60">
-                  {filteredEvals.map((item) => {
-                    const avg =
-                      (item.star_punctuality +
-                        item.star_quality +
-                        item.star_problem_solving +
-                        item.star_communication) /
-                      4;
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
+                  {filteredEvals.map((e) => {
+                    const avg = calculateScore(e);
                     return (
-                      <tr key={item.id} className="hover:bg-gray-900/40 transition-colors">
-                        <td className="p-3.5 font-bold text-gray-100">
-                          {item.user?.full_name || 'Employee'}
+                      <tr key={e.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
+                        <td className="px-4 py-3.5 font-bold text-slate-950 dark:text-white">
+                          {e.user?.full_name || 'Staff Member'}
                         </td>
-                        <td className="p-3.5 text-gray-400">
-                          <span className="inline-flex items-center gap-1 text-[11px] text-gray-300">
-                            {item.reviewer?.full_name || 'Supervisor'}
+                        <td className="px-4 py-3.5 font-semibold text-slate-900 dark:text-slate-200 font-sans">
+                          {e.month.substring(0, 7)}
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-xs font-extrabold font-sans ${
+                              Number(avg) >= 4.0
+                                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'
+                                : Number(avg) >= 3.0
+                                ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400'
+                                : 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400'
+                            }`}
+                          >
+                            ⭐ {avg}/5
                           </span>
                         </td>
-                        <td className="p-3.5 font-sans text-sky-400 font-bold">
-                          {item.month.substring(0, 7)}
-                        </td>
-                        <td className="p-3.5 text-center font-sans text-[10px] text-gray-400">
-                          <div className="inline-grid grid-cols-2 gap-x-2 gap-y-0.5 text-left">
-                            <span>Punctuality: {item.star_punctuality}★</span>
-                            <span>Quality: {item.star_quality}★</span>
-                            <span>Problem: {item.star_problem_solving}★</span>
-                            <span>Comm: {item.star_communication}★</span>
-                          </div>
-                        </td>
-                        <td className="p-3.5 text-center">
-                          <div className="inline-flex items-center gap-1.5">
-                            <span className="font-bold text-amber-400 font-sans">
-                              {avg.toFixed(1)}
-                            </span>
-                            <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                          </div>
-                        </td>
-                        <td className="p-3.5 max-w-xs truncate text-[11px] text-gray-400 italic">
-                          {item.notes ? (
+                        <td className="px-4 py-3.5 font-bold text-slate-800 dark:text-slate-300 font-sans">{e.star_punctuality}★</td>
+                        <td className="px-4 py-3.5 font-bold text-slate-800 dark:text-slate-300 font-sans">{e.star_quality}★</td>
+                        <td className="px-4 py-3.5 font-bold text-slate-800 dark:text-slate-300 font-sans">{e.star_problem_solving}★</td>
+                        <td className="px-4 py-3.5 font-bold text-slate-800 dark:text-slate-300 font-sans">{e.star_communication}★</td>
+                        <td className="px-4 py-3.5 text-slate-700 dark:text-slate-300 max-w-xs truncate">
+                          {e.notes ? (
                             <span className="flex items-center gap-1">
-                              <MessageSquare className="w-3 h-3 shrink-0 text-gray-500" />
-                              &quot;{item.notes}&quot;
+                              <MessageSquare className="w-3 h-3 text-slate-400 shrink-0" />
+                              {e.notes}
                             </span>
                           ) : (
-                            <span className="text-gray-600 font-normal">—</span>
+                            '--'
                           )}
                         </td>
                       </tr>
@@ -584,10 +576,8 @@ export default function EvaluationsPage() {
                   })}
                   {filteredEvals.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="text-center py-8 text-gray-500 text-xs">
-                        {isRtl
-                          ? 'لا توجد تقييمات مسجلة تطابق البحث'
-                          : 'No matching evaluation records found.'}
+                      <td colSpan={8} className="text-center py-8 text-slate-400 dark:text-slate-500">
+                        {isRtl ? 'لا توجد تقييمات مسجلة لهذا الشهر.' : 'No evaluations logged for this selection.'}
                       </td>
                     </tr>
                   )}
