@@ -297,7 +297,7 @@ export default function PayrollPage() {
 
       const totalAdvances = advLogs ? advLogs.reduce((sum, curr) => sum + Number(curr.amount), 0) : 0;
 
-      // 4. Calculate Lateness Deductions automatically using tenant settings policy
+      // 4. Calculate Lateness Deductions automatically using HumAi lateness engine
       const { data: settings } = await supabase
         .from('tenant_settings')
         .select('*')
@@ -312,25 +312,47 @@ export default function PayrollPage() {
         .lte('date', endStr);
 
       let latenessDeductions = 0;
-      if (checkins && settings && settings.lateness_policy?.thresholds) {
+      if (checkins && settings) {
         const dailyRate = Number(emp.basic_salary) / 30; // standard daily rate
+
+        // Determine employee's shift start time
+        const shiftTimeStr =
+          emp.custom_schedule_enabled && emp.custom_start_time
+            ? emp.custom_start_time
+            : settings.work_start_time || '09:00';
+
+        const [startHour, startMinute] = shiftTimeStr.split(':').map(Number);
+        const gracePeriod = Number(settings.grace_period_mins ?? 15);
+        const latenessMode = settings.lateness_mode || 'tiered';
 
         checkins.forEach((c) => {
           const checkinTime = new Date(c.check_in_time);
           const shiftStart = new Date(checkinTime);
-          shiftStart.setHours(9, 0, 0, 0); // standard 9:00 AM shift start
+          shiftStart.setHours(startHour, startMinute, 0, 0);
 
-          const delayMins = Math.max(0, Math.floor((checkinTime.getTime() - shiftStart.getTime()) / 60000));
-          
-          // Match policy
-          let maxDeductionPct = 0;
-          settings.lateness_policy.thresholds.forEach((rule: { mins: number; deduction: number }) => {
-            if (delayMins >= rule.mins) {
-              maxDeductionPct = Math.max(maxDeductionPct, rule.deduction);
+          const delayMins = Math.max(
+            0,
+            Math.floor((checkinTime.getTime() - shiftStart.getTime()) / 60000)
+          );
+
+          if (delayMins > gracePeriod) {
+            if (latenessMode === 'percentage_per_minute') {
+              const extraMins = delayMins - gracePeriod;
+              const rate = Number(settings.minute_deduction_rate ?? 0.005);
+              const deductionPct = Math.min(1.0, extraMins * rate);
+              latenessDeductions += deductionPct * dailyRate;
+            } else if (settings.lateness_policy?.thresholds) {
+              let maxDeductionPct = 0;
+              settings.lateness_policy.thresholds.forEach(
+                (rule: { mins: number; deduction: number }) => {
+                  if (delayMins >= rule.mins) {
+                    maxDeductionPct = Math.max(maxDeductionPct, rule.deduction);
+                  }
+                }
+              );
+              latenessDeductions += maxDeductionPct * dailyRate;
             }
-          });
-
-          latenessDeductions += maxDeductionPct * dailyRate;
+          }
         });
       }
 

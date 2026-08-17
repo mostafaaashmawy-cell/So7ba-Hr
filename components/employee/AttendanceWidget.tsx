@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { MapPin, Clock, LogOut as LogOutIcon, AlertCircle, RefreshCw, ListCollapse } from 'lucide-react';
-import { AttendanceRecord } from '@/lib/types/database';
+import { AttendanceRecord, TenantSettings, BranchLocation } from '@/lib/types/database';
 import { formatTime } from '@/lib/utils/dateUtils';
 import { createClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/lib/context/LanguageContext';
@@ -19,20 +19,6 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [coords, setCoords] = useState<{ lat: number | null; lng: number | null }>({ lat: null, lng: null });
   const [geoLocating, setGeoLocating] = useState(false);
-  interface TenantSettings {
-    tenant_id: string;
-    enable_advances: boolean;
-    enable_commissions: boolean;
-    enable_insurances: boolean;
-    enable_shifts: boolean;
-    lateness_policy: {
-      thresholds: Array<{ mins: number; deduction: number }>;
-    };
-    geofencing_lat: number | null;
-    geofencing_lng: number | null;
-    geofencing_radius: number;
-  }
-
   const [tenantSettings, setTenantSettings] = useState<TenantSettings | null>(null);
   const supabase = createClient();
 
@@ -101,26 +87,55 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
       }
     }
 
-    // Geofencing validation check
-    if (tenantSettings && tenantSettings.geofencing_lat && tenantSettings.geofencing_lng) {
+    // Multi-Branch Geofencing validation check
+    const activeBranches: BranchLocation[] =
+      tenantSettings?.branches && tenantSettings.branches.length > 0
+        ? tenantSettings.branches
+        : tenantSettings?.geofencing_lat && tenantSettings?.geofencing_lng
+        ? [
+            {
+              id: 'main',
+              name: 'Main Office',
+              lat: Number(tenantSettings.geofencing_lat),
+              lng: Number(tenantSettings.geofencing_lng),
+              radius: Number(tenantSettings.geofencing_radius) || 150,
+            },
+          ]
+        : [];
+
+    let matchedBranch: BranchLocation | null = null;
+
+    if (activeBranches.length > 0) {
       if (!currentLat || !currentLng) {
-        setErrorMsg(isRtl ? 'عذراً، يجب السماح بمشاركة الموقع الجغرافي لتسجيل الحضور!' : 'GPS coordinates are required to check in. Please enable location services!');
+        setErrorMsg(
+          isRtl
+            ? 'عذراً، يجب السماح بمشاركة الموقع الجغرافي لتسجيل الحضور!'
+            : 'GPS coordinates are required to check in. Please enable location services!'
+        );
         setLoading(false);
         return;
       }
 
-      const distance = getDistance(
-        currentLat,
-        currentLng,
-        Number(tenantSettings.geofencing_lat),
-        Number(tenantSettings.geofencing_lng)
-      );
+      let minDistance = Infinity;
+      let closestBranchName = '';
 
-      if (distance > Number(tenantSettings.geofencing_radius)) {
+      for (const branch of activeBranches) {
+        const d = getDistance(currentLat, currentLng, Number(branch.lat), Number(branch.lng));
+        if (d < minDistance) {
+          minDistance = d;
+          closestBranchName = branch.name;
+        }
+        if (d <= Number(branch.radius)) {
+          matchedBranch = branch;
+          break;
+        }
+      }
+
+      if (!matchedBranch) {
         setErrorMsg(
           isRtl
-            ? `أنت خارج نطاق العمل المعتمد! المسافة الحالية: ${Math.round(distance)} متر (الحد الأقصى المسموح: ${tenantSettings.geofencing_radius} متر)`
-            : `Outside approved boundary! Distance: ${Math.round(distance)}m (Limit: ${tenantSettings.geofencing_radius}m)`
+            ? `أنت خارج نطاق فروع العمل المعتمدة! أقرب فرع: ${closestBranchName} (المسافة: ${Math.round(minDistance)} متر)`
+            : `Outside approved branches! Nearest branch: ${closestBranchName} (Distance: ${Math.round(minDistance)}m)`
         );
         setLoading(false);
         return;

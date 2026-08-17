@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Simply HR System",
-  description: "Simply HR System - Multi-Tenant HR & Operations Portal",
+  title: "HumAi - Smart HR & Operations Platform",
+  description: "HumAi - Smart Multi-Tenant HR & Operations Management Platform",
   manifest: "/manifest.json",
 };
 

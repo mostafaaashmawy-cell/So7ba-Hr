@@ -75,6 +75,10 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
     contract_type: 'Full-Time',
     probation_period: 3,
     contract_end_date: '',
+    custom_schedule_enabled: false,
+    custom_start_time: '09:00',
+    custom_end_time: '17:00',
+    custom_work_days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'] as string[],
   });
 
   const supabase = createClient();
@@ -177,6 +181,10 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
       contract_type: user.contract_type || 'Full-Time',
       probation_period: Number(user.probation_period || 3),
       contract_end_date: user.contract_end_date || '',
+      custom_schedule_enabled: user.custom_schedule_enabled || false,
+      custom_start_time: user.custom_start_time || '09:00',
+      custom_end_time: user.custom_end_time || '17:00',
+      custom_work_days: user.custom_work_days || ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'],
     });
     setMsg(null);
   };
@@ -215,6 +223,10 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
         contract_type: editForm.contract_type,
         probation_period: Number(editForm.probation_period),
         contract_end_date: editForm.contract_end_date || null,
+        custom_schedule_enabled: editForm.custom_schedule_enabled,
+        custom_start_time: editForm.custom_start_time,
+        custom_end_time: editForm.custom_end_time,
+        custom_work_days: editForm.custom_work_days,
         updated_at: new Date().toISOString(),
       })
       .eq('id', selectedUser.id)
@@ -752,6 +764,102 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
                   onChange={(e) => setEditForm({ ...editForm, contract_end_date: e.target.value })}
                   className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-200 focus:outline-none font-sans"
                 />
+              </div>
+
+              {/* Working Hours Granularity & Custom Schedule Override */}
+              <div className="col-span-full p-4 bg-gray-900/80 border border-gray-800 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-sky-400 block">
+                      {isRtl ? 'تخصيص مواعيد عمل خاصة بالموظف' : 'Custom Schedule & Shift Override'}
+                    </span>
+                    <span className="text-[10px] text-gray-500 block">
+                      {isRtl
+                        ? 'تجاوز ساعات وأيام العمل الافتراضية للشركة لهذا الموظف تحديداً'
+                        : 'Override company-wide default working hours and days for this specific employee'}
+                    </span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={editForm.custom_schedule_enabled}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, custom_schedule_enabled: e.target.checked })
+                    }
+                    className="w-4 h-4 accent-sky-500 rounded cursor-pointer"
+                  />
+                </div>
+
+                {editForm.custom_schedule_enabled && (
+                  <div className="space-y-3 pt-3 border-t border-gray-800/80">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] text-gray-400 mb-1">
+                          {isRtl ? 'وقت بدء الوردية' : 'Custom Start Time'}
+                        </label>
+                        <input
+                          type="time"
+                          value={editForm.custom_start_time}
+                          onChange={(e) =>
+                            setEditForm({ ...editForm, custom_start_time: e.target.value })
+                          }
+                          className="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-1.5 text-xs text-gray-100 font-sans"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-gray-400 mb-1">
+                          {isRtl ? 'وقت نهاية الوردية' : 'Custom End Time'}
+                        </label>
+                        <input
+                          type="time"
+                          value={editForm.custom_end_time}
+                          onChange={(e) =>
+                            setEditForm({ ...editForm, custom_end_time: e.target.value })
+                          }
+                          className="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-1.5 text-xs text-gray-100 font-sans"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] text-gray-400 mb-1.5">
+                        {isRtl ? 'أيام العمل المعتمدة' : 'Custom Active Work Days'}
+                      </label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {[
+                          'Sunday',
+                          'Monday',
+                          'Tuesday',
+                          'Wednesday',
+                          'Thursday',
+                          'Friday',
+                          'Saturday',
+                        ].map((d) => {
+                          const active = editForm.custom_work_days?.includes(d);
+                          return (
+                            <button
+                              key={d}
+                              type="button"
+                              onClick={() => {
+                                const current = editForm.custom_work_days || [];
+                                const next = active
+                                  ? current.filter((day) => day !== d)
+                                  : [...current, d];
+                                setEditForm({ ...editForm, custom_work_days: next });
+                              }}
+                              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                                active
+                                  ? 'bg-sky-500 text-white shadow-sm shadow-sky-500/20'
+                                  : 'bg-gray-950 border border-gray-800 text-gray-400 hover:border-gray-700'
+                              }`}
+                            >
+                              {d.slice(0, 3)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>

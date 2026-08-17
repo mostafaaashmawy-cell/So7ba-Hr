@@ -1,7 +1,7 @@
 {
-  "name": "Simply HR System",
-  "short_name": "Simply HR",
-  "description": "Premium Multi-Tenant SaaS HR and Operations Management Portal",
+  "name": "HumAi - Smart HR & Operations Platform",
+  "short_name": "HumAi",
+  "description": "Smart Multi-Tenant HR & Operations Management Platform with Geofencing, Shift Granularity, and AI-Driven Analytics",
   "start_url": "/dashboard/employee",
   "display": "standalone",
   "background_color": "#0b0f19",

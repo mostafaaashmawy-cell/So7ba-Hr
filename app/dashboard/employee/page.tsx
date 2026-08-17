@@ -8,6 +8,7 @@ import LeavePermissionForm from '@/components/employee/LeavePermissionForm';
 import KpiTrackerWidget from '@/components/employee/KpiTrackerWidget';
 import { UserProfile, AttendanceRecord, LeavePermissionRecord, KpiEntryRecord } from '@/lib/types/database';
 import WelcomeHeader from '@/components/employee/WelcomeHeader';
+import AdvanceRequestModal from '@/components/employee/AdvanceRequestModal';
 
 export default async function EmployeeDashboardPage() {
   const supabase = await createClient();
@@ -83,20 +84,46 @@ export default async function EmployeeDashboardPage() {
         />
 
         {/* EMPLOYEE COMMAND CENTER */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {(!tenantSettings || tenantSettings.enable_commissions) && (
-            <Link href="/dashboard/sales" className="p-4 rounded-2xl bg-gray-900 hover:bg-gray-800 border border-gray-800 hover:border-sky-500/30 transition-all text-center space-y-2 group">
-              <span className="text-xl font-bold text-sky-400 block group-hover:scale-105 transition-all">📈</span>
-              <span className="text-xs font-bold text-white block">Log My Sales Achievements</span>
-              <span className="text-[10px] text-gray-500 block">Submit logs to get commissions</span>
+            <Link href="/dashboard/sales" className="p-5 rounded-2xl bg-gray-900 hover:bg-gray-800 border border-gray-800 hover:border-sky-500/30 transition-all flex flex-col justify-between space-y-4 group">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+                  <span className="text-xl">📈</span>
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-gray-100">Log Sales Achievements</h3>
+                  <p className="text-[11px] text-gray-500">Submit logs to earn commissions</p>
+                </div>
+              </div>
+              <span className="py-2 px-3 rounded-xl bg-sky-500/10 group-hover:bg-sky-500/20 text-sky-300 text-xs font-bold transition-all text-center">
+                Open Sales Portal
+              </span>
             </Link>
           )}
 
-          <Link href="/dashboard/targets" className="p-4 rounded-2xl bg-gray-900 hover:bg-gray-800 border border-gray-800 hover:border-sky-500/30 transition-all text-center space-y-2 group">
-            <span className="text-xl font-bold text-sky-400 block group-hover:scale-105 transition-all">🎯</span>
-            <span className="text-xs font-bold text-white block">My Operational Targets</span>
-            <span className="text-[10px] text-gray-500 block">View my assigned targets vs progress</span>
+          <Link href="/dashboard/targets" className="p-5 rounded-2xl bg-gray-900 hover:bg-gray-800 border border-gray-800 hover:border-sky-500/30 transition-all flex flex-col justify-between space-y-4 group">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+                <span className="text-xl">🎯</span>
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-gray-100">Operational Targets</h3>
+                <p className="text-[11px] text-gray-500">View goals vs actual progress</p>
+              </div>
+            </div>
+            <span className="py-2 px-3 rounded-xl bg-sky-500/10 group-hover:bg-sky-500/20 text-sky-300 text-xs font-bold transition-all text-center">
+              View My Targets
+            </span>
           </Link>
+
+          {(!tenantSettings || tenantSettings.enable_advances) && (
+            <AdvanceRequestModal
+              userId={authUser.id}
+              basicSalary={user?.basic_salary || 0}
+              tenantSettings={tenantSettings}
+            />
+          )}
         </div>
 
         {/* Attendance Widget */}

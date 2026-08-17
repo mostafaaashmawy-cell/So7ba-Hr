@@ -121,7 +121,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
         {/* Brand Logo */}
         <Link href="/" className="flex items-center gap-3 group">
           <div className="w-10 h-10 rounded-xl gradient-btn flex items-center justify-center text-white font-extrabold text-xl shadow-lg shadow-sky-500/20">
-            S
+            H
           </div>
           <div>
             <div className="font-extrabold text-xl tracking-tight gradient-text">

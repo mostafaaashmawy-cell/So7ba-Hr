@@ -1,8 +1,8 @@
 export const translations = {
   en: {
     // Brand & General
-    brand: "Simply HR System",
-    operations: "Operations System",
+    brand: "HumAi",
+    operations: "Smart HR & Operations System",
     welcome: "Welcome back",
     portal: "Employee Operations Portal & Daily Tracking",
     myWorkspace: "My Workspace",
@@ -124,8 +124,8 @@ export const translations = {
   },
   ar: {
     // Brand & General
-    brand: "نظام Simply HR",
-    operations: "نظام إدارة العمليات",
+    brand: "نظام HumAi الذكي",
+    operations: "نظام إدارة الموارد البشرية والعمليات الذكية",
     welcome: "مرحباً بك مجدداً",
     portal: "بوابة العمليات والمتابعة اليومية للموظف",
     myWorkspace: "مساحة عملي",
