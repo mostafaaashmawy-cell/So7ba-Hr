@@ -150,8 +150,8 @@ export default async function EmployeeDashboardPage() {
         {/* KPI / Performance Daily Logs Widget */}
         <KpiTrackerWidget
           userId={authUser.id}
-          unitName={user?.kpi_unit || 'tasks'}
-          initialKpis={(kpiHistory as KpiEntryRecord[]) || []}
+          kpiUnit={user?.kpi_unit || 'tasks'}
+          initialEntries={(kpiHistory as KpiEntryRecord[]) || []}
         />
       </main>
     </div>
