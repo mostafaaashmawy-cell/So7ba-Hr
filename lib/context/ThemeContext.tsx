@@ -18,7 +18,6 @@ const ThemeContext = createContext<ThemeContextValue>({
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('light');
-  const [mounted, setMounted] = useState(false);
 
   // On first mount read saved preference or OS preference
   useEffect(() => {
@@ -32,7 +31,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       applyTheme(initial);
       setThemeState(initial);
     }
-    setMounted(true);
   }, []);
 
   const applyTheme = (t: Theme) => {

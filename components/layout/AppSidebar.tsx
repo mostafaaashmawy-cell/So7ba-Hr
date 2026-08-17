@@ -14,7 +14,6 @@ import { useLanguage } from '@/lib/context/LanguageContext';
 import {
   NAV_SECTIONS,
   GLOBAL_NAV_ANCHORS,
-  NavSection,
   getActiveDomain,
 } from '@/lib/config/navConfig';
 
