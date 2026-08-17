@@ -20,11 +20,16 @@ import {
   Star,
   TrendingUp,
   FileText,
+  Sliders,
+  PanelLeftClose,
+  PanelLeft,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, usePathname } from 'next/navigation';
 import { useLanguage } from '@/lib/context/LanguageContext';
 import { generateDynamicNotifications } from '@/lib/utils/notificationHelper';
+import PageGuideModal from '@/components/common/PageGuideModal';
+import AppSidebar from '@/components/layout/AppSidebar';
 
 interface NavbarProps {
   user: UserProfile | null;
@@ -45,7 +50,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
   const pathname = usePathname();
   const supabase = createClient();
   const { language, setLanguage, t, isRtl } = useLanguage();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Notifications State
   const [notifications, setNotifications] = useState<DBNotification[]>([]);
@@ -136,11 +141,27 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/90 px-4 lg:px-8 py-3 transition-colors shadow-xs">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          {/* Brand Logo */}
-          <div className="flex items-center gap-6">
-            <Link href="/" className="flex items-center gap-3 group">
+      {/* Sidebar Drawer Component */}
+      <AppSidebar
+        user={user}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+
+      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/90 px-4 lg:px-8 py-3 transition-colors shadow-xs">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 sm:gap-4">
+          {/* Left Brand & Sidebar Toggle */}
+          <div className="flex items-center gap-3 sm:gap-4">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="p-2 rounded-xl bg-slate-100 hover:bg-blue-50 hover:text-blue-600 border border-slate-200 text-slate-700 transition-colors cursor-pointer"
+              title="Toggle Multi-level Sidebar"
+            >
+              <Menu className="w-4 h-4" />
+            </button>
+
+            <Link href="/" className="flex items-center gap-2.5 group">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center text-white font-extrabold text-lg shadow-sm shadow-blue-500/25 group-hover:scale-105 transition-transform">
                 H
               </div>
@@ -158,12 +179,12 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
             </Link>
 
             {/* Global Search Bar (Desktop) */}
-            <div className="hidden lg:flex items-center relative w-64">
-              <Search className="w-4 h-4 absolute left-3 text-slate-400" />
+            <div className="hidden xl:flex items-center relative w-56">
+              <Search className="w-3.5 h-3.5 absolute left-3 text-slate-400" />
               <input
                 type="text"
                 placeholder={isRtl ? 'بحث سريع...' : 'Search in HumAi...'}
-                className="w-full bg-slate-100/80 hover:bg-slate-100 border border-transparent focus:border-blue-500 focus:bg-white rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none transition-all"
+                className="w-full bg-slate-100/80 hover:bg-slate-100 border border-transparent focus:border-blue-500 focus:bg-white rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none transition-all"
               />
             </div>
           </div>
@@ -173,7 +194,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
             <nav className="hidden md:flex items-center gap-1 bg-slate-100/90 p-1 rounded-2xl border border-slate-200">
               <Link
                 href="/dashboard/employee"
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                   activeRoleView === 'employee'
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-white'
@@ -185,7 +206,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
               {isManager && (
                 <Link
                   href="/dashboard/manager"
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                     activeRoleView === 'manager'
                       ? 'bg-blue-600 text-white shadow-xs'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-white'
@@ -198,7 +219,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
               {isSuperAdmin && (
                 <Link
                   href="/dashboard/admin"
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                     activeRoleView === 'super_admin'
                       ? 'bg-blue-600 text-white shadow-xs'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-white'
@@ -211,15 +232,18 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
           )}
 
           {/* Right Action Icons & Profile */}
-          <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-2.5">
+            {/* On-Demand Interactive Page Guide Modal */}
+            <PageGuideModal />
+
             {/* Language Toggle */}
             <button
               onClick={toggleLanguage}
-              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200/80 border border-slate-200 text-slate-700 text-xs font-bold transition-all flex items-center gap-1.5"
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200/80 border border-slate-200 text-slate-700 text-xs font-bold transition-all flex items-center gap-1"
               title="Toggle Language"
             >
-              <Globe className="w-4 h-4 text-slate-600" />
-              <span className="uppercase text-[11px] font-sans">{language}</span>
+              <Globe className="w-3.5 h-3.5 text-slate-600" />
+              <span className="uppercase text-[10px] font-sans">{language}</span>
             </button>
 
             {/* Notifications Bell Dropdown */}
@@ -230,7 +254,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
                   onClick={() => setShowNotifDropdown(!showNotifDropdown)}
                   className="relative p-2 rounded-xl bg-slate-100 hover:bg-slate-200/80 border border-slate-200 text-slate-700 transition-all cursor-pointer"
                 >
-                  <Bell className="w-4 h-4" />
+                  <Bell className="w-3.5 h-3.5" />
                   {notifications.length > 0 && (
                     <span className="absolute -top-1 -right-1 w-4 h-4 bg-blue-600 text-white rounded-full text-[9px] font-extrabold flex items-center justify-center font-sans">
                       {notifications.length > 9 ? '9+' : notifications.length}
@@ -292,7 +316,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
 
             {/* Profile Avatar / Logout */}
             {user ? (
-              <div className="flex items-center gap-2.5 pl-1">
+              <div className="flex items-center gap-2 pl-1">
                 <div className="hidden lg:flex flex-col items-end">
                   <span className="text-xs font-bold text-slate-900 leading-tight">
                     {user.full_name || 'User'}
@@ -300,146 +324,33 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
                   {getRoleBadge(user.role)}
                 </div>
 
-                <div className="w-8 h-8 rounded-full bg-blue-100 border border-blue-200 text-blue-700 font-bold text-xs flex items-center justify-center shadow-xs">
+                <div className="w-8 h-8 rounded-full bg-blue-100 border border-blue-200 text-blue-700 font-bold text-xs flex items-center justify-center shadow-2xs">
                   {user.full_name ? user.full_name.charAt(0).toUpperCase() : 'U'}
                 </div>
 
                 <button
                   onClick={handleSignOut}
-                  className="p-2 rounded-xl bg-slate-100 hover:bg-rose-50 border border-slate-200 hover:border-rose-200 text-slate-600 hover:text-rose-600 transition-all"
+                  className="p-2 rounded-xl bg-slate-100 hover:bg-rose-50 border border-slate-200 hover:border-rose-200 text-slate-600 hover:text-rose-600 transition-all cursor-pointer"
                   title={t('signOut')}
                 >
-                  <LogOut className="w-4 h-4" />
+                  <LogOut className="w-3.5 h-3.5" />
                 </button>
               </div>
             ) : (
               <Link
                 href="/login"
-                className="gradient-btn px-4 py-2 rounded-xl text-xs font-bold shadow-sm"
+                className="gradient-btn px-4 py-2 rounded-xl text-xs font-bold shadow-xs"
               >
                 {t('signIn')}
               </Link>
             )}
-
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-700"
-            >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
           </div>
         </div>
-
-        {/* Mobile Navigation Drawer */}
-        {mobileMenuOpen && (
-          <div className="md:hidden mt-3 pt-3 border-t border-slate-200 space-y-2">
-            {user && (
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-blue-100 border border-blue-200 text-blue-700 font-bold text-xs flex items-center justify-center">
-                    {user.full_name ? user.full_name.charAt(0).toUpperCase() : 'U'}
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-900">{user.full_name}</div>
-                    <div className="text-[10px] text-slate-500">{user.job_title || user.role}</div>
-                  </div>
-                </div>
-                {getRoleBadge(user.role)}
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-2">
-              <Link
-                href="/dashboard/employee"
-                onClick={() => setMobileMenuOpen(false)}
-                className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${
-                  activeRoleView === 'employee'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-100 text-slate-700'
-                }`}
-              >
-                <LayoutDashboard className="w-4 h-4" />
-                {t('myWorkspace')}
-              </Link>
-
-              {isManager && (
-                <Link
-                  href="/dashboard/manager"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${
-                    activeRoleView === 'manager'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-slate-100 text-slate-700'
-                  }`}
-                >
-                  <Users className="w-4 h-4" />
-                  {t('teamView')}
-                </Link>
-              )}
-
-              {isSuperAdmin && (
-                <Link
-                  href="/dashboard/admin"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${
-                    activeRoleView === 'super_admin'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-slate-100 text-slate-700'
-                  }`}
-                >
-                  <ShieldCheck className="w-4 h-4" />
-                  {t('superAdmin')}
-                </Link>
-              )}
-
-              <Link
-                href="/dashboard/targets"
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-3 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 flex items-center gap-2"
-              >
-                <Target className="w-4 h-4" /> Targets Board
-              </Link>
-
-              <Link
-                href="/dashboard/evaluations"
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-3 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 flex items-center gap-2"
-              >
-                <Star className="w-4 h-4" /> Evaluations
-              </Link>
-
-              <Link
-                href="/dashboard/payroll"
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-3 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 flex items-center gap-2"
-              >
-                <FileSpreadsheet className="w-4 h-4" /> Payroll
-              </Link>
-
-              <Link
-                href="/dashboard/sales"
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-3 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 flex items-center gap-2"
-              >
-                <TrendingUp className="w-4 h-4" /> Sales
-              </Link>
-
-              <Link
-                href="/dashboard/contracts"
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-3 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 flex items-center gap-2"
-              >
-                <FileText className="w-4 h-4" /> Contracts
-              </Link>
-            </div>
-          </div>
-        )}
       </header>
 
       {/* Mobile Bottom Navigation Bar (Matching Cleariq Phone Mockup) */}
       {user && user.tenant_id && (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-2 shadow-lg flex items-center justify-around">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-2 shadow-lg flex items-center justify-around">
           <Link
             href="/dashboard/employee"
             className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${

@@ -4,7 +4,18 @@ import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { createClient } from '@/lib/supabase/client';
 import { UserProfile } from '@/lib/types/database';
-import { TrendingUp, Plus, Check, X, CheckCircle2, RefreshCw, AlertCircle, Trash } from 'lucide-react';
+import {
+  TrendingUp,
+  Plus,
+  Check,
+  X,
+  CheckCircle2,
+  RefreshCw,
+  AlertCircle,
+  Trash,
+  DollarSign,
+  Calendar,
+} from 'lucide-react';
 import { useLanguage } from '@/lib/context/LanguageContext';
 
 interface SalesLog {
@@ -27,17 +38,21 @@ export default function SalesCommissionsPage() {
 
   // Log Form State
   const [salesAmount, setSalesAmount] = useState<number | ''>('');
-  const [salesDate, setSalesDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [selectedEmployee, setSelectedEmployee] = useState<string>(''); // For admin logging on behalf of employee
+  const [salesDate, setSalesDate] = useState<string>(
+    new Date().toISOString().split('T')[0]
+  );
+  const [selectedEmployee, setSelectedEmployee] = useState<string>('');
 
   const [msg, setMsg] = useState<{ text: string; error: boolean } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
 
-  // Load User details and Sales logs
+  // Load User details and Sales logs with strict manager scoping
   const loadData = async () => {
     setLoading(true);
-    const { data: { user: authUser } } = await supabase.auth.getUser();
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
     if (!authUser) return;
 
     // Profile
@@ -52,31 +67,31 @@ export default function SalesCommissionsPage() {
       setSelectedEmployee(profile.id);
 
       // Fetch Sales logs
-      // If manager/admin: fetch team sales, else fetch only own sales
       let query = supabase.from('sales_logs').select('*, user:users(full_name)');
-      
+
       if (profile.role === 'manager') {
-        // Load team members
+        // Load direct team members only
         const { data: team } = await supabase
           .from('users')
           .select('*')
           .eq('manager_id', authUser.id);
-        
+
         if (team) {
-          setTeamMembers(team);
+          setTeamMembers([profile as UserProfile, ...(team as UserProfile[])]);
           const teamIds = [authUser.id, ...team.map((m) => m.id)];
           query = query.in('user_id', teamIds);
         }
       } else if (profile.role === 'super_admin') {
-        // Load all users
+        // Super admin sees all in tenant
         const { data: all } = await supabase
           .from('users')
-          .select('*');
+          .select('*')
+          .eq('tenant_id', profile.tenant_id);
         if (all) {
-          setTeamMembers(all);
+          setTeamMembers(all as UserProfile[]);
         }
       } else {
-        // Employee
+        // Employee: strictly personal sales
         query = query.eq('user_id', authUser.id);
       }
 
@@ -95,30 +110,35 @@ export default function SalesCommissionsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser || !salesAmount) return;
+    if (!currentUser || !salesAmount || Number(salesAmount) <= 0) return;
 
     setSubmitting(true);
     setMsg(null);
 
-    const logUserId = (currentUser.role === 'super_admin' || currentUser.role === 'manager') ? selectedEmployee : currentUser.id;
+    const targetUserId =
+      currentUser.role === 'super_admin' || currentUser.role === 'manager'
+        ? selectedEmployee || currentUser.id
+        : currentUser.id;
 
     try {
-      const { error } = await supabase
-        .from('sales_logs')
-        .insert({
-          tenant_id: currentUser.tenant_id,
-          user_id: logUserId,
-          amount: Number(salesAmount),
-          date: salesDate,
-          status: 'pending' // pending by default
-        });
+      const { error } = await supabase.from('sales_logs').insert({
+        tenant_id: currentUser.tenant_id,
+        user_id: targetUserId,
+        amount: Number(salesAmount),
+        date: salesDate,
+        status:
+          currentUser.role === 'super_admin' || currentUser.role === 'manager'
+            ? 'approved'
+            : 'pending',
+      });
 
       if (error) throw error;
 
-      setMsg({ text: isRtl ? 'تم تقديم تقرير المبيعات بنجاح وهو قيد الانتظار!' : 'Sales report submitted successfully and is pending approval!', error: false });
+      setMsg({
+        text: isRtl ? 'تم تسجيل المعاملة البيعية بنجاح!' : 'Sales achievement logged successfully!',
+        error: false,
+      });
       setSalesAmount('');
-      
-      // Reload logs
       loadData();
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : 'Submission failed';
@@ -128,44 +148,35 @@ export default function SalesCommissionsPage() {
     }
   };
 
-  const handleStatusChange = async (id: string, newStatus: 'approved' | 'rejected') => {
-    if (!currentUser) return;
-    setActionId(id);
-
+  const handleUpdateStatus = async (
+    logId: string,
+    newStatus: 'approved' | 'rejected'
+  ) => {
+    setActionId(logId);
     try {
       const { error } = await supabase
         .from('sales_logs')
-        .update({
-          status: newStatus,
-          approved_by: currentUser.id
-        })
-        .eq('id', id);
+        .update({ status: newStatus })
+        .eq('id', logId);
 
       if (error) throw error;
-
-      // Update local state
-      setSales(sales.map((s) => s.id === id ? { ...s, status: newStatus } : s));
+      setSales(
+        sales.map((s) => (s.id === logId ? { ...s, status: newStatus } : s))
+      );
     } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : 'Status update failed';
+      const errMsg = err instanceof Error ? err.message : 'Update failed';
       alert(errMsg);
     } finally {
       setActionId(null);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm(isRtl ? 'هل تريد حذف هذا التقرير؟' : 'Delete this sales log?')) return;
-    setActionId(id);
-
+  const handleDelete = async (logId: string) => {
+    setActionId(logId);
     try {
-      const { error } = await supabase
-        .from('sales_logs')
-        .delete()
-        .eq('id', id);
-
+      const { error } = await supabase.from('sales_logs').delete().eq('id', logId);
       if (error) throw error;
-
-      setSales(sales.filter((s) => s.id !== id));
+      setSales(sales.filter((s) => s.id !== logId));
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : 'Delete failed';
       alert(errMsg);
@@ -174,171 +185,253 @@ export default function SalesCommissionsPage() {
     }
   };
 
-  const isManagement = currentUser?.role === 'manager' || currentUser?.role === 'super_admin';
+  const isPrivileged = currentUser?.role === 'super_admin' || currentUser?.role === 'manager';
+
+  const totalApproved = sales
+    .filter((s) => s.status === 'approved')
+    .reduce((sum, current) => sum + Number(current.amount), 0);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0b0f19] flex items-center justify-center text-gray-400 text-xs">
-        <RefreshCw className="w-5 h-5 animate-spin text-sky-400 mr-2" />
-        Loading sales & commissions panel...
+      <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center text-slate-500 text-xs">
+        <RefreshCw className="w-5 h-5 animate-spin text-blue-600 mr-2" />
+        Loading sales & commissions...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0b0f19] text-gray-100 flex flex-col font-sans">
-      <Navbar user={currentUser} activeRoleView={currentUser?.role === 'super_admin' ? 'super_admin' : currentUser?.role === 'manager' ? 'manager' : 'employee'} />
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-sans pb-16 md:pb-8">
+      <Navbar
+        user={currentUser}
+        activeRoleView={
+          currentUser?.role === 'super_admin'
+            ? 'super_admin'
+            : currentUser?.role === 'manager'
+            ? 'manager'
+            : 'employee'
+        }
+      />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-8 space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* Sales Logger Form */}
-          <div className="glass-card p-6 rounded-2xl border border-gray-800 space-y-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-8 space-y-8">
+        {/* Header & Total Volume */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                Revenue & Commissions
+              </span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+              <TrendingUp className="w-6 h-6 text-blue-600" />
+              {isRtl ? 'بوابة مبيعات وعمولات الموظفين' : 'Sales & Commission Engine'}
+            </h1>
+            <p className="text-xs text-slate-400 mt-0.5">
+              {isRtl
+                ? 'تسجيل عمليات البيع، احتساب العمولات، واعتماد المعاملات لمسير الرواتب'
+                : 'Log client deals, track commissions, and validate payouts for payroll'}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 cleariq-card px-4 py-2.5">
+            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
+              💵
+            </div>
             <div>
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-sky-400" /> Log Daily/Weekly Sales
-              </h2>
-              <p className="text-xs text-gray-400 mt-0.5">Submit sales achievements for commission calculation.</p>
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                Total Approved
+              </span>
+              <span className="text-base font-extrabold text-slate-900 font-sans">
+                {totalApproved.toLocaleString()} EGP
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Form & List Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* LOG SALES FORM */}
+          <div className="lg:col-span-1 cleariq-card p-6 cleariq-card-hover space-y-6">
+            <div>
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Plus className="w-4 h-4 text-blue-600" />
+                {isRtl ? 'تسجيل معاملة بيعية جديدة' : 'Log New Sales Entry'}
+              </h3>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                {isRtl ? 'أدخل قيمة الصفقة وتاريخ التعاقد' : 'Enter deal amount and transaction date'}
+              </p>
             </div>
 
             {msg && (
-              <div className={`p-3 rounded-xl border text-xs flex items-center gap-2 ${
-                msg.error ? 'bg-red-500/10 border-red-500/30 text-red-300' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-              }`}>
-                {msg.error ? <AlertCircle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+              <div
+                className={`p-3 rounded-xl border text-xs flex items-center gap-2 ${
+                  msg.error
+                    ? 'bg-rose-50 border-rose-200 text-rose-700'
+                    : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                }`}
+              >
+                {msg.error ? (
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                ) : (
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                )}
                 <span>{msg.text}</span>
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {isManagement && (
+              {isPrivileged && (
                 <div>
-                  <label className="block text-xs font-semibold text-gray-400 mb-1">Select Employee</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    {isRtl ? 'الموظف صاحب العمولة' : 'Commission Earner'}
+                  </label>
                   <select
                     value={selectedEmployee}
                     onChange={(e) => setSelectedEmployee(e.target.value)}
-                    className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-500 cursor-pointer"
                   >
-                    <option value={currentUser.id}>{isRtl ? 'أنا (نفسي)' : 'Myself'}</option>
                     {teamMembers.map((m) => (
-                      <option key={m.id} value={m.id}>{m.full_name}</option>
+                      <option key={m.id} value={m.id}>
+                        {m.full_name} ({m.job_title || 'Staff'})
+                      </option>
                     ))}
                   </select>
                 </div>
               )}
 
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1">Sales Volume (EGP)</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  {isRtl ? 'قيمة الصفقة / المبيعات (ج.م)' : 'Deal / Sales Amount (EGP)'}
+                </label>
                 <input
                   type="number"
-                  required
-                  min="1"
                   placeholder="e.g. 50000"
+                  required
                   value={salesAmount}
-                  onChange={(e) => setSalesAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                  className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none font-sans"
+                  onChange={(e) =>
+                    setSalesAmount(e.target.value === '' ? '' : Number(e.target.value))
+                  }
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-500 font-sans"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1">Log Date</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  {isRtl ? 'تاريخ المعاملة' : 'Transaction Date'}
+                </label>
                 <input
                   type="date"
                   required
                   value={salesDate}
                   onChange={(e) => setSalesDate(e.target.value)}
-                  className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none font-sans"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-500 font-sans"
                 />
               </div>
 
               <button
                 type="submit"
-                disabled={submitting || !salesAmount}
-                className="gradient-btn py-2.5 rounded-xl text-xs font-bold text-white w-full flex items-center justify-center gap-1.5 shadow-lg disabled:opacity-50"
+                disabled={submitting || !salesAmount || Number(salesAmount) <= 0}
+                className="gradient-btn w-full py-2.5 rounded-xl text-xs font-bold text-white shadow-sm transition-all cursor-pointer disabled:opacity-40 flex items-center justify-center gap-2"
               >
-                <Plus className="w-4 h-4" /> Submit Sales Log
+                {submitting && <RefreshCw className="w-4 h-4 animate-spin" />}
+                {isRtl ? 'تسجيل العملية' : 'Submit Sales Log'}
               </button>
             </form>
           </div>
 
-          {/* Sales Logs & Action Center */}
-          <div className="lg:col-span-2 glass-card p-6 rounded-2xl border border-gray-800 space-y-4">
+          {/* SALES LOGS TABLE */}
+          <div className="lg:col-span-2 cleariq-card p-6 cleariq-card-hover space-y-5">
             <div>
-              <h3 className="font-bold text-sm text-gray-200">Sales Reports Tracking</h3>
-              <p className="text-[10px] text-gray-500 mt-0.5">Managers and admins review and approve pending sales logs.</p>
+              <h3 className="text-base font-bold text-slate-900">
+                {isRtl ? 'سجل المعاملات والعمولات' : 'Sales Logs & Payouts Approval'}
+              </h3>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                {isRtl
+                  ? 'مراجعة واعتماد صفقات الفريق قبل دمجها في الحسابات'
+                  : 'Review, approve, or reject transactions for commission payout'}
+              </p>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-gray-300 font-sans">
-                <thead className="bg-gray-900/80 text-gray-400 uppercase text-[10px] tracking-wider">
-                  <tr>
-                    <th className="px-4 py-3 rounded-l-lg">Employee</th>
-                    <th className="px-4 py-3">Date</th>
-                    <th className="px-4 py-3">Amount (EGP)</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3 text-right rounded-r-lg">Actions</th>
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-slate-100 text-slate-400 text-[11px] font-semibold uppercase tracking-wider">
+                    <th className="pb-3 pl-2">{isRtl ? 'الموظف' : 'Employee'}</th>
+                    <th className="pb-3">{isRtl ? 'المبلغ' : 'Amount'}</th>
+                    <th className="pb-3">{isRtl ? 'التاريخ' : 'Date'}</th>
+                    <th className="pb-3 text-center">{isRtl ? 'الحالة' : 'Status'}</th>
+                    <th className="pb-3 pr-2 text-right">{isRtl ? 'الإجراءات' : 'Actions'}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-800/60 font-sans">
-                  {sales.map((s) => (
-                    <tr key={s.id} className="hover:bg-gray-900/40">
-                      <td className="px-4 py-3 font-semibold text-white">
-                        {s.user?.full_name || 'Team Member'}
+                <tbody className="divide-y divide-slate-100">
+                  {sales.map((item) => (
+                    <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3.5 pl-2 font-bold text-slate-900">
+                        {item.user?.full_name || 'Employee'}
                       </td>
-                      <td className="px-4 py-3 text-gray-400">
-                        {s.date}
+                      <td className="py-3.5 font-bold font-sans text-blue-600">
+                        {Number(item.amount).toLocaleString()} EGP
                       </td>
-                      <td className="px-4 py-3 font-bold text-sky-400">
-                        {Number(s.amount).toLocaleString()} EGP
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${
-                          s.status === 'approved' ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30' :
-                          s.status === 'rejected' ? 'bg-red-500/10 text-red-300 border-red-500/30' :
-                          'bg-amber-500/10 text-amber-300 border-amber-500/30'
-                        }`}>
-                          {s.status}
+                      <td className="py-3.5 text-slate-500 font-sans">{item.date}</td>
+                      <td className="py-3.5 text-center">
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                            item.status === 'approved'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : item.status === 'rejected'
+                              ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                              : 'bg-amber-50 text-amber-700 border border-amber-200'
+                          }`}
+                        >
+                          {item.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right flex items-center justify-end gap-2">
-                        {isManagement && s.status === 'pending' && (
-                          <>
+                      <td className="py-3.5 pr-2 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {isPrivileged && item.status === 'pending' && (
+                            <>
+                              <button
+                                type="button"
+                                disabled={actionId === item.id}
+                                onClick={() => handleUpdateStatus(item.id, 'approved')}
+                                className="p-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
+                                title="Approve"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                disabled={actionId === item.id}
+                                onClick={() => handleUpdateStatus(item.id, 'rejected')}
+                                className="p-1 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200"
+                                title="Reject"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          )}
+                          {isPrivileged && (
                             <button
-                              onClick={() => handleStatusChange(s.id, 'approved')}
-                              disabled={actionId === s.id}
-                              className="p-1 bg-emerald-500/20 hover:bg-emerald-500 text-emerald-400 hover:text-white rounded-lg border border-emerald-500/30 cursor-pointer"
-                              title="Approve"
+                              type="button"
+                              disabled={actionId === item.id}
+                              onClick={() => handleDelete(item.id)}
+                              className="p-1 text-slate-400 hover:text-rose-600"
+                              title="Delete"
                             >
-                              <Check className="w-3.5 h-3.5" />
+                              <Trash className="w-3.5 h-3.5" />
                             </button>
-                            <button
-                              onClick={() => handleStatusChange(s.id, 'rejected')}
-                              disabled={actionId === s.id}
-                              className="p-1 bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white rounded-lg border border-red-500/30 cursor-pointer"
-                              title="Reject"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          </>
-                        )}
-                        {/* Only allow deletion of pending logs or by super admin */}
-                        {(s.status === 'pending' || currentUser?.role === 'super_admin') && (
-                          <button
-                            onClick={() => handleDelete(s.id)}
-                            disabled={actionId === s.id}
-                            className="p-1 bg-gray-900 hover:bg-red-500/20 text-gray-400 hover:text-red-400 rounded-lg border border-gray-800 hover:border-red-500/30 cursor-pointer"
-                            title="Delete"
-                          >
-                            <Trash className="w-3.5 h-3.5" />
-                          </button>
-                        )}
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
+
                   {sales.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="text-center py-6 text-gray-500">
-                        No sales reports logged yet.
+                      <td colSpan={5} className="text-center py-8 text-slate-400 text-xs">
+                        {isRtl
+                          ? 'لا توجد معاملات مبيعات مسجلة'
+                          : 'No sales records logged yet.'}
                       </td>
                     </tr>
                   )}

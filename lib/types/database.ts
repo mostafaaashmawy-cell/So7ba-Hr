@@ -17,6 +17,7 @@ export interface TenantSettings {
   enable_commissions: boolean;
   enable_insurances: boolean;
   enable_shifts: boolean;
+  enable_holiday_work_comp?: boolean;
   work_start_time?: string; // e.g. "09:00"
   work_end_time?: string;   // e.g. "17:00"
   work_days?: string[];     // e.g. ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"]

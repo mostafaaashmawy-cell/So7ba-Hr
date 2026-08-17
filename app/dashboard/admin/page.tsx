@@ -16,6 +16,7 @@ import StatCards from '@/components/dashboard/StatCards';
 import SalaryUnitChart from '@/components/dashboard/SalaryUnitChart';
 import DepartmentDistributionChart from '@/components/dashboard/DepartmentDistributionChart';
 import EmployeePerformanceTable from '@/components/dashboard/EmployeePerformanceTable';
+import HomeTaskAnalytics from '@/components/dashboard/HomeTaskAnalytics';
 
 export default async function SuperAdminDashboardPage() {
   const supabase = await createClient();
@@ -108,6 +109,9 @@ export default async function SuperAdminDashboardPage() {
 
         {/* 3. Department & Employee Structure Breakdown */}
         <DepartmentDistributionChart />
+
+        {/* 4. Monthly Task Completion & Target Progress Analytics */}
+        <HomeTaskAnalytics />
 
         {/* 4. Quick Module Hub */}
         <div className="cleariq-card p-6 cleariq-card-hover space-y-4">

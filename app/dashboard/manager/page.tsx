@@ -12,6 +12,7 @@ import {
   KpiEntryRecord,
 } from '@/lib/types/database';
 import StatCards from '@/components/dashboard/StatCards';
+import HomeTaskAnalytics from '@/components/dashboard/HomeTaskAnalytics';
 
 export default async function ManagerDashboardPage() {
   const supabase = await createClient();
@@ -149,6 +150,9 @@ export default async function ManagerDashboardPage() {
             </span>
           </Link>
         </div>
+
+        {/* Monthly Task Completion & Target Progress Analytics */}
+        <HomeTaskAnalytics />
 
         {/* Team Overview Dashboard */}
         <TeamOverviewTable

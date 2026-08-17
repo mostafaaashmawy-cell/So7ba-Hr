@@ -75,6 +75,8 @@ export default function OnboardingPage() {
   const [maxAdvancePercentage, setMaxAdvancePercentage] = useState<number>(50);
   const [advanceEligibilityDay, setAdvanceEligibilityDay] = useState<number>(15);
 
+  const [existingTenantId, setExistingTenantId] = useState<string | null>(null);
+
   useEffect(() => {
     const checkUser = async () => {
       const {
@@ -89,15 +91,50 @@ export default function OnboardingPage() {
       // Check if profile already has tenant_id
       const { data: profile } = await supabase
         .from('users')
-        .select('tenant_id')
+        .select('*')
         .eq('id', user.id)
         .single();
 
       if (profile && profile.tenant_id) {
-        router.push('/dashboard/employee');
-      } else {
-        setChecking(false);
+        if (profile.role !== 'super_admin') {
+          router.push('/dashboard/employee');
+          return;
+        }
+
+        // Prefill existing settings for Super Admin re-trigger
+        setExistingTenantId(profile.tenant_id);
+
+        const { data: tenant } = await supabase
+          .from('tenants')
+          .select('name')
+          .eq('id', profile.tenant_id)
+          .single();
+        if (tenant) setCompanyName(tenant.name || '');
+
+        const { data: settings } = await supabase
+          .from('tenant_settings')
+          .select('*')
+          .eq('tenant_id', profile.tenant_id)
+          .single();
+
+        if (settings) {
+          if (settings.industry) setIndustry(settings.industry);
+          if (settings.branches && settings.branches.length > 0) setBranches(settings.branches);
+          if (settings.work_start_time) setWorkStartTime(settings.work_start_time);
+          if (settings.work_end_time) setWorkEndTime(settings.work_end_time);
+          if (settings.work_days) setWorkDays(settings.work_days);
+          if (settings.grace_period_mins !== undefined) setGracePeriodMins(settings.grace_period_mins);
+          if (settings.lateness_mode) setLatenessMode(settings.lateness_mode);
+          if (settings.minute_deduction_rate !== undefined) setMinuteDeductionRate(settings.minute_deduction_rate);
+          if (settings.max_advance_percentage !== undefined) setMaxAdvancePercentage(settings.max_advance_percentage);
+          if (settings.advance_eligibility_day !== undefined) setAdvanceEligibilityDay(settings.advance_eligibility_day);
+          if (settings.enable_shifts !== undefined) setEnableShifts(settings.enable_shifts);
+          if (settings.enable_advances !== undefined) setEnableAdvances(settings.enable_advances);
+          if (settings.enable_commissions !== undefined) setEnableCommissions(settings.enable_commissions);
+          if (settings.enable_insurances !== undefined) setEnableInsurances(settings.enable_insurances);
+        }
       }
+      setChecking(false);
     };
     checkUser();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -162,16 +199,6 @@ export default function OnboardingPage() {
 
     setLoading(true);
     try {
-      // 1. Create Tenant
-      const { data: tenant, error: tenantErr } = await supabase
-        .from('tenants')
-        .insert({ name: companyName.trim() })
-        .select()
-        .single();
-
-      if (tenantErr) throw tenantErr;
-
-      // 2. Create Tenant Settings
       const lateness_policy = {
         thresholds: [
           { mins: 15, deduction: Number(late15) },
@@ -182,40 +209,85 @@ export default function OnboardingPage() {
 
       const primaryBranch = branches[0];
 
-      const { error: settingsErr } = await supabase.from('tenant_settings').insert({
-        tenant_id: tenant.id,
-        industry,
-        branches,
-        enable_advances: enableAdvances,
-        enable_commissions: enableCommissions,
-        enable_insurances: enableInsurances,
-        enable_shifts: enableShifts,
-        work_start_time: workStartTime,
-        work_end_time: workEndTime,
-        work_days: workDays,
-        grace_period_mins: Number(gracePeriodMins),
-        lateness_mode: latenessMode,
-        minute_deduction_rate: Number(minuteDeductionRate),
-        max_advance_percentage: Number(maxAdvancePercentage),
-        advance_eligibility_day: Number(advanceEligibilityDay),
-        lateness_policy,
-        geofencing_lat: primaryBranch ? Number(primaryBranch.lat) : null,
-        geofencing_lng: primaryBranch ? Number(primaryBranch.lng) : null,
-        geofencing_radius: primaryBranch ? Number(primaryBranch.radius) : 150,
-      });
+      if (existingTenantId) {
+        // Re-run Wizard: Update existing tenant and settings
+        await supabase
+          .from('tenants')
+          .update({ name: companyName.trim() })
+          .eq('id', existingTenantId);
 
-      if (settingsErr) throw settingsErr;
+        const { error: settingsErr } = await supabase
+          .from('tenant_settings')
+          .update({
+            industry,
+            branches,
+            enable_advances: enableAdvances,
+            enable_commissions: enableCommissions,
+            enable_insurances: enableInsurances,
+            enable_shifts: enableShifts,
+            work_start_time: workStartTime,
+            work_end_time: workEndTime,
+            work_days: workDays,
+            grace_period_mins: Number(gracePeriodMins),
+            lateness_mode: latenessMode,
+            minute_deduction_rate: Number(minuteDeductionRate),
+            max_advance_percentage: Number(maxAdvancePercentage),
+            advance_eligibility_day: Number(advanceEligibilityDay),
+            lateness_policy,
+            geofencing_lat: primaryBranch ? Number(primaryBranch.lat) : null,
+            geofencing_lng: primaryBranch ? Number(primaryBranch.lng) : null,
+            geofencing_radius: primaryBranch ? Number(primaryBranch.radius) : 150,
+          })
+          .eq('tenant_id', existingTenantId);
 
-      // 3. Link User Profile to Tenant and promote to Super Admin
-      const { error: userErr } = await supabase
-        .from('users')
-        .update({ tenant_id: tenant.id, role: 'super_admin' })
-        .eq('id', userId);
+        if (settingsErr) throw settingsErr;
 
-      if (userErr) throw userErr;
+        router.push('/dashboard/admin');
+        router.refresh();
+      } else {
+        // Initial First-Time Setup
+        const { data: tenant, error: tenantErr } = await supabase
+          .from('tenants')
+          .insert({ name: companyName.trim() })
+          .select()
+          .single();
 
-      router.push('/dashboard/employee');
-      router.refresh();
+        if (tenantErr) throw tenantErr;
+
+        const { error: settingsErr } = await supabase.from('tenant_settings').insert({
+          tenant_id: tenant.id,
+          industry,
+          branches,
+          enable_advances: enableAdvances,
+          enable_commissions: enableCommissions,
+          enable_insurances: enableInsurances,
+          enable_shifts: enableShifts,
+          work_start_time: workStartTime,
+          work_end_time: workEndTime,
+          work_days: workDays,
+          grace_period_mins: Number(gracePeriodMins),
+          lateness_mode: latenessMode,
+          minute_deduction_rate: Number(minuteDeductionRate),
+          max_advance_percentage: Number(maxAdvancePercentage),
+          advance_eligibility_day: Number(advanceEligibilityDay),
+          lateness_policy,
+          geofencing_lat: primaryBranch ? Number(primaryBranch.lat) : null,
+          geofencing_lng: primaryBranch ? Number(primaryBranch.lng) : null,
+          geofencing_radius: primaryBranch ? Number(primaryBranch.radius) : 150,
+        });
+
+        if (settingsErr) throw settingsErr;
+
+        const { error: userErr } = await supabase
+          .from('users')
+          .update({ tenant_id: tenant.id, role: 'super_admin' })
+          .eq('id', userId);
+
+        if (userErr) throw userErr;
+
+        router.push('/dashboard/employee');
+        router.refresh();
+      }
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : 'Setup wizard failed';
       alert(errMsg);
