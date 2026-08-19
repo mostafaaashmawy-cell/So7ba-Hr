@@ -184,7 +184,7 @@ For the Company                         Employee Signature`;
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0b0f19] flex items-center justify-center text-gray-400 text-xs">
+      <div className="min-h-screen bg-[--bg] flex items-center justify-center text-slate-500 dark:text-slate-400 text-xs">
         <RefreshCw className="w-5 h-5 animate-spin text-sky-400 mr-2" />
         Loading contracts configurator...
       </div>
@@ -192,16 +192,16 @@ For the Company                         Employee Signature`;
   }
 
   return (
-    <div className="min-h-screen bg-[#0b0f19] text-gray-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-[--bg] text-slate-900 dark:text-slate-100 flex flex-col font-sans">
       <Navbar user={currentUser} activeRoleView="super_admin" />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-8 space-y-6 print:bg-white print:text-black print:p-0">
         
         {/* Printable preview output overlay */}
         {showPreview && (
-          <div className="glass-card p-6 rounded-2xl border border-gray-800 space-y-4 print:border-none print:shadow-none print:bg-white print:text-black print:p-0">
-            <div className="flex justify-between items-center pb-3 border-b border-gray-800 print:hidden">
-              <h3 className="font-bold text-sm text-gray-200">Generated Contract Preview</h3>
+          <div className="cleariq-card p-6 cleariq-card-hover space-y-4 print:border-none print:shadow-none print:bg-white print:text-black print:p-0">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-slate-700 print:hidden">
+              <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200">Generated Contract Preview</h3>
               <div className="flex gap-2">
                 <button
                   onClick={handlePrint}
@@ -211,7 +211,7 @@ For the Company                         Employee Signature`;
                 </button>
                 <button
                   onClick={() => setShowPreview(false)}
-                  className="bg-gray-900 border border-gray-800 text-gray-400 hover:text-white px-3 py-1.5 rounded-xl text-xs cursor-pointer"
+                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-white px-3 py-1.5 rounded-xl text-xs cursor-pointer"
                 >
                   Back to Template
                 </button>
@@ -230,7 +230,7 @@ For the Company                         Employee Signature`;
             </div>
 
             {/* Printable Document Body */}
-            <pre className="whitespace-pre-wrap font-serif text-sm text-gray-300 print:text-black leading-relaxed p-4 bg-gray-900/20 rounded-xl border border-gray-800 print:border-none print:bg-transparent print:p-0">
+            <pre className="whitespace-pre-wrap font-serif text-sm text-slate-700 dark:text-slate-300 print:text-black leading-relaxed p-4 bg-white dark:bg-slate-900/20 rounded-xl border border-slate-200 dark:border-slate-700 print:border-none print:bg-transparent print:p-0">
               {previewContent}
             </pre>
           </div>
@@ -240,7 +240,7 @@ For the Company                         Employee Signature`;
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print:hidden">
             
             {/* Editor Workspace Column */}
-            <div className="lg:col-span-2 glass-card p-6 rounded-2xl border border-gray-800 space-y-4">
+            <div className="lg:col-span-2 cleariq-card p-6 cleariq-card-hover space-y-4">
               <div className="flex justify-between items-center">
                 <h2 className="text-lg font-bold text-white flex items-center gap-2">
                   <FileEdit className="w-5 h-5 text-sky-400" /> Master Contract Text Editor
@@ -256,14 +256,14 @@ For the Company                         Employee Signature`;
 
               {msg && (
                 <div className={`p-3 rounded-xl border text-xs flex items-center gap-2 ${
-                  msg.error ? 'bg-red-500/10 border-red-500/30 text-red-300' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                  msg.error ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20' : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20'
                 }`}>
                   {msg.error ? <AlertCircle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
                   <span>{msg.text}</span>
                 </div>
               )}
 
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 You can write custom contracts using template variables. They will auto-fill with selected employee details:
                 <br />
                 <code className="text-sky-300 text-[10px] font-sans">
@@ -275,20 +275,20 @@ For the Company                         Employee Signature`;
                 value={templateBody}
                 onChange={(e) => setTemplateBody(e.target.value)}
                 rows={18}
-                className="w-full bg-gray-900 border border-gray-800 rounded-2xl p-4 text-xs font-mono text-gray-100 focus:outline-none leading-relaxed"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 text-xs font-mono text-slate-950 dark:text-white focus:outline-none leading-relaxed"
               />
             </div>
 
             {/* Employee Generator Parameters Panel */}
-            <div className="glass-card p-6 rounded-2xl border border-gray-800 space-y-6">
+            <div className="cleariq-card p-6 cleariq-card-hover space-y-6">
               <div>
-                <h3 className="font-bold text-sm text-gray-200">Contract Generator</h3>
-                <p className="text-[10px] text-gray-500 mt-0.5">Select employee and update terms before downloading contract.</p>
+                <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200">Contract Generator</h3>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Select employee and update terms before downloading contract.</p>
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-400 mb-1">Target Employee</label>
+                  <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Target Employee</label>
                   <select
                     value={selectedEmployee}
                     onChange={(e) => {
@@ -300,7 +300,7 @@ For the Company                         Employee Signature`;
                         setEndDate(emp.contract_end_date || '');
                       }
                     }}
-                    className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none"
                   >
                     {employees.map((e) => (
                       <option key={e.id} value={e.id}>{e.full_name}</option>
@@ -308,15 +308,15 @@ For the Company                         Employee Signature`;
                   </select>
                 </div>
 
-                <div className="space-y-3 pt-3 border-t border-gray-900">
-                  <h4 className="text-xs font-bold text-gray-300">Override Agreement Terms</h4>
+                <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">Override Agreement Terms</h4>
 
                   <div>
-                    <label className="block text-xs font-semibold text-gray-400 mb-1">Contract Type</label>
+                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Contract Type</label>
                     <select
                       value={contractType}
                       onChange={(e) => setContractType(e.target.value)}
-                      className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none"
                     >
                       <option value="Full-Time">Full-Time</option>
                       <option value="Part-Time">Part-Time</option>
@@ -325,22 +325,22 @@ For the Company                         Employee Signature`;
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-gray-400 mb-1">Probation Period (Months)</label>
+                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Probation Period (Months)</label>
                     <input
                       type="number"
                       value={probationMonths}
                       onChange={(e) => setProbationMonths(Number(e.target.value))}
-                      className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none font-sans"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none font-sans"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-gray-400 mb-1">Contract End Date (Optional)</label>
+                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Contract End Date (Optional)</label>
                     <input
                       type="date"
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
-                      className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-200 focus:outline-none font-sans"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none font-sans"
                     />
                   </div>
 
@@ -355,7 +355,7 @@ For the Company                         Employee Signature`;
 
                 <button
                   onClick={generateContractText}
-                  className="w-full gradient-btn py-2.5 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-1.5 shadow-lg pt-3 border-t border-gray-900"
+                  className="w-full gradient-btn py-2.5 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-1.5 shadow-lg pt-3 border-t border-slate-100 dark:border-slate-800"
                 >
                   <FileText className="w-4 h-4" /> Compile Agreement Text
                 </button>

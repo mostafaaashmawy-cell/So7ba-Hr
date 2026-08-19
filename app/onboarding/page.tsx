@@ -298,7 +298,7 @@ export default function OnboardingPage() {
 
   if (checking) {
     return (
-      <div className="min-h-screen bg-[#0b0f19] flex items-center justify-center text-gray-400 text-xs">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-500 dark:text-slate-400 text-xs">
         <RefreshCw className="w-5 h-5 animate-spin text-sky-400 mr-2" />
         Checking profile onboarding status...
       </div>
@@ -306,9 +306,9 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0b0f19] text-gray-100 flex flex-col justify-center items-center p-4">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-950 dark:text-slate-100 flex flex-col justify-center items-center p-4">
       {/* Progress Bar & Header */}
-      <div className="w-full max-w-2xl bg-gray-900 border border-gray-800 rounded-3xl p-6 sm:p-10 shadow-2xl space-y-8">
+      <div className="w-full max-w-2xl cleariq-card p-6 sm:p-10 space-y-8">
         <div>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2.5">
@@ -319,10 +319,10 @@ export default function OnboardingPage() {
                 HumAi Setup Wizard
               </span>
             </div>
-            <span className="text-xs font-sans text-gray-400 font-bold">Step {step} of 5</span>
+            <span className="text-xs font-sans text-slate-500 dark:text-slate-400 font-bold">Step {step} of 5</span>
           </div>
 
-          <div className="w-full bg-gray-800 h-2 rounded-full overflow-hidden">
+          <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
             <div
               className="bg-gradient-to-r from-sky-500 to-indigo-500 h-full transition-all duration-300 rounded-full"
               style={{ width: `${(step / 5) * 100}%` }}
@@ -334,18 +334,18 @@ export default function OnboardingPage() {
         {step === 1 && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <h2 className="text-xl font-extrabold text-slate-950 dark:text-white flex items-center gap-2">
                 <Building className="w-5 h-5 text-sky-400" />
                 Company Profile & Industry
               </h2>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                 Name your company workspace and select your industry sector to tailor HumAi.
               </p>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                   Company / Organization Name *
                 </label>
                 <input
@@ -353,18 +353,18 @@ export default function OnboardingPage() {
                   placeholder="e.g. Acme Corporation Ltd"
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
-                  className="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:border-sky-500 transition-colors"
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                   Industry Sector *
                 </label>
                 <select
                   value={industry}
                   onChange={(e) => setIndustry(e.target.value)}
-                  className="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-sm text-gray-100 focus:outline-none focus:border-sky-500 transition-colors cursor-pointer"
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500 transition-colors cursor-pointer"
                 >
                   {INDUSTRIES.map((ind) => (
                     <option key={ind} value={ind}>
@@ -381,20 +381,20 @@ export default function OnboardingPage() {
         {step === 2 && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <h2 className="text-xl font-extrabold text-slate-950 dark:text-white flex items-center gap-2">
                 <Settings className="w-5 h-5 text-sky-400" />
                 Modules & Shift System Toggles
               </h2>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                 Enable or disable operational modules tailored to your company needs.
               </p>
             </div>
 
             <div className="space-y-3">
-              <div className="flex items-center justify-between p-4 rounded-2xl bg-gray-950 border border-gray-800">
+              <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
                 <div>
-                  <div className="text-sm font-bold text-gray-200">Shifts System</div>
-                  <div className="text-[11px] text-gray-500">
+                  <div className="text-sm font-bold text-slate-950 dark:text-slate-100">Shifts System</div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400">
                     Enable flexible and multiple shifts per department
                   </div>
                 </div>
@@ -406,10 +406,10 @@ export default function OnboardingPage() {
                 />
               </div>
 
-              <div className="flex items-center justify-between p-4 rounded-2xl bg-gray-950 border border-gray-800">
+              <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
                 <div>
-                  <div className="text-sm font-bold text-gray-200">Salary Advances</div>
-                  <div className="text-[11px] text-gray-500">
+                  <div className="text-sm font-bold text-slate-950 dark:text-slate-100">Salary Advances</div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400">
                     Allow employees to request monthly salary loans
                   </div>
                 </div>
@@ -421,10 +421,10 @@ export default function OnboardingPage() {
                 />
               </div>
 
-              <div className="flex items-center justify-between p-4 rounded-2xl bg-gray-950 border border-gray-800">
+              <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
                 <div>
-                  <div className="text-sm font-bold text-gray-200">Sales & Commissions Engine</div>
-                  <div className="text-[11px] text-gray-500">
+                  <div className="text-sm font-bold text-slate-950 dark:text-slate-100">Sales & Commissions Engine</div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400">
                     Track client sales achievements and payroll commissions
                   </div>
                 </div>
@@ -436,12 +436,12 @@ export default function OnboardingPage() {
                 />
               </div>
 
-              <div className="flex items-center justify-between p-4 rounded-2xl bg-gray-950 border border-gray-800">
+              <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
                 <div>
-                  <div className="text-sm font-bold text-gray-200">
+                  <div className="text-sm font-bold text-slate-950 dark:text-slate-100">
                     Social & Health Insurance Deductions
                   </div>
-                  <div className="text-[11px] text-gray-500">
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400">
                     Include insurance contributions in payroll calculations
                   </div>
                 </div>
@@ -460,11 +460,11 @@ export default function OnboardingPage() {
         {step === 3 && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <h2 className="text-xl font-extrabold text-slate-950 dark:text-white flex items-center gap-2">
                 <Clock className="w-5 h-5 text-sky-400" />
                 Default Company Schedule
               </h2>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                 Configure company-wide standard working hours and active working days of the week.
               </p>
             </div>
@@ -472,31 +472,31 @@ export default function OnboardingPage() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-300 mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                     Shift Start Time
                   </label>
                   <input
                     type="time"
                     value={workStartTime}
                     onChange={(e) => setWorkStartTime(e.target.value)}
-                    className="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-sky-500 font-sans"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500 font-sans"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-300 mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                     Shift End Time
                   </label>
                   <input
                     type="time"
                     value={workEndTime}
                     onChange={(e) => setWorkEndTime(e.target.value)}
-                    className="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-sky-500 font-sans"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500 font-sans"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-2">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
                   Active Working Days
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -510,7 +510,7 @@ export default function OnboardingPage() {
                         className={`flex items-center justify-between p-3 rounded-xl border text-xs font-semibold transition-all ${
                           isSelected
                             ? 'bg-sky-500/20 border-sky-500 text-sky-300'
-                            : 'bg-gray-950 border-gray-800 text-gray-400 hover:border-gray-700'
+                            : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-blue-400 dark:hover:border-blue-500'
                         }`}
                       >
                         <span>{day.label}</span>
@@ -529,11 +529,11 @@ export default function OnboardingPage() {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <h2 className="text-xl font-extrabold text-slate-950 dark:text-white flex items-center gap-2">
                   <MapPin className="w-5 h-5 text-sky-400" />
                   Multi-Branch Geofencing
                 </h2>
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   Define approved branch locations & accuracy radiuses for employee attendance.
                 </p>
               </div>
@@ -550,7 +550,7 @@ export default function OnboardingPage() {
               {branches.map((branch, idx) => (
                 <div
                   key={branch.id || idx}
-                  className="p-4 bg-gray-950 border border-gray-800 rounded-2xl space-y-3"
+                  className="p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-3"
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-sky-400 uppercase tracking-wider">
@@ -560,7 +560,7 @@ export default function OnboardingPage() {
                       <button
                         type="button"
                         onClick={() => captureCurrentLocation(idx)}
-                        className="text-[11px] text-gray-400 hover:text-sky-300 underline"
+                        className="text-[11px] text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 underline"
                       >
                         Pin Current Location
                       </button>
@@ -577,7 +577,7 @@ export default function OnboardingPage() {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-gray-400 mb-1">
+                    <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
                       Branch Name
                     </label>
                     <input
@@ -585,38 +585,38 @@ export default function OnboardingPage() {
                       value={branch.name}
                       onChange={(e) => updateBranch(idx, 'name', e.target.value)}
                       placeholder="e.g. Cairo HQ / Nasr City Branch"
-                      className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-gray-100 focus:outline-none focus:border-sky-500"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500"
                     />
                   </div>
 
                   <div className="grid grid-cols-3 gap-2">
                     <div>
-                      <label className="block text-[10px] text-gray-400 mb-1">Latitude</label>
+                      <label className="block text-[10px] text-slate-600 dark:text-slate-400 mb-1">Latitude</label>
                       <input
                         type="number"
                         step="any"
                         value={branch.lat}
                         onChange={(e) => updateBranch(idx, 'lat', Number(e.target.value))}
-                        className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-gray-100 focus:outline-none font-sans"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none font-sans"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] text-gray-400 mb-1">Longitude</label>
+                      <label className="block text-[10px] text-slate-600 dark:text-slate-400 mb-1">Longitude</label>
                       <input
                         type="number"
                         step="any"
                         value={branch.lng}
                         onChange={(e) => updateBranch(idx, 'lng', Number(e.target.value))}
-                        className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-gray-100 focus:outline-none font-sans"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none font-sans"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] text-gray-400 mb-1">Radius (Meters)</label>
+                      <label className="block text-[10px] text-slate-600 dark:text-slate-400 mb-1">Radius (Meters)</label>
                       <input
                         type="number"
                         value={branch.radius}
                         onChange={(e) => updateBranch(idx, 'radius', Number(e.target.value))}
-                        className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-gray-100 focus:outline-none font-sans"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none font-sans"
                       />
                     </div>
                   </div>
@@ -630,36 +630,36 @@ export default function OnboardingPage() {
         {step === 5 && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <h2 className="text-xl font-extrabold text-slate-950 dark:text-white flex items-center gap-2">
                 <ShieldCheck className="w-5 h-5 text-sky-400" />
                 Lateness Engine & Salary Advance Rules
               </h2>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                 Configure deduction modes, grace periods, and advance ceilings.
               </p>
             </div>
 
             <div className="space-y-4">
-              <div className="p-4 bg-gray-950 border border-gray-800 rounded-2xl space-y-3">
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-3">
                 <div className="text-xs font-bold text-sky-400 uppercase tracking-wider">
                   Lateness Policy
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] font-semibold text-gray-400 mb-1">
+                    <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
                       Grace Period (Minutes)
                     </label>
                     <input
                       type="number"
                       value={gracePeriodMins}
                       onChange={(e) => setGracePeriodMins(Number(e.target.value))}
-                      className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-gray-100 focus:outline-none font-sans"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none font-sans"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-gray-400 mb-1">
+                    <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
                       Deduction Mode
                     </label>
                     <select
@@ -667,7 +667,7 @@ export default function OnboardingPage() {
                       onChange={(e) =>
                         setLatenessMode(e.target.value as 'tiered' | 'percentage_per_minute')
                       }
-                      className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-gray-100 focus:outline-none cursor-pointer"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none cursor-pointer"
                     >
                       <option value="tiered">Tiered Intervals (15m, 30m, 60m+)</option>
                       <option value="percentage_per_minute">Exact Minute % (Custom Rate)</option>
@@ -676,46 +676,46 @@ export default function OnboardingPage() {
                 </div>
 
                 {latenessMode === 'tiered' ? (
-                  <div className="grid grid-cols-3 gap-2 pt-2 border-t border-gray-800/80">
+                  <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200 dark:border-slate-700/80">
                     <div>
-                      <label className="block text-[10px] text-gray-400 mb-1">15 Mins Delay</label>
+                      <label className="block text-[10px] text-slate-600 dark:text-slate-400 mb-1">15 Mins Delay</label>
                       <input
                         type="number"
                         step="0.05"
                         value={late15}
                         onChange={(e) => setLate15(Number(e.target.value))}
-                        className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-gray-100 font-sans"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 font-sans"
                       />
-                      <span className="text-[10px] text-gray-500">e.g. 0.25 day</span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400">e.g. 0.25 day</span>
                     </div>
 
                     <div>
-                      <label className="block text-[10px] text-gray-400 mb-1">30 Mins Delay</label>
+                      <label className="block text-[10px] text-slate-600 dark:text-slate-400 mb-1">30 Mins Delay</label>
                       <input
                         type="number"
                         step="0.05"
                         value={late30}
                         onChange={(e) => setLate30(Number(e.target.value))}
-                        className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-gray-100 font-sans"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 font-sans"
                       />
-                      <span className="text-[10px] text-gray-500">e.g. 0.50 day</span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400">e.g. 0.50 day</span>
                     </div>
 
                     <div>
-                      <label className="block text-[10px] text-gray-400 mb-1">60+ Mins Delay</label>
+                      <label className="block text-[10px] text-slate-600 dark:text-slate-400 mb-1">60+ Mins Delay</label>
                       <input
                         type="number"
                         step="0.05"
                         value={late60}
                         onChange={(e) => setLate60(Number(e.target.value))}
-                        className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-gray-100 font-sans"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 font-sans"
                       />
-                      <span className="text-[10px] text-gray-500">e.g. 1.00 day</span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400">e.g. 1.00 day</span>
                     </div>
                   </div>
                 ) : (
-                  <div className="pt-2 border-t border-gray-800/80">
-                    <label className="block text-[11px] font-semibold text-gray-400 mb-1">
+                  <div className="pt-2 border-t border-slate-200 dark:border-slate-700/80">
+                    <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
                       Minute Deduction Rate (% of Daily Wage)
                     </label>
                     <div className="flex items-center gap-2">
@@ -724,9 +724,9 @@ export default function OnboardingPage() {
                         step="0.001"
                         value={minuteDeductionRate}
                         onChange={(e) => setMinuteDeductionRate(Number(e.target.value))}
-                        className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-gray-100 font-sans"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 font-sans"
                       />
-                      <span className="text-xs text-gray-400 font-sans">
+                      <span className="text-xs text-slate-500 dark:text-slate-400 font-sans">
                         ({(minuteDeductionRate * 100).toFixed(2)}%/min)
                       </span>
                     </div>
@@ -734,27 +734,27 @@ export default function OnboardingPage() {
                 )}
               </div>
 
-              <div className="p-4 bg-gray-950 border border-gray-800 rounded-2xl space-y-3">
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-3">
                 <div className="text-xs font-bold text-sky-400 uppercase tracking-wider flex items-center gap-1.5">
                   <DollarSign className="w-3.5 h-3.5" /> Salary Advance Engine Rules
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] font-semibold text-gray-400 mb-1">
+                    <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
                       Max Advance Cap (% of Basic Salary)
                     </label>
                     <input
                       type="number"
                       value={maxAdvancePercentage}
                       onChange={(e) => setMaxAdvancePercentage(Number(e.target.value))}
-                      className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-gray-100 font-sans"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 font-sans"
                     />
-                    <span className="text-[10px] text-gray-500">e.g. Max 50%</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400">e.g. Max 50%</span>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-gray-400 mb-1">
+                    <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
                       Eligibility Start Day of Month
                     </label>
                     <input
@@ -763,9 +763,9 @@ export default function OnboardingPage() {
                       max="31"
                       value={advanceEligibilityDay}
                       onChange={(e) => setAdvanceEligibilityDay(Number(e.target.value))}
-                      className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-gray-100 font-sans"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 font-sans"
                     />
-                    <span className="text-[10px] text-gray-500">e.g. Available after day 15</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400">e.g. Available after day 15</span>
                   </div>
                 </div>
               </div>
@@ -774,12 +774,12 @@ export default function OnboardingPage() {
         )}
 
         {/* Action Controls */}
-        <div className="flex items-center justify-between pt-4 border-t border-gray-800/80">
+        <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700/80">
           {step > 1 ? (
             <button
               type="button"
               onClick={handleBack}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-800 hover:bg-gray-800 text-xs font-bold text-gray-300 transition-all"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all"
             >
               <ArrowLeft className="w-4 h-4" /> Back
             </button>

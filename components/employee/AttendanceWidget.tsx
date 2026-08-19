@@ -209,18 +209,18 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
   };
 
   return (
-    <div className="glass-card glass-card-hover p-6 rounded-2xl relative overflow-hidden">
+    <div className="cleariq-card p-6 cleariq-card-hover relative overflow-hidden">
       {/* Glow background accent */}
       <div className="absolute -top-20 -right-20 w-40 h-40 bg-sky-600/15 rounded-full blur-3xl pointer-events-none" />
 
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
+          <div className="p-2.5 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20">
             <Clock className="w-5 h-5" />
           </div>
           <div>
             <h3 className="font-bold text-lg text-white">{t('attendance')}</h3>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               {isRtl ? 'تسجيل الحضور والإنصراف المتعدد وساعات العمل' : 'Multi-session check-in tracking'}
             </p>
           </div>
@@ -229,11 +229,11 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
         {/* Status Badge */}
         <div>
           {isCheckedIn ? (
-            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20">
               <span className="w-2 h-2 rounded-full bg-emerald-400 pulse-emerald" /> {t('duty')}
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gray-800 text-gray-400 border border-gray-700">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
               {isRtl ? 'خارج العمل' : 'Not Active'}
             </span>
           )}
@@ -241,7 +241,7 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
       </div>
 
       {errorMsg && (
-        <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-center gap-2">
+        <div className="mb-4 p-3 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20 text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{errorMsg}</span>
         </div>
@@ -256,7 +256,7 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
       </div>
 
       {/* Geolocation info banner */}
-      <div className="mb-6 px-3.5 py-2.5 rounded-xl bg-gray-900/50 border border-gray-800/80 flex items-center justify-between text-xs text-gray-400">
+      <div className="mb-6 px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
         <div className="flex items-center gap-2">
           <MapPin className="w-4 h-4 text-sky-400" />
           <span>
@@ -302,19 +302,19 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
 
       {/* Sessions List */}
       {sessions.length > 0 && (
-        <div className="mt-6 border-t border-gray-800/60 pt-4">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3 flex items-center gap-1.5">
+        <div className="mt-6 border-t border-slate-200 dark:border-slate-700 pt-4">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-1.5">
             <ListCollapse className="w-3.5 h-3.5 text-sky-400" /> {isRtl ? 'جلسات عمل اليوم' : "Today's Work Sessions"}
           </h4>
           <div className="space-y-2">
             {sessions.map((s, idx) => (
-              <div key={s.id} className="p-3 rounded-xl bg-gray-900/40 border border-gray-800/60 flex items-center justify-between text-xs">
-                <span className="font-semibold text-gray-400">
+              <div key={s.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs">
+                <span className="font-semibold text-slate-500 dark:text-slate-400">
                   {isRtl ? `فترة #${sessions.length - idx}` : `Session #${sessions.length - idx}`}
                 </span>
                 <div className="flex gap-4">
                   <span className="text-emerald-400">{formatTime(s.check_in_time)}</span>
-                  <span className="text-gray-500">→</span>
+                  <span className="text-slate-500 dark:text-slate-400">→</span>
                   <span className="text-rose-400">{s.check_out_time ? formatTime(s.check_out_time) : '--:--'}</span>
                 </div>
               </div>

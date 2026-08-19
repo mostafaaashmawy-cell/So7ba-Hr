@@ -31,7 +31,7 @@ export default function StatCards({
             cx="27"
             cy="27"
             r={radius}
-            className="text-slate-100"
+            className="text-slate-100 dark:text-slate-800"
             strokeWidth="5"
             stroke="currentColor"
             fill="transparent"
@@ -49,7 +49,7 @@ export default function StatCards({
             className="transition-all duration-1000 ease-out"
           />
         </svg>
-        <span className="absolute text-[11px] font-bold text-slate-700 font-sans">
+        <span className="absolute text-[11px] text-slate-950 dark:text-white font-extrabold font-sans">
           {percentage}%
         </span>
       </div>
@@ -64,8 +64,8 @@ export default function StatCards({
       {/* CARD 1: Total Employees */}
       <div className="cleariq-card p-5 cleariq-card-hover flex items-center justify-between">
         <div className="space-y-2">
-          <span className="text-xs font-semibold text-slate-500 block">Total Employees</span>
-          <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight font-sans">
+          <span className="text-xs text-slate-600 dark:text-slate-400 font-semibold block">Total Employees</span>
+          <div className="text-2xl sm:text-3xl text-slate-950 dark:text-white font-extrabold tracking-tight font-sans">
             {totalEmployees.toLocaleString()}
           </div>
           <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600">
@@ -80,8 +80,8 @@ export default function StatCards({
       {/* CARD 2: Active on Duty Today */}
       <div className="cleariq-card p-5 cleariq-card-hover flex items-center justify-between">
         <div className="space-y-2">
-          <span className="text-xs font-semibold text-slate-500 block">Active On Duty Today</span>
-          <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight font-sans">
+          <span className="text-xs text-slate-600 dark:text-slate-400 font-semibold block">Active On Duty Today</span>
+          <div className="text-2xl sm:text-3xl text-slate-950 dark:text-white font-extrabold tracking-tight font-sans">
             {activeToday.toLocaleString()}
           </div>
           <div className="flex items-center gap-1 text-[11px] font-bold text-blue-600">
@@ -96,8 +96,8 @@ export default function StatCards({
       {/* CARD 3: Performance Index */}
       <div className="cleariq-card p-5 cleariq-card-hover flex items-center justify-between">
         <div className="space-y-2">
-          <span className="text-xs font-semibold text-slate-500 block">Avg Performance Score</span>
-          <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight font-sans flex items-baseline gap-1">
+          <span className="text-xs text-slate-600 dark:text-slate-400 font-semibold block">Avg Performance Score</span>
+          <div className="text-2xl sm:text-3xl text-slate-950 dark:text-white font-extrabold tracking-tight font-sans flex items-baseline gap-1">
             {avgPerformance > 0 ? avgPerformance.toFixed(1) : '4.2'}
             <span className="text-sm font-semibold text-slate-400">/ 5.0</span>
           </div>
@@ -113,8 +113,8 @@ export default function StatCards({
       {/* CARD 4: Total Monthly Payroll */}
       <div className="cleariq-card p-5 cleariq-card-hover flex items-center justify-between">
         <div className="space-y-2">
-          <span className="text-xs font-semibold text-slate-500 block">Estimated Payroll</span>
-          <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight font-sans">
+          <span className="text-xs text-slate-600 dark:text-slate-400 font-semibold block">Estimated Payroll</span>
+          <div className="text-2xl sm:text-3xl text-slate-950 dark:text-white font-extrabold tracking-tight font-sans">
             {totalPayrollEgp.toLocaleString()}
             <span className="text-xs font-bold text-slate-400 ml-1">EGP</span>
           </div>

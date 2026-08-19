@@ -156,21 +156,21 @@ export default function TeamOverviewTable({
   return (
     <div className="space-y-6">
       {/* Team Header & Filters */}
-      <div className="glass-card p-6 rounded-2xl border border-gray-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 print:hidden">
+      <div className="cleariq-card p-6 cleariq-card-hover flex flex-col md:flex-row items-start md:items-center justify-between gap-4 print:hidden">
         <div>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <h2 className="text-xl font-bold text-slate-950 dark:text-white flex items-center gap-2">
             <Users className="w-5 h-5 text-sky-400" /> {t('teamOverview')}
           </h2>
-          <p className="text-xs text-gray-400">{t('teamDesc')}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">{t('teamDesc')}</p>
         </div>
 
         {activeTab !== 'report' && (
           <div className="flex items-center gap-3 w-full md:w-auto">
-            <label className="text-xs text-gray-400 shrink-0 font-medium">{t('filterMember')}:</label>
+            <label className="text-xs text-slate-500 dark:text-slate-400 shrink-0 font-medium">{t('filterMember')}:</label>
             <select
               value={selectedMember}
               onChange={(e) => setSelectedMember(e.target.value)}
-              className="bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-100 focus:outline-none focus:border-sky-500 w-full md:w-56"
+              className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-sky-500 w-full md:w-56"
             >
               <option value="all">{t('allMembers')} ({teamMembers.length})</option>
               {teamMembers.map((m) => (
@@ -184,13 +184,13 @@ export default function TeamOverviewTable({
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex gap-2 border-b border-gray-800 pb-2 overflow-x-auto print:hidden">
+      <div className="flex gap-2 border-b border-slate-200 dark:border-slate-700 pb-2 overflow-x-auto print:hidden">
         <button
           onClick={() => setActiveTab('attendance')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 ${
             activeTab === 'attendance'
               ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
-              : 'text-gray-400 hover:text-gray-200'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
           }`}
         >
           <Clock className="w-4 h-4" /> {t('attendance')} ({filteredAttendance.length})
@@ -201,7 +201,7 @@ export default function TeamOverviewTable({
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 ${
             activeTab === 'leaves'
               ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
-              : 'text-gray-400 hover:text-gray-200'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
           }`}
         >
           <Calendar className="w-4 h-4" /> {t('leavesTitle')} ({filteredLeaves.length})
@@ -212,7 +212,7 @@ export default function TeamOverviewTable({
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 ${
             activeTab === 'kpis'
               ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
-              : 'text-gray-400 hover:text-gray-200'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
           }`}
         >
           <Target className="w-4 h-4" /> {t('kpiTitle')} ({filteredKpis.length})
@@ -226,7 +226,7 @@ export default function TeamOverviewTable({
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 ${
             activeTab === 'report'
               ? 'bg-lime-500/20 text-lime-300 border border-lime-500/30'
-              : 'text-gray-400 hover:text-gray-200'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
           }`}
         >
           <FileText className="w-4 h-4" /> {isRtl ? 'تقرير الأداء المهني' : 'Performance Report'}
@@ -235,16 +235,16 @@ export default function TeamOverviewTable({
 
       {/* FILTER CONTROLS PANEL (Except Report Tab) */}
       {activeTab !== 'report' && (
-        <div className="glass-card p-4 rounded-xl border border-gray-800 space-y-3 print:hidden">
+        <div className="cleariq-card p-4 cleariq-card-hover space-y-3 print:hidden">
           <div className="flex justify-between items-center">
-            <h4 className="text-xs font-bold text-gray-400 flex items-center gap-1.5 uppercase tracking-wider">
+            <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 uppercase tracking-wider">
               <Filter className="w-3.5 h-3.5 text-sky-400" /> {t('filters')}
             </h4>
             
             {/* Export excel button */}
             <button
               onClick={handleExportCSV}
-              className="flex items-center gap-1.5 bg-gray-900 border border-gray-800 rounded-lg px-2.5 py-1 text-[11px] font-bold text-lime-400 hover:text-white hover:bg-lime-500/20 hover:border-lime-500/30 transition-all cursor-pointer"
+              className="flex items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 text-[11px] font-bold text-lime-400 hover:text-slate-950 dark:hover:text-white hover:bg-lime-500/20 hover:border-lime-500/30 transition-all cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
               <span>{isRtl ? 'تصدير إكسل' : 'Export Excel'}</span>
@@ -254,25 +254,25 @@ export default function TeamOverviewTable({
           {activeTab === 'attendance' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[11px] text-gray-500 mb-1">
+                <label className="block text-[11px] text-slate-500 dark:text-slate-400 mb-1">
                   {isRtl ? 'التاريخ (أو تاريخ البدء):' : 'Date (or Start Date):'}
                 </label>
                 <input
                   type="date"
                   value={attStart}
                   onChange={(e) => setAttStart(e.target.value)}
-                  className="bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                  className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none w-full"
                 />
               </div>
               <div>
-                <label className="block text-[11px] text-gray-500 mb-1">
+                <label className="block text-[11px] text-slate-500 dark:text-slate-400 mb-1">
                   {isRtl ? 'تاريخ الانتهاء (اختياري لنطاق التواريخ):' : 'End Date (Optional for date range):'}
                 </label>
                 <input
                   type="date"
                   value={attEnd}
                   onChange={(e) => setAttEnd(e.target.value)}
-                  className="bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                  className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none w-full"
                 />
               </div>
             </div>
@@ -281,11 +281,11 @@ export default function TeamOverviewTable({
           {activeTab === 'leaves' && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-[11px] text-gray-500 mb-1">{t('filterByType')}</label>
+                <label className="block text-[11px] text-slate-500 dark:text-slate-400 mb-1">{t('filterByType')}</label>
                 <select
                   value={leavesType}
                   onChange={(e) => setLeavesType(e.target.value as 'all' | 'leave' | 'permission')}
-                  className="bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                  className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none w-full"
                 >
                   <option value="all">{t('all')}</option>
                   <option value="leave">{t('annualLeave')}</option>
@@ -293,25 +293,25 @@ export default function TeamOverviewTable({
                 </select>
               </div>
               <div>
-                <label className="block text-[11px] text-gray-500 mb-1">
+                <label className="block text-[11px] text-slate-500 dark:text-slate-400 mb-1">
                   {isRtl ? 'التاريخ (أو تاريخ البدء):' : 'Date (or Start Date):'}
                 </label>
                 <input
                   type="date"
                   value={leaveStart}
                   onChange={(e) => setLeaveStart(e.target.value)}
-                  className="bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                  className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none w-full"
                 />
               </div>
               <div>
-                <label className="block text-[11px] text-gray-500 mb-1">
+                <label className="block text-[11px] text-slate-500 dark:text-slate-400 mb-1">
                   {isRtl ? 'تاريخ الانتهاء (اختياري لنطاق التواريخ):' : 'End Date (Optional for date range):'}
                 </label>
                 <input
                   type="date"
                   value={leaveEnd}
                   onChange={(e) => setLeaveEnd(e.target.value)}
-                  className="bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                  className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none w-full"
                 />
               </div>
             </div>
@@ -320,11 +320,11 @@ export default function TeamOverviewTable({
           {activeTab === 'kpis' && (
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               <div>
-                <label className="block text-[11px] text-gray-500 mb-1">{t('filterByUnit')}</label>
+                <label className="block text-[11px] text-slate-500 dark:text-slate-400 mb-1">{t('filterByUnit')}</label>
                 <select
                   value={kpisUnit}
                   onChange={(e) => setKpisUnit(e.target.value)}
-                  className="bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                  className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none w-full"
                 >
                   <option value="all">{t('all')}</option>
                   {uniqueKpiUnits.map((u) => (
@@ -335,45 +335,45 @@ export default function TeamOverviewTable({
                 </select>
               </div>
               <div>
-                <label className="block text-[11px] text-gray-500 mb-1">
+                <label className="block text-[11px] text-slate-500 dark:text-slate-400 mb-1">
                   {isRtl ? 'البدء:' : 'Start Date:'}
                 </label>
                 <input
                   type="date"
                   value={kpiStart}
                   onChange={(e) => setKpiStart(e.target.value)}
-                  className="bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                  className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none w-full"
                 />
               </div>
               <div>
-                <label className="block text-[11px] text-gray-500 mb-1">
+                <label className="block text-[11px] text-slate-500 dark:text-slate-400 mb-1">
                   {isRtl ? 'الانتهاء:' : 'End Date:'}
                 </label>
                 <input
                   type="date"
                   value={kpiEnd}
                   onChange={(e) => setKpiEnd(e.target.value)}
-                  className="bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                  className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none w-full"
                 />
               </div>
               <div>
-                <label className="block text-[11px] text-gray-500 mb-1">{t('minQty')}</label>
+                <label className="block text-[11px] text-slate-500 dark:text-slate-400 mb-1">{t('minQty')}</label>
                 <input
                   type="number"
                   value={kpisMinQty}
                   onChange={(e) => setKpisMinQty(e.target.value === '' ? '' : Number(e.target.value))}
                   placeholder="e.g. 10"
-                  className="bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                  className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none w-full"
                 />
               </div>
               <div>
-                <label className="block text-[11px] text-gray-500 mb-1">{t('maxQty')}</label>
+                <label className="block text-[11px] text-slate-500 dark:text-slate-400 mb-1">{t('maxQty')}</label>
                 <input
                   type="number"
                   value={kpisMaxQty}
                   onChange={(e) => setKpisMaxQty(e.target.value === '' ? '' : Number(e.target.value))}
                   placeholder="e.g. 100"
-                  className="bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                  className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none w-full"
                 />
               </div>
             </div>
@@ -382,16 +382,16 @@ export default function TeamOverviewTable({
       )}
 
       {/* Tab Contents */}
-      <div className="glass-card p-6 rounded-2xl border border-gray-800 print:bg-white print:text-black print:border-none print:shadow-none">
+      <div className="cleariq-card p-6 cleariq-card-hover print:bg-white print:text-black print:border-none print:shadow-none">
         {/* TAB: Attendance */}
         {activeTab === 'attendance' && (
           <div>
             {filteredAttendance.length === 0 ? (
-              <div className="py-8 text-center text-xs text-gray-500">{isRtl ? 'لا توجد سجلات حضور مطابقة.' : 'No matching attendance logs found.'}</div>
+              <div className="py-8 text-center text-xs text-slate-500 dark:text-slate-400">{isRtl ? 'لا توجد سجلات حضور مطابقة.' : 'No matching attendance logs found.'}</div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs text-gray-300">
-                  <thead className="bg-gray-900/80 text-gray-400 uppercase text-[10px] tracking-wider">
+                <table className="w-full text-left text-xs text-slate-800 dark:text-slate-200">
+                  <thead className="bg-slate-100 dark:bg-slate-800/80 text-slate-950 dark:text-slate-100 uppercase text-[10px] tracking-wider">
                     <tr>
                       <th className="px-4 py-3 rounded-l-lg">{t('fullName')}</th>
                       <th className="px-4 py-3">{t('date')}</th>
@@ -401,19 +401,19 @@ export default function TeamOverviewTable({
                       <th className="px-4 py-3 rounded-r-lg">{t('coordinates')}</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-800/60 font-sans">
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-sans">
                     {filteredAttendance.map((rec) => (
-                      <tr key={rec.id} className="hover:bg-gray-900/40">
-                        <td className="px-4 py-3 font-semibold text-white">
+                      <tr key={rec.id} className="hover:bg-slate-100 dark:hover:bg-slate-800/40">
+                        <td className="px-4 py-3 font-semibold text-slate-950 dark:text-white">
                           {rec.user?.full_name || 'Team Member'}
                         </td>
-                        <td className="px-4 py-3 text-gray-400">{formatDate(rec.date)}</td>
+                        <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{formatDate(rec.date)}</td>
                         <td className="px-4 py-3 font-medium text-emerald-400">{formatTime(rec.check_in_time)}</td>
                         <td className="px-4 py-3 font-medium text-rose-400">{formatTime(rec.check_out_time)}</td>
                         <td className="px-4 py-3 font-bold text-amber-300">
                           {calculateWorkingHours(rec.check_in_time, rec.check_out_time)}
                         </td>
-                        <td className="px-4 py-3 text-gray-400 text-[11px]">
+                        <td className="px-4 py-3 text-slate-500 dark:text-slate-400 text-[11px]">
                           {rec.lat && rec.lng ? (
                             <span className="flex items-center gap-1 text-sky-300">
                               <MapPin className="w-3 h-3" /> {rec.lat.toFixed(4)}, {rec.lng.toFixed(4)}
@@ -435,11 +435,11 @@ export default function TeamOverviewTable({
         {activeTab === 'leaves' && (
           <div>
             {filteredLeaves.length === 0 ? (
-              <div className="py-8 text-center text-xs text-gray-500">{isRtl ? 'لا توجد طلبات إجازة مطابقة.' : 'No matching requests found.'}</div>
+              <div className="py-8 text-center text-xs text-slate-500 dark:text-slate-400">{isRtl ? 'لا توجد طلبات إجازة مطابقة.' : 'No matching requests found.'}</div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs text-gray-300">
-                  <thead className="bg-gray-900/80 text-gray-400 uppercase text-[10px] tracking-wider">
+                <table className="w-full text-left text-xs text-slate-800 dark:text-slate-200">
+                  <thead className="bg-slate-100 dark:bg-slate-800/80 text-slate-950 dark:text-slate-100 uppercase text-[10px] tracking-wider">
                     <tr>
                       <th className="px-4 py-3 rounded-l-lg">{t('fullName')}</th>
                       <th className="px-4 py-3">{t('type')}</th>
@@ -448,17 +448,17 @@ export default function TeamOverviewTable({
                       <th className="px-4 py-3 rounded-r-lg">{t('active')}</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-800/60">
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                     {filteredLeaves.map((rec) => (
-                      <tr key={rec.id} className="hover:bg-gray-900/40">
-                        <td className="px-4 py-3 font-semibold text-white">
+                      <tr key={rec.id} className="hover:bg-slate-100 dark:hover:bg-slate-800/40">
+                        <td className="px-4 py-3 font-semibold text-slate-950 dark:text-white">
                           {rec.user?.full_name || 'Team Member'}
                         </td>
                         <td className="px-4 py-3 capitalize font-medium text-sky-300">
                           {rec.type === 'leave' ? t('annualLeave') : t('permission')}
                         </td>
-                        <td className="px-4 py-3 text-gray-400">{formatDate(rec.date)}</td>
-                        <td className="px-4 py-3 text-gray-400">
+                        <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{formatDate(rec.date)}</td>
+                        <td className="px-4 py-3 text-slate-500 dark:text-slate-400">
                           {rec.type === 'permission' && rec.timeframe ? (
                             <span>
                               {rec.timeframe === 'morning' ? t('morning') : t('evening')}
@@ -472,8 +472,8 @@ export default function TeamOverviewTable({
                           <span
                             className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
                               rec.status === 'active'
-                                ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
-                                : 'bg-red-500/10 text-red-300 border-red-500/30'
+                                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/30'
+                                : 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300 border-red-200 dark:border-red-500/30'
                             }`}
                           >
                             {rec.status === 'active' ? t('active') : t('cancelled')}
@@ -492,11 +492,11 @@ export default function TeamOverviewTable({
         {activeTab === 'kpis' && (
           <div>
             {filteredKpis.length === 0 ? (
-              <div className="py-8 text-center text-xs text-gray-500">{isRtl ? 'لا توجد بيانات إنتاجية مطابقة.' : 'No matching KPI records found.'}</div>
+              <div className="py-8 text-center text-xs text-slate-500 dark:text-slate-400">{isRtl ? 'لا توجد بيانات إنتاجية مطابقة.' : 'No matching KPI records found.'}</div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs text-gray-300">
-                  <thead className="bg-gray-900/80 text-gray-400 uppercase text-[10px] tracking-wider">
+                <table className="w-full text-left text-xs text-slate-800 dark:text-slate-200">
+                  <thead className="bg-slate-100 dark:bg-slate-800/80 text-slate-950 dark:text-slate-100 uppercase text-[10px] tracking-wider">
                     <tr>
                       <th className="px-4 py-3 rounded-l-lg">{t('fullName')}</th>
                       <th className="px-4 py-3">{t('date')}</th>
@@ -505,16 +505,16 @@ export default function TeamOverviewTable({
                       <th className="px-4 py-3 rounded-r-lg">{t('notes')}</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-800/60 font-sans">
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-sans">
                     {filteredKpis.map((rec) => (
-                      <tr key={rec.id} className="hover:bg-gray-900/40">
-                        <td className="px-4 py-3 font-semibold text-white">
+                      <tr key={rec.id} className="hover:bg-slate-100 dark:hover:bg-slate-800/40">
+                        <td className="px-4 py-3 font-semibold text-slate-950 dark:text-white">
                           {rec.user?.full_name || 'Team Member'}
                         </td>
-                        <td className="px-4 py-3 text-gray-400">{formatDate(rec.date)}</td>
+                        <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{formatDate(rec.date)}</td>
                         <td className="px-4 py-3 font-bold text-blue-400">{rec.amount}</td>
-                        <td className="px-4 py-3 text-gray-400 capitalize">{rec.unit}</td>
-                        <td className="px-4 py-3 text-gray-400 text-xs italic max-w-xs truncate">
+                        <td className="px-4 py-3 text-slate-500 dark:text-slate-400 capitalize">{rec.unit}</td>
+                        <td className="px-4 py-3 text-slate-500 dark:text-slate-400 text-xs italic max-w-xs truncate">
                           {rec.notes || '--'}
                         </td>
                       </tr>
@@ -530,16 +530,16 @@ export default function TeamOverviewTable({
         {activeTab === 'report' && (
           <div className="space-y-6">
             {/* Filter selection header */}
-            <div className="p-4 rounded-xl bg-gray-900 border border-gray-800 flex flex-col md:flex-row items-center gap-4 justify-between print:hidden">
+            <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center gap-4 justify-between print:hidden">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 flex-1 w-full">
                 <div>
-                  <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">
+                  <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">
                     {isRtl ? 'الموظف المستهدف:' : 'Select Employee:'}
                   </label>
                   <select
                     value={reportUser}
                     onChange={(e) => setReportUser(e.target.value)}
-                    className="bg-gray-955 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                    className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none w-full"
                   >
                     {teamMembers.map((m) => (
                       <option key={m.id} value={m.id}>
@@ -550,53 +550,53 @@ export default function TeamOverviewTable({
                 </div>
 
                 <div>
-                  <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">
+                  <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">
                     {isRtl ? 'تاريخ البدء:' : 'Start Date:'}
                   </label>
                   <input
                     type="date"
                     value={reportStart}
                     onChange={(e) => setReportStart(e.target.value)}
-                    className="bg-gray-955 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                    className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none w-full"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">
+                  <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">
                     {isRtl ? 'تاريخ الانتهاء:' : 'End Date:'}
                   </label>
                   <input
                     type="date"
                     value={reportEnd}
                     onChange={(e) => setReportEnd(e.target.value)}
-                    className="bg-gray-955 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none w-full"
+                    className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none w-full"
                   />
                 </div>
               </div>
 
               <button
                 onClick={() => window.print()}
-                className="gradient-btn px-4 py-2 rounded-xl text-xs font-bold text-white shadow-md flex items-center gap-1.5 shrink-0"
+                className="gradient-btn px-4 py-2 rounded-xl text-xs font-bold text-slate-950 dark:text-white shadow-md flex items-center gap-1.5 shrink-0"
               >
                 <Printer className="w-4 h-4" /> {isRtl ? 'طباعة التقرير المهني' : 'Print Report'}
               </button>
             </div>
 
             {/* Printable Report Layout */}
-            <div className="p-6 rounded-2xl bg-gray-950/40 border border-gray-800 space-y-6 print:border-none print:bg-white print:text-black">
+            <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-6 print:border-none print:bg-white print:text-black">
               {/* Report Header */}
-              <div className="border-b border-gray-800/80 pb-5 flex justify-between items-center print:border-black">
+              <div className="border-b border-slate-200 dark:border-slate-700/80 pb-5 flex justify-between items-center print:border-black">
                 <div>
-                  <h3 className="text-xl font-black text-white print:text-black flex items-center gap-2">
+                  <h3 className="text-xl font-black text-slate-950 dark:text-white print:text-black flex items-center gap-2">
                     <FileText className="w-5 h-5 text-sky-400 print:text-black" />{' '}
                     {isRtl ? 'تقرير الأداء المهني العام' : 'Professional Performance Summary Report'}
                   </h3>
-                  <p className="text-xs text-gray-400 print:text-black mt-1">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 print:text-black mt-1">
                     {isRtl ? 'مستخرج من صحبة HR للرعاية والتنمية' : 'Generated by So7ba HR Portal'}
                   </p>
                 </div>
                 <div className="text-right">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
                     {isRtl ? 'فترة التقرير' : 'Report Period'}
                   </span>
                   <span className="text-xs font-semibold text-sky-300 print:text-black font-sans">
@@ -606,27 +606,27 @@ export default function TeamOverviewTable({
               </div>
 
               {/* Employee Bio */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-2 border-b border-gray-800/40 print:border-black">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-2 border-b border-slate-200 dark:border-slate-700/40 print:border-black">
                 <div>
-                  <span className="text-[10px] text-gray-500 font-bold block">{isRtl ? 'الاسم:' : 'Name:'}</span>
-                  <span className="text-sm font-bold text-white print:text-black">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block">{isRtl ? 'الاسم:' : 'Name:'}</span>
+                  <span className="text-sm font-bold text-slate-950 dark:text-white print:text-black">
                     {selectedEmpProfile?.full_name || 'N/A'}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-gray-500 font-bold block">{isRtl ? 'الدور الوظيفي:' : 'Role:'}</span>
-                  <span className="text-sm font-semibold text-gray-300 print:text-black capitalize">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block">{isRtl ? 'الدور الوظيفي:' : 'Role:'}</span>
+                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 print:text-black capitalize">
                     {selectedEmpProfile?.role || 'N/A'}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-gray-500 font-bold block">{isRtl ? 'الراتب الأساسي:' : 'Basic Salary:'}</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block">{isRtl ? 'الراتب الأساسي:' : 'Basic Salary:'}</span>
                   <span className="text-sm font-bold text-emerald-400 print:text-black font-sans">
                     {Number(selectedEmpProfile?.basic_salary || 0).toLocaleString()} EGP
                   </span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-gray-500 font-bold block">{isRtl ? 'معيار القياس الافتراضي:' : 'Default KPI Metric:'}</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block">{isRtl ? 'معيار القياس الافتراضي:' : 'Default KPI Metric:'}</span>
                   <span className="text-sm font-semibold text-purple-300 print:text-black capitalize">
                     {selectedEmpProfile?.kpi_unit || 'tasks'}
                   </span>
@@ -635,8 +635,8 @@ export default function TeamOverviewTable({
 
               {/* Metrics Summary Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 font-sans">
-                <div className="p-4 rounded-xl bg-gray-900 border border-gray-800/80 print:border-black print:bg-gray-100">
-                  <span className="text-[10px] font-bold text-gray-400 block mb-1">
+                <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 print:border-black print:bg-gray-100">
+                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1">
                     {isRtl ? 'إجمالي الحضور (ساعات)' : 'Attendance (Hours)'}
                   </span>
                   <span className="text-xl font-extrabold text-sky-400 print:text-black font-sans">
@@ -644,8 +644,8 @@ export default function TeamOverviewTable({
                   </span>
                 </div>
 
-                <div className="p-4 rounded-xl bg-gray-900 border border-gray-800/80 print:border-black print:bg-gray-100">
-                  <span className="text-[10px] font-bold text-gray-400 block mb-1">
+                <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 print:border-black print:bg-gray-100">
+                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1">
                     {isRtl ? 'جلسات الحضور' : 'Check-in Count'}
                   </span>
                   <span className="text-xl font-extrabold text-amber-400 print:text-black font-sans">
@@ -653,8 +653,8 @@ export default function TeamOverviewTable({
                   </span>
                 </div>
 
-                <div className="p-4 rounded-xl bg-gray-900 border border-gray-800/80 print:border-black print:bg-gray-100">
-                  <span className="text-[10px] font-bold text-gray-400 block mb-1">
+                <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 print:border-black print:bg-gray-100">
+                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1">
                     {isRtl ? 'الإجازات / الأذونات' : 'Leaves / Excuses'}
                   </span>
                   <span className="text-xl font-extrabold text-purple-400 print:text-black font-sans">
@@ -665,19 +665,19 @@ export default function TeamOverviewTable({
 
               {/* KPI Production Summary */}
               <div className="space-y-3 font-sans">
-                <h4 className="text-xs font-bold text-gray-300 print:text-black uppercase tracking-wider flex items-center gap-1">
+                <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 print:text-black uppercase tracking-wider flex items-center gap-1">
                   <ChevronRight className="w-4 h-4 text-sky-400 print:text-black" />{' '}
                   {isRtl ? 'مؤشرات الإنتاجية المحققة خلال الفترة' : 'KPI Production Achievements Breakdown'}
                 </h4>
                 {kpisSummaryList.length === 0 ? (
-                  <div className="p-4 rounded-xl bg-gray-900/40 border border-gray-800 text-center text-xs text-gray-500">
+                  <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500 dark:text-slate-400">
                     {isRtl ? 'لم يتم تسجيل أي إنتاجية في هذه الفترة.' : 'No KPI entries logged in this period.'}
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     {kpisSummaryList.map((kpi) => (
-                      <div key={kpi.unit} className="p-3.5 rounded-xl bg-gray-900/60 border border-gray-800 print:border-black print:bg-gray-100">
-                        <span className="text-[10px] font-bold text-gray-500 uppercase block">{kpi.unit}</span>
+                      <div key={kpi.unit} className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 print:border-black print:bg-gray-100">
+                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">{kpi.unit}</span>
                         <span className="text-lg font-black text-purple-300 print:text-black font-sans">
                           {kpi.amount.toLocaleString()}
                         </span>

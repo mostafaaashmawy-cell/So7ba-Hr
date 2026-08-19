@@ -79,15 +79,15 @@ export default function KpiTrackerWidget({ userId, kpiUnit, initialEntries }: Kp
   };
 
   return (
-    <div className="glass-card p-6 rounded-2xl border border-gray-800 space-y-6">
+    <div className="cleariq-card p-6 cleariq-card-hover rounded-2xl space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
             <Target className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="font-bold text-lg text-white">{t('kpiTitle')}</h3>
-            <p className="text-xs text-gray-400">
+            <h3 className="font-bold text-lg text-slate-950 dark:text-white">{t('kpiTitle')}</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               {t('assignedMetric')}:{' '}
               <span className="font-bold text-purple-300 capitalize">{kpiUnit || 'tasks'}</span>
             </p>
@@ -95,10 +95,10 @@ export default function KpiTrackerWidget({ userId, kpiUnit, initialEntries }: Kp
         </div>
 
         <div className="text-right">
-          <span className="text-[11px] text-gray-400 uppercase tracking-wider block">{t('totalLogged')}</span>
+          <span className="text-[11px] text-slate-500 dark:text-slate-400 uppercase tracking-wider block">{t('totalLogged')}</span>
           <span className="text-xl font-extrabold text-purple-400">
             {totalAchieved.toLocaleString()}{' '}
-            <span className="text-xs font-normal text-gray-400">{selectedUnit}</span>
+            <span className="text-xs font-normal text-slate-500 dark:text-slate-400">{selectedUnit}</span>
           </span>
         </div>
       </div>
@@ -107,8 +107,8 @@ export default function KpiTrackerWidget({ userId, kpiUnit, initialEntries }: Kp
         <div
           className={`p-3 rounded-xl border text-xs flex items-center gap-2 ${
             msg.error
-              ? 'bg-red-500/10 border-red-500/30 text-red-300'
-              : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+              ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20'
+              : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20'
           }`}
         >
           {msg.error ? <AlertCircle className="w-4 h-4 shrink-0" /> : <CheckCircle2 className="w-4 h-4 shrink-0" />}
@@ -120,22 +120,22 @@ export default function KpiTrackerWidget({ userId, kpiUnit, initialEntries }: Kp
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">{t('date')}</label>
+            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">{t('date')}</label>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
               required
-              className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-purple-500"
+              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-purple-500"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">{t('chooseUnit')}</label>
+            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">{t('chooseUnit')}</label>
             <select
               value={selectedUnit}
               onChange={(e) => setSelectedUnit(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-purple-500"
+              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-purple-500"
             >
               {kpiUnits.map((unit) => (
                 <option key={unit} value={unit}>
@@ -147,7 +147,7 @@ export default function KpiTrackerWidget({ userId, kpiUnit, initialEntries }: Kp
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">
+            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">
               {t('quantity')}
             </label>
             <input
@@ -158,22 +158,22 @@ export default function KpiTrackerWidget({ userId, kpiUnit, initialEntries }: Kp
               onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
               placeholder="e.g. 45"
               required
-              className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-purple-500"
+              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-purple-500"
             />
           </div>
         </div>
 
         {/* Optional Notes Box */}
         <div>
-          <label className="block text-xs font-medium text-gray-400 mb-1.5">
-            {t('notes')} <span className="text-[10px] text-gray-500">({t('optional')})</span>
+          <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">
+            {t('notes')} <span className="text-[10px] text-slate-500 dark:text-slate-400">({t('optional')})</span>
           </label>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder={t('notesPlaceholder')}
             rows={2}
-            className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2 text-sm text-gray-100 focus:outline-none focus:border-purple-500 resize-none"
+            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-purple-500 resize-none"
           />
         </div>
 
@@ -190,15 +190,15 @@ export default function KpiTrackerWidget({ userId, kpiUnit, initialEntries }: Kp
 
       {/* Production History */}
       <div>
-        <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">{t('recentLog')}</h4>
+        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">{t('recentLog')}</h4>
         {entries.length === 0 ? (
-          <div className="text-center py-5 text-xs text-gray-500 bg-gray-900/30 rounded-xl border border-gray-800">
+          <div className="text-center py-5 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
             {isRtl ? 'لا توجد بيانات إنتاجية مسجلة.' : 'No KPI entries recorded yet.'}
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-gray-300">
-              <thead className="bg-gray-900/80 text-gray-400 uppercase text-[10px] tracking-wider">
+            <table className="w-full text-left text-xs text-slate-700 dark:text-slate-300">
+              <thead className="bg-slate-100 dark:bg-slate-800/80 text-slate-950 dark:text-slate-100 uppercase text-[10px] tracking-wider">
                 <tr>
                   <th className="px-4 py-2.5 rounded-l-lg">{t('date')}</th>
                   <th className="px-4 py-2.5">{t('quantity')}</th>
@@ -206,13 +206,13 @@ export default function KpiTrackerWidget({ userId, kpiUnit, initialEntries }: Kp
                   <th className="px-4 py-2.5 rounded-r-lg">{t('notes')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-800/60">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {entries.slice(0, 10).map((e) => (
-                  <tr key={e.id} className="hover:bg-gray-900/40">
-                    <td className="px-4 py-3 text-gray-400">{formatDate(e.date)}</td>
+                  <tr key={e.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
+                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{formatDate(e.date)}</td>
                     <td className="px-4 py-3 font-bold text-purple-300">{e.amount}</td>
-                    <td className="px-4 py-3 text-gray-400 capitalize">{e.unit}</td>
-                    <td className="px-4 py-3 text-gray-400 text-xs italic max-w-xs truncate">
+                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400 capitalize">{e.unit}</td>
+                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400 text-xs italic max-w-xs truncate">
                       {e.notes || '--'}
                     </td>
                   </tr>

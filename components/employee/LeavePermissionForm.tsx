@@ -87,14 +87,14 @@ export default function LeavePermissionForm({ userId, initialRecords, holidayWor
     <div className="space-y-6">
       {/* Cards Summary grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="glass-card p-4 rounded-xl border border-gray-800">
-          <div className="flex items-center justify-between text-gray-400 mb-2">
+        <div className="cleariq-card p-4 cleariq-card-hover">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
             <span className="text-xs font-semibold">{t('totalAllowance')}</span>
             <Calendar className="w-4 h-4 text-purple-400" />
           </div>
-          <div className="text-2xl font-black text-white flex items-baseline gap-1.5">
+          <div className="text-2xl font-black text-slate-950 dark:text-white flex items-baseline gap-1.5">
             <span>{totalAllowance}</span>
-            <span className="text-xs font-normal text-gray-400">{t('days')}</span>
+            <span className="text-xs font-normal text-slate-500 dark:text-slate-400">{t('days')}</span>
             {holidayWorkCount > 0 && (
               <span className="text-[10px] text-lime-400 font-bold bg-lime-500/10 px-1.5 py-0.5 rounded">
                 +{holidayWorkCount}
@@ -103,49 +103,49 @@ export default function LeavePermissionForm({ userId, initialRecords, holidayWor
           </div>
         </div>
 
-        <div className="glass-card p-4 rounded-xl border border-gray-800">
-          <div className="flex items-center justify-between text-gray-400 mb-2">
+        <div className="cleariq-card p-4 cleariq-card-hover">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
             <span className="text-xs font-semibold">{t('consumedLeave')}</span>
             <Clock className="w-4 h-4 text-amber-400" />
           </div>
           <div className="text-2xl font-black text-amber-400">
-            {consumedLeaves} <span className="text-xs font-normal text-gray-400">{t('days')}</span>
+            {consumedLeaves} <span className="text-xs font-normal text-slate-500 dark:text-slate-400">{t('days')}</span>
           </div>
         </div>
 
-        <div className="glass-card p-4 rounded-xl border border-gray-800">
-          <div className="flex items-center justify-between text-gray-400 mb-2">
+        <div className="cleariq-card p-4 cleariq-card-hover">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
             <span className="text-xs font-semibold">{t('remainingLeave')}</span>
             <Sparkles className="w-4 h-4 text-emerald-400" />
           </div>
           <div className="text-2xl font-black text-emerald-400">
-            {remainingLeaves} <span className="text-xs font-normal text-gray-400">{t('days')}</span>
+            {remainingLeaves} <span className="text-xs font-normal text-slate-500 dark:text-slate-400">{t('days')}</span>
           </div>
         </div>
 
-        <div className="glass-card p-4 rounded-xl border border-gray-800">
-          <div className="flex items-center justify-between text-gray-400 mb-2">
+        <div className="cleariq-card p-4 cleariq-card-hover">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
             <span className="text-xs font-semibold">{t('permissionsTaken')}</span>
             <CheckCircle className="w-4 h-4 text-blue-400" />
           </div>
           <div className="text-2xl font-black text-blue-400">
             {permissionsCount} / 4{' '}
-            <span className="text-xs font-normal text-gray-400">{t('requests')}</span>
+            <span className="text-xs font-normal text-slate-500 dark:text-slate-400">{t('requests')}</span>
           </div>
         </div>
       </div>
 
       {/* Logging Form */}
-      <div className="glass-card p-6 rounded-2xl border border-gray-800">
-        <h3 className="font-bold text-lg text-white mb-1">{t('leavesTitle')}</h3>
-        <p className="text-xs text-gray-400 mb-5">{t('leavesDesc')}</p>
+      <div className="cleariq-card p-6 cleariq-card-hover">
+        <h3 className="font-bold text-lg text-slate-950 dark:text-white mb-1">{t('leavesTitle')}</h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mb-5">{t('leavesDesc')}</p>
 
         {msg && (
           <div
             className={`mb-4 p-3 rounded-xl border text-xs flex items-center gap-2 ${
               msg.error
-                ? 'bg-red-500/10 border-red-500/30 text-red-300'
-                : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20'
+                : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20'
             }`}
           >
             {msg.error ? <AlertCircle className="w-4 h-4 shrink-0" /> : <CheckCircle className="w-4 h-4 shrink-0" />}
@@ -156,11 +156,11 @@ export default function LeavePermissionForm({ userId, initialRecords, holidayWor
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">{t('type')}</label>
+              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">{t('type')}</label>
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value as 'leave' | 'permission')}
-                className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-purple-500"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-purple-500"
               >
                 <option value="leave">{t('annualLeave')}</option>
                 <option value="permission">{t('permission')}</option>
@@ -168,13 +168,13 @@ export default function LeavePermissionForm({ userId, initialRecords, holidayWor
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">{t('date')}</label>
+              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">{t('date')}</label>
               <input
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 required
-                className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3.5 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-purple-500"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-purple-500"
               />
             </div>
 
@@ -193,17 +193,17 @@ export default function LeavePermissionForm({ userId, initialRecords, holidayWor
 
           {/* Conditional excuse fields for permission */}
           {type === 'permission' && (
-            <div className="p-4 rounded-xl bg-gray-900/60 border border-gray-800/80 space-y-4">
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-4">
               <h4 className="text-xs font-bold text-purple-300 uppercase tracking-wider">
                 {t('permissionDetails')}
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                 <div>
-                  <label className="block text-xs font-medium text-gray-400 mb-1.5">{t('timeframe')}</label>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">{t('timeframe')}</label>
                   <select
                     value={timeframe}
                     onChange={(e) => setTimeframe(e.target.value as 'morning' | 'evening')}
-                    className="w-full bg-gray-950 border border-gray-800 rounded-xl px-3.5 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-purple-500"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-purple-500"
                   >
                     <option value="morning">{t('morning')}</option>
                     <option value="evening">{t('evening')}</option>
@@ -211,13 +211,13 @@ export default function LeavePermissionForm({ userId, initialRecords, holidayWor
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-400 mb-1.5">{t('excuseTime')}</label>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">{t('excuseTime')}</label>
                   <input
                     type="time"
                     value={excuseTime}
                     onChange={(e) => setExcuseTime(e.target.value)}
                     required
-                    className="w-full bg-gray-950 border border-gray-800 rounded-xl px-3.5 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-purple-500"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-purple-500"
                   />
                 </div>
 
@@ -237,15 +237,15 @@ export default function LeavePermissionForm({ userId, initialRecords, holidayWor
 
         {/* History table */}
         <div className="mt-8">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">{t('recentRequests')}</h4>
+          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">{t('recentRequests')}</h4>
           {records.length === 0 ? (
-            <div className="text-center py-6 text-xs text-gray-500 bg-gray-900/30 rounded-xl border border-gray-800">
+            <div className="text-center py-6 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
               {isRtl ? 'لا يوجد طلبات إجازة أو إذن مغادرة مسجلة.' : 'No leave or permission requests logged yet.'}
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-gray-300">
-                <thead className="bg-gray-900/80 text-gray-400 uppercase text-[10px] tracking-wider">
+              <table className="w-full text-left text-xs text-slate-700 dark:text-slate-300">
+                <thead className="bg-slate-100 dark:bg-slate-800/80 text-slate-950 dark:text-slate-100 uppercase text-[10px] tracking-wider">
                   <tr>
                     <th className="px-4 py-2.5 rounded-l-lg">{t('type')}</th>
                     <th className="px-4 py-2.5">{t('date')}</th>
@@ -253,9 +253,9 @@ export default function LeavePermissionForm({ userId, initialRecords, holidayWor
                     <th className="px-4 py-2.5 rounded-r-lg">{t('active')}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-800/60">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {records.slice(0, 10).map((r) => (
-                    <tr key={r.id} className="hover:bg-gray-900/40">
+                    <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                       <td className="px-4 py-3 font-medium capitalize">
                         {r.type === 'leave' ? (
                           <span className="text-purple-300">{t('annualLeave')}</span>
@@ -263,8 +263,8 @@ export default function LeavePermissionForm({ userId, initialRecords, holidayWor
                           <span className="text-blue-300">{t('permission')}</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-gray-400">{formatDate(r.date)}</td>
-                      <td className="px-4 py-3 text-gray-400">
+                      <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{formatDate(r.date)}</td>
+                      <td className="px-4 py-3 text-slate-500 dark:text-slate-400">
                         {r.type === 'permission' && r.timeframe ? (
                           <span>
                             {r.timeframe === 'morning' ? t('morning') : t('evening')}
@@ -278,8 +278,8 @@ export default function LeavePermissionForm({ userId, initialRecords, holidayWor
                         <span
                           className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium border ${
                             r.status === 'active'
-                              ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
-                              : 'bg-red-500/10 text-red-300 border-red-500/30'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20'
+                              : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20'
                           }`}
                         >
                           {r.status === 'active' ? t('active') : t('cancelled')}
