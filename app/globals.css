@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* ═══════════════════════════════════════════════════════
-   HumAi Design System — Light & Dark Mode CSS Variables
+   HumAi Official Design System — Emerald Green & Deep Charcoal
    ═══════════════════════════════════════════════════════ */
 
 :root {
@@ -13,21 +13,21 @@
   --bg-input:       #f1f5f9;
 
   --border:         #e2e8f0;
-  --border-focus:   #2563eb;
+  --border-focus:   #10b981;
   --border-hover:   #cbd5e1;
 
-  --text-primary:   #0f172a;
-  --text-secondary: #475569;
-  --text-muted:     #94a3b8;
+  --text-primary:   #1f2937; /* Deep Slate Charcoal */
+  --text-secondary: #4b5563;
+  --text-muted:     #9ca3af;
 
-  --primary:        #2563eb;
-  --primary-hover:  #1d4ed8;
-  --primary-light:  #eff6ff;
-  --primary-ring:   rgba(37, 99, 235, 0.15);
+  --primary:        #10b981; /* Official HumAi Emerald Green */
+  --primary-hover:  #059669;
+  --primary-light:  #ecfdf5; /* Emerald 50 */
+  --primary-ring:   rgba(16, 185, 129, 0.2);
 
   --shadow-card:    0 1px 3px rgba(0,0,0,.05), 0 1px 2px rgba(0,0,0,.04);
-  --shadow-hover:   0 8px 24px rgba(37,99,235,.08), 0 2px 8px rgba(0,0,0,.06);
-  --shadow-modal:   0 20px 60px rgba(0,0,0,.12);
+  --shadow-hover:   0 8px 24px rgba(16,185,129,.1), 0 2px 8px rgba(0,0,0,.06);
+  --shadow-modal:   0 20px 60px rgba(31,41,55,.15);
 
   --scrollbar-track: #f1f5f9;
   --scrollbar-thumb: #cbd5e1;
@@ -45,17 +45,17 @@
   --bg-input:       #0f172a;
 
   --border:         #334155;
-  --border-focus:   #3b82f6;
+  --border-focus:   #10b981;
   --border-hover:   #475569;
 
-  --text-primary:   #f1f5f9;
+  --text-primary:   #f8fafc;
   --text-secondary: #cbd5e1;
   --text-muted:     #64748b;
 
-  --primary:        #3b82f6;
-  --primary-hover:  #2563eb;
-  --primary-light:  rgba(59, 130, 246, 0.12);
-  --primary-ring:   rgba(59, 130, 246, 0.2);
+  --primary:        #10b981;
+  --primary-hover:  #059669;
+  --primary-light:  rgba(16, 185, 129, 0.15);
+  --primary-ring:   rgba(16, 185, 129, 0.25);
 
   --shadow-card:    0 1px 3px rgba(0,0,0,.3), 0 1px 2px rgba(0,0,0,.2);
   --shadow-hover:   0 8px 24px rgba(0,0,0,.4), 0 2px 8px rgba(0,0,0,.3);
@@ -107,11 +107,11 @@ body {
 .glass-card-hover:hover { border-color: var(--border-hover); box-shadow: var(--shadow-hover); }
 
 /* ═══════════════════════════════════════════════════════
-   Gradient Button (theme-aware primary)
+   Gradient Button (HumAi Emerald Primary)
    ═══════════════════════════════════════════════════════ */
 
 .gradient-btn {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: #ffffff;
   transition: all 0.2s ease;
   display: inline-flex;
@@ -121,18 +121,18 @@ body {
 }
 
 .gradient-btn:hover {
-  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
   transform: translateY(-1px);
 }
 
 .dark .gradient-btn {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
 }
 
 .dark .gradient-btn:hover {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -209,11 +209,11 @@ textarea::placeholder {
   to   { opacity: 1; }
 }
 
-.pulse-blue {
-  animation: pulseBlue 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+.pulse-emerald {
+  animation: pulseEmerald 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-@keyframes pulseBlue {
+@keyframes pulseEmerald {
   0%, 100% { opacity: 1; transform: scale(1); }
   50%       { opacity: 0.7; transform: scale(1.06); }
 }
@@ -223,7 +223,7 @@ textarea::placeholder {
    ═══════════════════════════════════════════════════════ */
 
 .gradient-text {
-  background: linear-gradient(135deg, #2563eb 0%, #0284c7 100%);
+  background: linear-gradient(135deg, #10b981 0%, #047857 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -249,13 +249,14 @@ textarea::placeholder {
 
 /* Light mode active */
 .nav-active {
-  background-color: #2563eb;
+  background-color: #10b981;
   color: #ffffff;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
 }
 
 /* Dark mode active */
 .dark .nav-active {
-  background-color: rgba(59, 130, 246, 0.15);
-  color: #60a5fa;
-  border-right: 2px solid #3b82f6;
+  background-color: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border-right: 2px solid #10b981;
 }

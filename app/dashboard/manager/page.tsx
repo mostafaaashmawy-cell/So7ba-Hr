@@ -109,7 +109,7 @@ export default async function ManagerDashboardPage() {
                 <p className="text-[11px] text-slate-400">Rate and review team performance</p>
               </div>
             </div>
-            <span className="text-xs font-bold text-blue-600 group-hover:translate-x-1 transition-transform">
+            <span className="text-xs font-bold text-emerald-600 group-hover:translate-x-1 transition-transform">
               →
             </span>
           </Link>
@@ -119,7 +119,7 @@ export default async function ManagerDashboardPage() {
             className="cleariq-card p-5 cleariq-card-hover flex items-center justify-between group"
           >
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+              <div className="w-11 h-11 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-400">
                 <span className="text-xl">📈</span>
               </div>
               <div>
@@ -127,7 +127,7 @@ export default async function ManagerDashboardPage() {
                 <p className="text-[11px] text-slate-400">Approve client sales & commissions</p>
               </div>
             </div>
-            <span className="text-xs font-bold text-blue-600 group-hover:translate-x-1 transition-transform">
+            <span className="text-xs font-bold text-emerald-600 group-hover:translate-x-1 transition-transform">
               →
             </span>
           </Link>
@@ -145,7 +145,7 @@ export default async function ManagerDashboardPage() {
                 <p className="text-[11px] text-slate-400">Set and validate goals achievements</p>
               </div>
             </div>
-            <span className="text-xs font-bold text-blue-600 group-hover:translate-x-1 transition-transform">
+            <span className="text-xs font-bold text-emerald-600 group-hover:translate-x-1 transition-transform">
               →
             </span>
           </Link>

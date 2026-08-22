@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Building, Settings, MapPin, Clock, ArrowRight, ArrowLeft, CheckCircle2, RefreshCw, Plus, Trash2, ShieldCheck, DollarSign } from 'lucide-react';
 import { BranchLocation } from '@/lib/types/database';
+import HumAiLogo from '@/components/common/HumAiLogo';
 
 const INDUSTRIES = [
   'Organization',
@@ -299,7 +300,7 @@ export default function OnboardingPage() {
   if (checking) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-500 dark:text-slate-400 text-xs">
-        <RefreshCw className="w-5 h-5 animate-spin text-sky-400 mr-2" />
+        <RefreshCw className="w-5 h-5 animate-spin text-emerald-500 mr-2" />
         Checking profile onboarding status...
       </div>
     );
@@ -312,19 +313,14 @@ export default function OnboardingPage() {
         <div>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl gradient-btn flex items-center justify-center text-white font-extrabold text-sm">
-                H
-              </div>
-              <span className="text-sm font-bold text-sky-400 tracking-wide uppercase">
-                HumAi Setup Wizard
-              </span>
+              <HumAiLogo variant="horizontal" size="sm" showTagline />
             </div>
             <span className="text-xs font-sans text-slate-500 dark:text-slate-400 font-bold">Step {step} of 5</span>
           </div>
 
           <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
             <div
-              className="bg-gradient-to-r from-sky-500 to-indigo-500 h-full transition-all duration-300 rounded-full"
+              className="bg-gradient-to-r from-emerald-500 to-teal-600 h-full transition-all duration-300 rounded-full"
               style={{ width: `${(step / 5) * 100}%` }}
             />
           </div>
@@ -335,7 +331,7 @@ export default function OnboardingPage() {
           <div className="space-y-6">
             <div>
               <h2 className="text-xl font-extrabold text-slate-950 dark:text-white flex items-center gap-2">
-                <Building className="w-5 h-5 text-sky-400" />
+                <Building className="w-5 h-5 text-emerald-500" />
                 Company Profile & Industry
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -353,7 +349,7 @@ export default function OnboardingPage() {
                   placeholder="e.g. Acme Corporation Ltd"
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
-                  className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
                 />
               </div>
 
@@ -364,7 +360,7 @@ export default function OnboardingPage() {
                 <select
                   value={industry}
                   onChange={(e) => setIndustry(e.target.value)}
-                  className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500 transition-colors cursor-pointer"
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500 transition-colors cursor-pointer"
                 >
                   {INDUSTRIES.map((ind) => (
                     <option key={ind} value={ind}>
@@ -382,7 +378,7 @@ export default function OnboardingPage() {
           <div className="space-y-6">
             <div>
               <h2 className="text-xl font-extrabold text-slate-950 dark:text-white flex items-center gap-2">
-                <Settings className="w-5 h-5 text-sky-400" />
+                <Settings className="w-5 h-5 text-emerald-500" />
                 Modules & Shift System Toggles
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -402,7 +398,7 @@ export default function OnboardingPage() {
                   type="checkbox"
                   checked={enableShifts}
                   onChange={(e) => setEnableShifts(e.target.checked)}
-                  className="w-5 h-5 accent-sky-500 rounded cursor-pointer"
+                  className="w-5 h-5 accent-emerald-500 rounded cursor-pointer"
                 />
               </div>
 
@@ -417,7 +413,7 @@ export default function OnboardingPage() {
                   type="checkbox"
                   checked={enableAdvances}
                   onChange={(e) => setEnableAdvances(e.target.checked)}
-                  className="w-5 h-5 accent-sky-500 rounded cursor-pointer"
+                  className="w-5 h-5 accent-emerald-500 rounded cursor-pointer"
                 />
               </div>
 
@@ -432,7 +428,7 @@ export default function OnboardingPage() {
                   type="checkbox"
                   checked={enableCommissions}
                   onChange={(e) => setEnableCommissions(e.target.checked)}
-                  className="w-5 h-5 accent-sky-500 rounded cursor-pointer"
+                  className="w-5 h-5 accent-emerald-500 rounded cursor-pointer"
                 />
               </div>
 
@@ -449,7 +445,7 @@ export default function OnboardingPage() {
                   type="checkbox"
                   checked={enableInsurances}
                   onChange={(e) => setEnableInsurances(e.target.checked)}
-                  className="w-5 h-5 accent-sky-500 rounded cursor-pointer"
+                  className="w-5 h-5 accent-emerald-500 rounded cursor-pointer"
                 />
               </div>
             </div>
@@ -461,7 +457,7 @@ export default function OnboardingPage() {
           <div className="space-y-6">
             <div>
               <h2 className="text-xl font-extrabold text-slate-950 dark:text-white flex items-center gap-2">
-                <Clock className="w-5 h-5 text-sky-400" />
+                <Clock className="w-5 h-5 text-emerald-500" />
                 Default Company Schedule
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -479,7 +475,7 @@ export default function OnboardingPage() {
                     type="time"
                     value={workStartTime}
                     onChange={(e) => setWorkStartTime(e.target.value)}
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500 font-sans"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500 font-sans"
                   />
                 </div>
                 <div>
@@ -490,7 +486,7 @@ export default function OnboardingPage() {
                     type="time"
                     value={workEndTime}
                     onChange={(e) => setWorkEndTime(e.target.value)}
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500 font-sans"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500 font-sans"
                   />
                 </div>
               </div>
@@ -509,12 +505,12 @@ export default function OnboardingPage() {
                         onClick={() => toggleDay(day.key)}
                         className={`flex items-center justify-between p-3 rounded-xl border text-xs font-semibold transition-all ${
                           isSelected
-                            ? 'bg-sky-500/20 border-sky-500 text-sky-300'
+                            ? 'bg-sky-500/20 border-sky-500 text-emerald-600 dark:text-emerald-400'
                             : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-blue-400 dark:hover:border-blue-500'
                         }`}
                       >
                         <span>{day.label}</span>
-                        {isSelected && <CheckCircle2 className="w-4 h-4 text-sky-400" />}
+                        {isSelected && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
                       </button>
                     );
                   })}
@@ -530,7 +526,7 @@ export default function OnboardingPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-extrabold text-slate-950 dark:text-white flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-sky-400" />
+                  <MapPin className="w-5 h-5 text-emerald-500" />
                   Multi-Branch Geofencing
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -540,7 +536,7 @@ export default function OnboardingPage() {
               <button
                 type="button"
                 onClick={addBranch}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 rounded-xl text-xs font-bold transition-all"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 text-emerald-600 dark:text-emerald-400 border border-sky-500/30 rounded-xl text-xs font-bold transition-all"
               >
                 <Plus className="w-4 h-4" /> Add Branch
               </button>
@@ -553,7 +549,7 @@ export default function OnboardingPage() {
                   className="p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-3"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-sky-400 uppercase tracking-wider">
+                    <span className="text-xs font-bold text-emerald-500 uppercase tracking-wider">
                       Branch #{idx + 1}
                     </span>
                     <div className="flex items-center gap-2">
@@ -585,7 +581,7 @@ export default function OnboardingPage() {
                       value={branch.name}
                       onChange={(e) => updateBranch(idx, 'name', e.target.value)}
                       placeholder="e.g. Cairo HQ / Nasr City Branch"
-                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500"
                     />
                   </div>
 
@@ -631,7 +627,7 @@ export default function OnboardingPage() {
           <div className="space-y-6">
             <div>
               <h2 className="text-xl font-extrabold text-slate-950 dark:text-white flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-sky-400" />
+                <ShieldCheck className="w-5 h-5 text-emerald-500" />
                 Lateness Engine & Salary Advance Rules
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -641,7 +637,7 @@ export default function OnboardingPage() {
 
             <div className="space-y-4">
               <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-3">
-                <div className="text-xs font-bold text-sky-400 uppercase tracking-wider">
+                <div className="text-xs font-bold text-emerald-500 uppercase tracking-wider">
                   Lateness Policy
                 </div>
 
@@ -735,7 +731,7 @@ export default function OnboardingPage() {
               </div>
 
               <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-3">
-                <div className="text-xs font-bold text-sky-400 uppercase tracking-wider flex items-center gap-1.5">
+                <div className="text-xs font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1.5">
                   <DollarSign className="w-3.5 h-3.5" /> Salary Advance Engine Rules
                 </div>
 
@@ -791,7 +787,7 @@ export default function OnboardingPage() {
             <button
               type="button"
               onClick={handleNext}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl gradient-btn text-xs font-bold text-white shadow-lg shadow-sky-500/20 transition-all"
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl gradient-btn text-xs font-bold text-white shadow-lg shadow-emerald-500/20 transition-all"
             >
               Continue <ArrowRight className="w-4 h-4" />
             </button>
@@ -800,7 +796,7 @@ export default function OnboardingPage() {
               type="button"
               disabled={loading}
               onClick={handleComplete}
-              className="flex items-center gap-2 px-8 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white shadow-lg shadow-emerald-500/20 transition-all cursor-pointer disabled:opacity-50"
+              className="flex items-center gap-2 px-8 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white shadow-lg shadow-emerald-500/30 transition-all cursor-pointer disabled:opacity-50"
             >
               {loading ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />

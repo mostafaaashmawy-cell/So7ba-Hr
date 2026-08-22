@@ -93,7 +93,7 @@ export default async function EmployeeDashboardPage() {
               className="cleariq-card p-5 cleariq-card-hover flex flex-col justify-between space-y-4 group"
             >
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+                <div className="w-11 h-11 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-400">
                   <span className="text-xl">📈</span>
                 </div>
                 <div>
@@ -101,7 +101,7 @@ export default async function EmployeeDashboardPage() {
                   <p className="text-[11px] text-slate-400">Submit logs to earn commissions</p>
                 </div>
               </div>
-              <span className="py-2 px-3 rounded-xl bg-blue-50 group-hover:bg-blue-600 group-hover:text-white text-blue-600 text-xs font-bold transition-all text-center">
+              <span className="py-2 px-3 rounded-xl bg-emerald-50 group-hover:bg-emerald-600 group-hover:text-white text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 text-xs font-bold transition-all text-center">
                 Open Sales Portal
               </span>
             </Link>

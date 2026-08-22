@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { UserProfile } from '@/lib/types/database';
 import { FileText, Save, Download, RefreshCw, AlertCircle, CheckCircle2, FileEdit } from 'lucide-react';
 import { useLanguage } from '@/lib/context/LanguageContext';
+import HumAiLogo from '@/components/common/HumAiLogo';
 
 export default function ContractsPage() {
   const { isRtl } = useLanguage();
@@ -31,7 +32,7 @@ export default function ContractsPage() {
 
   const defaultTemplate = `EMPLOYMENT AGREEMENT
 
-This Agreement is made on {{Current_Date}} between Simply HR System (hereinafter "the Company") and {{Employee_Name}} (hereinafter "the Employee").
+This Agreement is made on {{Current_Date}} between HumAi Smart Operations Platform (hereinafter "the Company") and {{Employee_Name}} (hereinafter "the Employee").
 
 1. POSITION AND DESIGNATION:
 The Employee is hired as a {{Job_Title}} in the {{Department_Name}} department.
@@ -125,7 +126,7 @@ For the Company                         Employee Signature`;
         if (error) throw error;
       }
 
-      setMsg({ text: isRtl ? 'تم حفظ نموذج العقد الرئيسي!' : 'Master contract template saved!', error: false });
+      setMsg({ text: isRtl ? 'تم حفظ نموذج العقد الرئيسي بنجاح!' : 'Master contract template saved successfully!', error: false });
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : 'Failed to save';
       setMsg({ text: errMsg, error: true });
@@ -185,7 +186,7 @@ For the Company                         Employee Signature`;
   if (loading) {
     return (
       <div className="min-h-screen bg-[--bg] flex items-center justify-center text-slate-500 dark:text-slate-400 text-xs">
-        <RefreshCw className="w-5 h-5 animate-spin text-sky-400 mr-2" />
+        <RefreshCw className="w-5 h-5 animate-spin text-emerald-500 mr-2" />
         Loading contracts configurator...
       </div>
     );
@@ -211,7 +212,7 @@ For the Company                         Employee Signature`;
                 </button>
                 <button
                   onClick={() => setShowPreview(false)}
-                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-white px-3 py-1.5 rounded-xl text-xs cursor-pointer"
+                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white px-3 py-1.5 rounded-xl text-xs cursor-pointer font-bold"
                 >
                   Back to Template
                 </button>
@@ -221,11 +222,11 @@ For the Company                         Employee Signature`;
             {/* Print Header Logo */}
             <div className="hidden print:flex items-center justify-between border-b-2 border-black pb-4 mb-8">
               <div>
-                <h1 className="text-xl font-black text-black">Simply HR System</h1>
-                <p className="text-[10px] text-gray-700">Official Employment Documentation</p>
+                <HumAiLogo variant="horizontal" size="lg" showTagline />
+                <p className="text-[10px] text-gray-700 mt-1 font-semibold">Official Employment Documentation</p>
               </div>
-              <div className="w-12 h-12 bg-black text-white font-extrabold text-2xl flex items-center justify-center rounded-xl">
-                S
+              <div className="text-right text-xs text-gray-600 font-sans">
+                <span>Date: {new Date().toLocaleDateString()}</span>
               </div>
             </div>
 
@@ -242,8 +243,8 @@ For the Company                         Employee Signature`;
             {/* Editor Workspace Column */}
             <div className="lg:col-span-2 cleariq-card p-6 cleariq-card-hover space-y-4">
               <div className="flex justify-between items-center">
-                <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                  <FileEdit className="w-5 h-5 text-sky-400" /> Master Contract Text Editor
+                <h2 className="text-lg font-bold text-slate-950 dark:text-white flex items-center gap-2">
+                  <FileEdit className="w-5 h-5 text-emerald-500" /> Master Contract Text Editor
                 </h2>
                 <button
                   onClick={saveTemplate}
@@ -258,7 +259,7 @@ For the Company                         Employee Signature`;
                 <div className={`p-3 rounded-xl border text-xs flex items-center gap-2 ${
                   msg.error ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20' : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20'
                 }`}>
-                  {msg.error ? <AlertCircle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+                  {msg.error ? <AlertCircle className="w-4 h-4 shrink-0" /> : <CheckCircle2 className="w-4 h-4 shrink-0" />}
                   <span>{msg.text}</span>
                 </div>
               )}
@@ -266,7 +267,7 @@ For the Company                         Employee Signature`;
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 You can write custom contracts using template variables. They will auto-fill with selected employee details:
                 <br />
-                <code className="text-sky-300 text-[10px] font-sans">
+                <code className="text-emerald-600 dark:text-emerald-400 text-[10px] font-sans">
                   {"{{Employee_Name}}"}, {"{{Job_Title}}"}, {"{{Basic_Salary}}"}, {"{{Department_Name}}"}, {"{{Payment_Method}}"}, {"{{Contract_Type}}"}, {"{{Probation_Period}}"}, {"{{Contract_End_Date}}"}, {"{{Manager_Name}}"}, {"{{Current_Date}}"}
                 </code>
               </p>
@@ -275,7 +276,7 @@ For the Company                         Employee Signature`;
                 value={templateBody}
                 onChange={(e) => setTemplateBody(e.target.value)}
                 rows={18}
-                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 text-xs font-mono text-slate-950 dark:text-white focus:outline-none leading-relaxed"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 text-xs font-mono text-slate-950 dark:text-white focus:outline-none focus:border-emerald-500 leading-relaxed"
               />
             </div>
 
@@ -300,7 +301,7 @@ For the Company                         Employee Signature`;
                         setEndDate(emp.contract_end_date || '');
                       }
                     }}
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500"
                   >
                     {employees.map((e) => (
                       <option key={e.id} value={e.id}>{e.full_name}</option>
@@ -316,7 +317,7 @@ For the Company                         Employee Signature`;
                     <select
                       value={contractType}
                       onChange={(e) => setContractType(e.target.value)}
-                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500"
                     >
                       <option value="Full-Time">Full-Time</option>
                       <option value="Part-Time">Part-Time</option>
@@ -330,7 +331,7 @@ For the Company                         Employee Signature`;
                       type="number"
                       value={probationMonths}
                       onChange={(e) => setProbationMonths(Number(e.target.value))}
-                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none font-sans"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500 font-sans"
                     />
                   </div>
 
@@ -340,14 +341,14 @@ For the Company                         Employee Signature`;
                       type="date"
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
-                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none font-sans"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-emerald-500 font-sans"
                     />
                   </div>
 
                   <button
                     type="button"
                     onClick={handleUpdateEmployeeContracts}
-                    className="w-full bg-sky-500/10 border border-sky-500/20 text-sky-400 py-2 rounded-xl text-xs font-semibold hover:bg-sky-500/20 transition-all"
+                    className="w-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 py-2 rounded-xl text-xs font-bold hover:bg-emerald-500/20 transition-all cursor-pointer"
                   >
                     Apply Terms to Employee Profile
                   </button>

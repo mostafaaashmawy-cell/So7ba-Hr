@@ -293,7 +293,7 @@ export default function EvaluationsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[--bg] flex items-center justify-center text-slate-400 text-xs font-bold">
-        <RefreshCw className="w-5 h-5 animate-spin text-blue-600 mr-2" />
+        <RefreshCw className="w-5 h-5 animate-spin text-emerald-600 mr-2" />
         Loading evaluations...
       </div>
     );
@@ -369,7 +369,7 @@ export default function EvaluationsPage() {
             <div className="lg:col-span-1 cleariq-card p-6 cleariq-card-hover space-y-6">
               <div>
                 <h2 className="text-base font-extrabold text-slate-950 dark:text-white flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <FileText className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                   {isRtl ? 'إدخال تقييم موظف' : 'Submit Evaluation'}
                 </h2>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">

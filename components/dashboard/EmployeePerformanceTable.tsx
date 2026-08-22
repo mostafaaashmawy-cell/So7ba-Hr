@@ -14,7 +14,7 @@ export default function EmployeePerformanceTable({ employees }: EmployeePerforma
   const getPerformanceBadge = (idx: number, role: string) => {
     if (role === 'super_admin' || idx % 3 === 0) {
       return (
-        <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20 uppercase tracking-wide font-sans">
+        <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 uppercase tracking-wide font-sans">
           Excellent
         </span>
       );
@@ -46,7 +46,7 @@ export default function EmployeePerformanceTable({ employees }: EmployeePerforma
         </div>
         <Link
           href="/dashboard/evaluations"
-          className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1 group"
+          className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 flex items-center gap-1 group"
         >
           View all reviews
           <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
@@ -93,7 +93,7 @@ export default function EmployeePerformanceTable({ employees }: EmployeePerforma
                 <td className="py-3.5 pr-2 text-right">
                   <Link
                     href="/dashboard/evaluations"
-                    className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 inline-block transition-colors"
+                    className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 inline-block transition-colors"
                   >
                     <MoreVertical className="w-4 h-4" />
                   </Link>

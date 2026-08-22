@@ -68,13 +68,13 @@ export default function StatCards({
           <div className="text-2xl sm:text-3xl text-slate-950 dark:text-white font-extrabold tracking-tight font-sans">
             {totalEmployees.toLocaleString()}
           </div>
-          <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600">
+          <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
             <ArrowUpRight className="w-3.5 h-3.5" />
             <span>+12% increase</span>
             <span className="text-slate-400 font-normal ml-1">Last month</span>
           </div>
         </div>
-        <RadialGauge percentage={85} color="#6366f1" />
+        <RadialGauge percentage={85} color="#10b981" />
       </div>
 
       {/* CARD 2: Active on Duty Today */}
@@ -84,13 +84,13 @@ export default function StatCards({
           <div className="text-2xl sm:text-3xl text-slate-950 dark:text-white font-extrabold tracking-tight font-sans">
             {activeToday.toLocaleString()}
           </div>
-          <div className="flex items-center gap-1 text-[11px] font-bold text-blue-600">
+          <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
             <ArrowUpRight className="w-3.5 h-3.5" />
             <span>{attendanceRate}% present</span>
             <span className="text-slate-400 font-normal ml-1">Today</span>
           </div>
         </div>
-        <RadialGauge percentage={attendanceRate || 75} color="#2563eb" />
+        <RadialGauge percentage={attendanceRate || 75} color="#059669" />
       </div>
 
       {/* CARD 3: Performance Index */}
@@ -101,13 +101,13 @@ export default function StatCards({
             {avgPerformance > 0 ? avgPerformance.toFixed(1) : '4.2'}
             <span className="text-sm font-semibold text-slate-400">/ 5.0</span>
           </div>
-          <div className="flex items-center gap-1 text-[11px] font-bold text-cyan-600">
+          <div className="flex items-center gap-1 text-[11px] font-bold text-teal-600 dark:text-teal-400">
             <ArrowUpRight className="w-3.5 h-3.5" />
             <span>{totalLeavesMonth} on leave</span>
             <span className="text-slate-400 font-normal ml-1">Records</span>
           </div>
         </div>
-        <RadialGauge percentage={performanceRate || 84} color="#06b6d4" />
+        <RadialGauge percentage={performanceRate || 84} color="#0d9488" />
       </div>
 
       {/* CARD 4: Total Monthly Payroll */}
@@ -118,7 +118,7 @@ export default function StatCards({
             {totalPayrollEgp.toLocaleString()}
             <span className="text-xs font-bold text-slate-400 ml-1">EGP</span>
           </div>
-          <div className="flex items-center gap-1 text-[11px] font-bold text-amber-600">
+          <div className="flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
             <ArrowUpRight className="w-3.5 h-3.5" />
             <span>On schedule</span>
             <span className="text-slate-400 font-normal ml-1">This month</span>

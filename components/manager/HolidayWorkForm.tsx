@@ -103,7 +103,7 @@ export default function HolidayWorkForm({ teamMembers, currentUserId, isSuperAdm
   return (
     <div className="cleariq-card p-6 cleariq-card-hover space-y-6">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 flex items-center justify-center">
+        <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center">
           <Calendar className="w-5 h-5" />
         </div>
         <div>

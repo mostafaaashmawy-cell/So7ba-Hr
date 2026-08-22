@@ -373,7 +373,7 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
           onClick={() => { setActiveTab('registry'); setSelectedUser(null); }}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
             activeTab === 'registry'
-              ? 'bg-blue-600 text-white shadow-xs'
+              ? 'bg-emerald-600 text-white shadow-xs'
               : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
           }`}
         >
@@ -385,7 +385,7 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
           onClick={() => { setActiveTab('departments'); setSelectedUser(null); }}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
             activeTab === 'departments'
-              ? 'bg-blue-600 text-white shadow-xs'
+              ? 'bg-emerald-600 text-white shadow-xs'
               : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
           }`}
         >
@@ -397,7 +397,7 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
           onClick={() => { setActiveTab('kpis'); setSelectedUser(null); }}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
             activeTab === 'kpis'
-              ? 'bg-blue-600 text-white shadow-xs'
+              ? 'bg-emerald-600 text-white shadow-xs'
               : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
           }`}
         >
@@ -513,12 +513,12 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
                     <tr key={u.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
                       <td className="px-4 py-3.5 font-bold text-slate-950 dark:text-white">{u.full_name}</td>
                       <td className="px-4 py-3.5 text-slate-800 dark:text-slate-300 font-sans font-semibold">{u.mobile || '--'}</td>
-                      <td className="px-4 py-3.5 text-blue-700 dark:text-blue-400 font-bold">{dept?.name || '--'}</td>
+                      <td className="px-4 py-3.5 text-emerald-700 dark:text-emerald-400 font-bold">{dept?.name || '--'}</td>
                       <td className="px-4 py-3.5 text-slate-800 dark:text-slate-300 font-medium">{u.job_title || '--'}</td>
                       <td className="px-4 py-3.5 font-extrabold text-emerald-700 dark:text-emerald-400 font-sans">
                         {Number(u.basic_salary || 0).toLocaleString()} EGP
                       </td>
-                      <td className="px-4 py-3.5 font-extrabold text-blue-700 dark:text-blue-400 font-sans">
+                      <td className="px-4 py-3.5 font-extrabold text-emerald-700 dark:text-emerald-400 font-sans">
                         {u.commission_rate ?? 5}%
                       </td>
                       <td className="px-4 py-3.5 text-slate-800 dark:text-slate-300 font-medium">
@@ -541,7 +541,7 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
                               target="_blank"
                               rel="noreferrer"
                               title="ID Photo"
-                              className="text-blue-600 hover:text-blue-700 p-1 bg-blue-50 dark:bg-blue-950/40 rounded-md"
+                              className="text-emerald-600 hover:text-emerald-700 p-1 bg-emerald-50 dark:bg-emerald-950/40 rounded-md"
                             >
                               <FileText className="w-3.5 h-3.5" />
                             </a>
@@ -574,7 +574,7 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
                         <button
                           type="button"
                           onClick={() => handleEditClick(u)}
-                          className="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded-lg transition-all cursor-pointer"
+                          className="p-1.5 bg-emerald-50 hover:bg-blue-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-lg transition-all cursor-pointer"
                           title={isRtl ? 'تعديل البيانات' : 'Edit Profile'}
                         >
                           <Edit2 className="w-3.5 h-3.5" />
@@ -715,7 +715,7 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
 
               {/* Commission Rate field inside Employee Profile */}
               <div>
-                <label className="block text-xs font-bold text-blue-600 dark:text-blue-400 mb-1 flex items-center gap-1">
+                <label className="block text-xs font-bold text-emerald-600 dark:text-emerald-400 mb-1 flex items-center gap-1">
                   <Percent className="w-3.5 h-3.5" />
                   {isRtl ? 'نسبة العمولة من المبيعات (%)' : 'Sales Commission Rate (%)'}
                 </label>
@@ -726,7 +726,7 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
                   max="100"
                   value={editForm.commission_rate}
                   onChange={(e) => setEditForm({ ...editForm, commission_rate: Number(e.target.value) })}
-                  className="w-full bg-blue-50/50 dark:bg-blue-950/20 border border-blue-300 dark:border-blue-800 rounded-xl px-3.5 py-2 text-xs font-extrabold text-blue-700 dark:text-blue-300 focus:outline-none font-sans"
+                  className="w-full bg-emerald-50/50 dark:bg-emerald-950/20 border border-blue-300 dark:border-emerald-800 rounded-xl px-3.5 py-2 text-xs font-extrabold text-emerald-700 dark:text-blue-300 focus:outline-none font-sans"
                 />
               </div>
 
@@ -829,7 +829,7 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
 
             {/* 3. Official Documents Upload Section */}
             <div className="space-y-4 border-t border-slate-200 dark:border-slate-800 pt-4">
-              <h4 className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+              <h4 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
                 {isRtl ? 'المستندات الرسمية والشهادات' : 'Official Documents & Certifications'}
               </h4>
 
@@ -849,7 +849,7 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
                       htmlFor="upload-id-photo"
                       className="cursor-pointer flex items-center gap-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-3 py-1.5 rounded-xl text-xs hover:bg-slate-100 font-bold transition-all text-slate-800 dark:text-slate-200"
                     >
-                      <Upload className="w-3.5 h-3.5 text-blue-600" />
+                      <Upload className="w-3.5 h-3.5 text-emerald-600" />
                       <span>{uploadingField === 'id_photo_url' ? 'Uploading...' : 'Choose File'}</span>
                     </label>
                     {editForm.id_photo_url && (
@@ -857,7 +857,7 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
                         href={editForm.id_photo_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-xs text-blue-600 hover:underline flex items-center gap-1 font-bold"
+                        className="text-xs text-emerald-600 hover:underline flex items-center gap-1 font-bold"
                       >
                         <ExternalLink className="w-3.5 h-3.5" /> View Uploaded
                       </a>
@@ -880,7 +880,7 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
                       htmlFor="upload-birth-cert"
                       className="cursor-pointer flex items-center gap-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-3 py-1.5 rounded-xl text-xs hover:bg-slate-100 font-bold transition-all text-slate-800 dark:text-slate-200"
                     >
-                      <Upload className="w-3.5 h-3.5 text-blue-600" />
+                      <Upload className="w-3.5 h-3.5 text-emerald-600" />
                       <span>{uploadingField === 'birth_cert_url' ? 'Uploading...' : 'Choose File'}</span>
                     </label>
                     {editForm.birth_cert_url && (
@@ -888,7 +888,7 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
                         href={editForm.birth_cert_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-xs text-blue-600 hover:underline flex items-center gap-1 font-bold"
+                        className="text-xs text-emerald-600 hover:underline flex items-center gap-1 font-bold"
                       >
                         <ExternalLink className="w-3.5 h-3.5" /> View Uploaded
                       </a>

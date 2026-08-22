@@ -254,7 +254,7 @@ export default function SettingsHubPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center text-slate-500 text-xs">
-        <RefreshCw className="w-5 h-5 animate-spin text-blue-600 mr-2" />
+        <RefreshCw className="w-5 h-5 animate-spin text-emerald-600 mr-2" />
         Loading HumAi policies hub...
       </div>
     );
@@ -274,7 +274,7 @@ export default function SettingsHubPage() {
               </span>
             </div>
             <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-              <Sliders className="w-6 h-6 text-blue-600" />
+              <Sliders className="w-6 h-6 text-emerald-600" />
               {isRtl ? 'مركز سياسات وإعدادات الشركة' : 'Company Policies & Settings Hub'}
             </h1>
             <p className="text-xs text-slate-400 mt-0.5">
@@ -290,7 +290,7 @@ export default function SettingsHubPage() {
               href="/onboarding"
               className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200/80 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-2xs"
             >
-              <Sparkles className="w-4 h-4 text-blue-600" />
+              <Sparkles className="w-4 h-4 text-emerald-600" />
               {isRtl ? 'إعادة تشغيل معالج الإعداد' : 'Re-run Setup Wizard'}
             </Link>
 
@@ -335,7 +335,7 @@ export default function SettingsHubPage() {
             onClick={() => setActiveTab('schedule')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
               activeTab === 'schedule'
-                ? 'bg-blue-600 text-white shadow-xs'
+                ? 'bg-emerald-600 text-white shadow-xs'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
             }`}
           >
@@ -347,7 +347,7 @@ export default function SettingsHubPage() {
             onClick={() => setActiveTab('geofence')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
               activeTab === 'geofence'
-                ? 'bg-blue-600 text-white shadow-xs'
+                ? 'bg-emerald-600 text-white shadow-xs'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
             }`}
           >
@@ -359,7 +359,7 @@ export default function SettingsHubPage() {
             onClick={() => setActiveTab('lateness')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
               activeTab === 'lateness'
-                ? 'bg-blue-600 text-white shadow-xs'
+                ? 'bg-emerald-600 text-white shadow-xs'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
             }`}
           >
@@ -371,7 +371,7 @@ export default function SettingsHubPage() {
             onClick={() => setActiveTab('advances')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
               activeTab === 'advances'
-                ? 'bg-blue-600 text-white shadow-xs'
+                ? 'bg-emerald-600 text-white shadow-xs'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
             }`}
           >
@@ -383,7 +383,7 @@ export default function SettingsHubPage() {
             onClick={() => setActiveTab('toggles')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
               activeTab === 'toggles'
-                ? 'bg-blue-600 text-white shadow-xs'
+                ? 'bg-emerald-600 text-white shadow-xs'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
             }`}
           >
@@ -396,7 +396,7 @@ export default function SettingsHubPage() {
           <div className="cleariq-card p-6 cleariq-card-hover space-y-6">
             <div>
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Clock className="w-5 h-5 text-blue-600" />
+                <Clock className="w-5 h-5 text-emerald-600" />
                 {isRtl ? 'المواعيد وساعات العمل الرسمية للشركة' : 'Official Company Working Schedule'}
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
@@ -450,7 +450,7 @@ export default function SettingsHubPage() {
                       }`}
                     >
                       <span>{day.label}</span>
-                      {isSelected && <CheckCircle2 className="w-4 h-4 text-blue-600" />}
+                      {isSelected && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
                     </button>
                   );
                 })}
@@ -465,7 +465,7 @@ export default function SettingsHubPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-blue-600" />
+                  <MapPin className="w-5 h-5 text-emerald-600" />
                   {isRtl ? 'فروع الشركة والبصمة الجغرافية' : 'Multi-Branch Geofence Locations'}
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
@@ -497,7 +497,7 @@ export default function SettingsHubPage() {
                       <button
                         type="button"
                         onClick={() => captureCurrentLocation(idx)}
-                        className="text-[11px] text-blue-600 hover:underline font-bold"
+                        className="text-[11px] text-emerald-600 hover:underline font-bold"
                       >
                         Pin Current Location
                       </button>
@@ -568,7 +568,7 @@ export default function SettingsHubPage() {
           <div className="cleariq-card p-6 cleariq-card-hover space-y-6">
             <div>
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-blue-600" />
+                <ShieldCheck className="w-5 h-5 text-emerald-600" />
                 {isRtl ? 'محرك وقواعد خصومات التأخير' : 'Lateness Deduction Engine Rules'}
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
@@ -679,7 +679,7 @@ export default function SettingsHubPage() {
           <div className="cleariq-card p-6 cleariq-card-hover space-y-6">
             <div>
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-blue-600" />
+                <DollarSign className="w-5 h-5 text-emerald-600" />
                 {isRtl ? 'قواعد ومعايير السلف الشهرية' : 'Monthly Salary Advance Parameters'}
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
@@ -726,7 +726,7 @@ export default function SettingsHubPage() {
           <div className="cleariq-card p-6 cleariq-card-hover space-y-6">
             <div>
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Settings className="w-5 h-5 text-blue-600" />
+                <Settings className="w-5 h-5 text-emerald-600" />
                 {isRtl ? 'المفاتيح العامة لتفعيل وتعطيل الموديولات' : 'Tenant Global Feature Switches'}
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">

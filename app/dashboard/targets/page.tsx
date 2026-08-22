@@ -224,7 +224,7 @@ export default function TargetsTasksPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center text-slate-500 text-xs">
-        <RefreshCw className="w-5 h-5 animate-spin text-blue-600 mr-2" />
+        <RefreshCw className="w-5 h-5 animate-spin text-emerald-600 mr-2" />
         Loading HumAi targets board...
       </div>
     );

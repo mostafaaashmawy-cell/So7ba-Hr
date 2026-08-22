@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { UserRole } from '@/lib/types/database';
 import { Lock, Mail, User, ArrowRight, AlertCircle } from 'lucide-react';
+import HumAiLogo from '@/components/common/HumAiLogo';
 
 export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -92,17 +93,12 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-slate-50 dark:bg-slate-950">
       {/* Subtle background ambient glows */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 dark:bg-blue-600/20 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-500/10 dark:bg-indigo-600/20 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/10 dark:bg-emerald-600/15 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-slate-800/10 dark:bg-slate-700/20 rounded-full blur-[120px] pointer-events-none" />
 
       <div className="w-full max-w-md cleariq-card p-8 relative z-10">
-        <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl gradient-btn mx-auto flex items-center justify-center text-white font-extrabold text-2xl shadow-xl mb-4">
-            H
-          </div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-950 dark:text-white">
-            {isSignUp ? 'Create HumAi Account' : 'Welcome to HumAi'}
-          </h1>
+        <div className="text-center mb-8 flex flex-col items-center">
+          <HumAiLogo variant="full" size="lg" className="mb-3" />
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
             {isSignUp ? 'Register your employee profile' : 'Sign in to access your operations dashboard'}
           </p>
@@ -127,7 +123,7 @@ export default function LoginPage() {
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="e.g. Ahmed Mostafa"
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                   />
                   <User className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3 top-3" />
                 </div>
@@ -139,7 +135,7 @@ export default function LoginPage() {
                   <select
                     value={role}
                     onChange={(e) => setRole(e.target.value as UserRole)}
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500 cursor-pointer"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500 cursor-pointer"
                   >
                     <option value="employee">Employee</option>
                     <option value="manager">Manager</option>
@@ -154,7 +150,7 @@ export default function LoginPage() {
                     required
                     value={basicSalary}
                     onChange={(e) => setBasicSalary(Number(e.target.value))}
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
               </div>
@@ -167,7 +163,7 @@ export default function LoginPage() {
                   value={kpiUnit}
                   onChange={(e) => setKpiUnit(e.target.value)}
                   placeholder="e.g. pieces, calls, reports"
-                  className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
                 />
               </div>
             </>
@@ -182,7 +178,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@company.com"
-                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
               />
               <Mail className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3 top-3" />
             </div>
@@ -197,7 +193,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
               />
               <Lock className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3 top-3" />
             </div>
@@ -223,7 +219,7 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={() => setIsSignUp(!isSignUp)}
-            className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-all font-bold"
+            className="text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-all font-bold cursor-pointer"
           >
             {isSignUp ? 'Already have an account? Sign In' : 'Need an account? Register here'}
           </button>

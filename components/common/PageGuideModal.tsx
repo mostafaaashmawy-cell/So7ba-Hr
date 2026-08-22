@@ -245,10 +245,10 @@ export default function PageGuideModal() {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 border border-blue-200 dark:border-blue-500/20 text-blue-700 dark:text-blue-400 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-bold transition-all cursor-pointer shadow-2xs"
         title="Interactive Page Guide"
       >
-        <HelpCircle className="w-4 h-4 text-blue-600 dark:text-blue-500" />
+        <HelpCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
         <span className="hidden sm:inline">
           {isRtl ? 'دليل الصفحة' : 'Page Guide'}
         </span>
@@ -261,12 +261,12 @@ export default function PageGuideModal() {
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 flex items-center justify-center text-xl">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 flex items-center justify-center text-xl">
                   {guide.icon}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 uppercase tracking-wider">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
                       Interactive Help
                     </span>
                   </div>
@@ -290,10 +290,10 @@ export default function PageGuideModal() {
               {guide.items.map((item, idx) => (
                 <div
                   key={idx}
-                  className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 hover:border-blue-200 dark:hover:border-blue-500/30 hover:bg-blue-50/30 dark:hover:bg-blue-500/10 transition-all space-y-1.5"
+                  className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 hover:border-emerald-200 dark:hover:border-emerald-500/30 hover:bg-emerald-50/30 dark:hover:bg-emerald-500/10 transition-all space-y-1.5"
                 >
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-blue-600 dark:text-blue-500 shrink-0" />
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                     <h4 className="text-xs font-bold text-slate-900 dark:text-white">
                       {isRtl ? item.headingAr : item.headingEn}
                     </h4>

@@ -26,6 +26,7 @@ import { useTheme } from '@/lib/context/ThemeContext';
 import { useSidebar } from '@/lib/context/SidebarContext';
 import { generateDynamicNotifications } from '@/lib/utils/notificationHelper';
 import PageGuideModal from '@/components/common/PageGuideModal';
+import HumAiLogo from '@/components/common/HumAiLogo';
 
 interface NavbarProps {
   user: UserProfile | null;
@@ -102,21 +103,20 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
     switch (role) {
       case 'super_admin':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-700/50">
-            <ShieldCheck className="w-3 h-3" /> {t('superAdmin')}
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-800 border border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700">
+            <ShieldCheck className="w-3 h-3 text-emerald-600" /> {t('superAdmin')}
           </span>
         );
       case 'manager':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-700/50">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800">
             <Briefcase className="w-3 h-3" /> {t('teamView')}
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
-            style={{ backgroundColor: 'var(--primary-light)', color: 'var(--text-secondary)', borderColor: 'var(--border)' }}>
-            <UserCheck className="w-3 h-3" /> Employee
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
+            <UserCheck className="w-3 h-3 text-emerald-600" /> Employee
           </span>
         );
     }
@@ -149,7 +149,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
             <button
               type="button"
               onClick={toggleSidebar}
-              className="flex items-center justify-center w-8 h-8 rounded-xl border transition-colors cursor-pointer hover:border-blue-400"
+              className="flex items-center justify-center w-8 h-8 rounded-xl border transition-colors cursor-pointer hover:border-emerald-500 hover:text-emerald-600"
               style={iconBtnStyle}
               title="Toggle sidebar"
             >
@@ -158,12 +158,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
 
             {/* Brand (visible when sidebar is collapsed on desktop) */}
             <Link href="/" className="hidden lg:flex items-center gap-2 group">
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center text-white font-extrabold text-sm shadow-sm group-hover:scale-105 transition-transform">
-                H
-              </div>
-              <span className="font-extrabold text-sm tracking-tight" style={{ color: 'var(--text-primary)' }}>
-                HumAi
-              </span>
+              <HumAiLogo variant="horizontal" size="xs" />
             </Link>
 
             {/* Search (desktop) */}
@@ -172,7 +167,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
               <input
                 type="search"
                 placeholder={isRtl ? 'بحث سريع...' : 'Search HumAi...'}
-                className="w-full rounded-xl border pl-8 pr-3 py-1.5 text-xs transition-all"
+                className="w-full rounded-xl border pl-8 pr-3 py-1.5 text-xs transition-all focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                 style={{
                   backgroundColor: 'var(--bg-input)',
                   borderColor: 'var(--border)',
@@ -190,7 +185,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
                 href="/dashboard/employee"
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                   activeRoleView === 'employee'
-                    ? 'bg-blue-600 text-white shadow-xs'
+                    ? 'bg-emerald-600 text-white shadow-xs'
                     : 'hover:bg-white dark:hover:bg-slate-700'
                 }`}
                 style={activeRoleView === 'employee' ? {} : { color: 'var(--text-secondary)' }}
@@ -203,7 +198,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
                   href="/dashboard/manager"
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                     activeRoleView === 'manager'
-                      ? 'bg-blue-600 text-white shadow-xs'
+                      ? 'bg-emerald-600 text-white shadow-xs'
                       : 'hover:bg-white dark:hover:bg-slate-700'
                   }`}
                   style={activeRoleView === 'manager' ? {} : { color: 'var(--text-secondary)' }}
@@ -217,7 +212,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
                   href="/dashboard/admin"
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                     activeRoleView === 'super_admin'
-                      ? 'bg-blue-600 text-white shadow-xs'
+                      ? 'bg-emerald-600 text-white shadow-xs'
                       : 'hover:bg-white dark:hover:bg-slate-700'
                   }`}
                   style={activeRoleView === 'super_admin' ? {} : { color: 'var(--text-secondary)' }}
@@ -237,7 +232,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
             <button
               type="button"
               onClick={toggleTheme}
-              className="flex items-center justify-center w-8 h-8 rounded-xl border transition-all cursor-pointer"
+              className="flex items-center justify-center w-8 h-8 rounded-xl border transition-all cursor-pointer hover:border-emerald-500"
               style={iconBtnStyle}
               title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             >
@@ -249,7 +244,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
             {/* Language Toggle */}
             <button
               onClick={toggleLanguage}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all hover:border-emerald-500 cursor-pointer"
               style={iconBtnStyle}
               title="Toggle Language"
             >
@@ -263,12 +258,12 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
                 <button
                   type="button"
                   onClick={() => setShowNotifDropdown(!showNotifDropdown)}
-                  className="relative flex items-center justify-center w-8 h-8 rounded-xl border transition-all cursor-pointer"
+                  className="relative flex items-center justify-center w-8 h-8 rounded-xl border transition-all cursor-pointer hover:border-emerald-500"
                   style={iconBtnStyle}
                 >
                   <Bell className="w-3.5 h-3.5" />
                   {notifications.length > 0 && (
-                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-blue-600 text-white rounded-full text-[9px] font-extrabold flex items-center justify-center font-sans">
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-600 text-white rounded-full text-[9px] font-extrabold flex items-center justify-center font-sans">
                       {notifications.length > 9 ? '9+' : notifications.length}
                     </span>
                   )}
@@ -288,14 +283,14 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
                     <div className="flex items-center justify-between border-b pb-2.5"
                       style={{ borderColor: 'var(--border)' }}>
                       <div className="flex items-center gap-2">
-                        <Bell className="w-4 h-4 text-blue-600" />
+                        <Bell className="w-4 h-4 text-emerald-600" />
                         <span className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>
                           {isRtl ? 'الإشعارات والتنبيهات' : 'Smart Notifications'}
                         </span>
                       </div>
                       {notifications.length > 0 && (
                         <button type="button" onClick={markAllAsRead}
-                          className="text-[10px] text-blue-600 hover:underline font-bold">
+                          className="text-[10px] text-emerald-600 hover:underline font-bold">
                           {isRtl ? 'تعيين الكل كمقروء' : 'Mark all read'}
                         </button>
                       )}
@@ -339,7 +334,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
                   {getRoleBadge(user.role)}
                 </div>
 
-                <div className="w-8 h-8 rounded-full text-white font-bold text-xs flex items-center justify-center bg-blue-600 shadow-xs">
+                <div className="w-8 h-8 rounded-full text-white font-bold text-xs flex items-center justify-center bg-emerald-600 shadow-xs">
                   {user.full_name ? user.full_name.charAt(0).toUpperCase() : 'U'}
                 </div>
 
@@ -369,7 +364,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
         >
           <Link href="/dashboard/employee"
             className={`flex flex-col items-center gap-0.5 text-[10px] font-bold transition-colors ${
-              pathname.includes('/employee') ? 'text-blue-600' : ''
+              pathname.includes('/employee') ? 'text-emerald-600' : ''
             }`}
             style={pathname.includes('/employee') ? {} : { color: 'var(--text-muted)' }}>
             <LayoutDashboard className="w-5 h-5" />
@@ -379,7 +374,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
           {isManager && (
             <Link href="/dashboard/manager"
               className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${
-                pathname.includes('/manager') ? 'text-blue-600' : ''
+                pathname.includes('/manager') ? 'text-emerald-600' : ''
               }`}
               style={pathname.includes('/manager') ? {} : { color: 'var(--text-muted)' }}>
               <Users className="w-5 h-5" />
@@ -390,7 +385,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
           {isSuperAdmin && (
             <Link href="/dashboard/admin"
               className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${
-                pathname.includes('/admin') ? 'text-blue-600' : ''
+                pathname.includes('/admin') ? 'text-emerald-600' : ''
               }`}
               style={pathname.includes('/admin') ? {} : { color: 'var(--text-muted)' }}>
               <ShieldCheck className="w-5 h-5" />
@@ -400,7 +395,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
 
           <Link href="/dashboard/targets"
             className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${
-              pathname.includes('/targets') ? 'text-blue-600' : ''
+              pathname.includes('/targets') ? 'text-emerald-600' : ''
             }`}
             style={pathname.includes('/targets') ? {} : { color: 'var(--text-muted)' }}>
             <Target className="w-5 h-5" />
@@ -409,7 +404,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
 
           <Link href="/dashboard/evaluations"
             className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${
-              pathname.includes('/evaluations') ? 'text-blue-600' : ''
+              pathname.includes('/evaluations') ? 'text-emerald-600' : ''
             }`}
             style={pathname.includes('/evaluations') ? {} : { color: 'var(--text-muted)' }}>
             <Star className="w-5 h-5" />

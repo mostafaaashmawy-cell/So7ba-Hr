@@ -16,6 +16,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { useLanguage } from '@/lib/context/LanguageContext';
+import HumAiLogo from '@/components/common/HumAiLogo';
 
 interface FinancialAdjustment {
   id: string;
@@ -382,7 +383,7 @@ export default function PayrollPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[--bg] flex items-center justify-center text-slate-400 text-xs font-bold">
-        <RefreshCw className="w-5 h-5 animate-spin text-blue-600 mr-2" />
+        <RefreshCw className="w-5 h-5 animate-spin text-emerald-600 mr-2" />
         Loading payroll engine...
       </div>
     );
@@ -422,12 +423,12 @@ export default function PayrollPage() {
             <div className="space-y-6 p-4 print:p-0 font-sans">
               <div className="flex justify-between items-center border-b-2 border-slate-950 pb-4 mb-4">
                 <div>
-                  <h2 className="text-xl font-extrabold text-slate-950">HumAi Operations HR</h2>
-                  <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Official Monthly Payslip</p>
+                  <HumAiLogo variant="horizontal" size="md" showTagline />
+                  <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mt-1">Official Monthly Payslip Documentation</p>
                 </div>
                 <div className="text-right">
                   <span className="text-xs font-bold text-slate-500 block">{isRtl ? 'شهر الاستحقاق' : 'Payroll Month'}</span>
-                  <span className="text-base font-extrabold text-blue-600 print:text-black font-sans">{payslipData.month}</span>
+                  <span className="text-base font-extrabold text-emerald-600 dark:text-emerald-400 print:text-black font-sans">{payslipData.month}</span>
                 </div>
               </div>
 
@@ -435,15 +436,15 @@ export default function PayrollPage() {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 py-3 border-b border-slate-200 print:border-black font-sans text-xs">
                 <div>
                   <span className="font-bold text-slate-500 block">{isRtl ? 'اسم الموظف:' : 'Employee:'}</span>
-                  <span className="text-sm font-extrabold text-slate-950">{payslipData.employeeName}</span>
+                  <span className="text-sm font-extrabold text-slate-950 dark:text-white print:text-black">{payslipData.employeeName}</span>
                 </div>
                 <div>
                   <span className="font-bold text-slate-500 block">{isRtl ? 'المسمى الوظيفي:' : 'Job Title:'}</span>
-                  <span className="text-sm font-bold text-slate-900">{payslipData.jobTitle}</span>
+                  <span className="text-sm font-bold text-slate-900 dark:text-slate-100 print:text-black">{payslipData.jobTitle}</span>
                 </div>
                 <div>
                   <span className="font-bold text-slate-500 block">{isRtl ? 'القسم الإداري:' : 'Department:'}</span>
-                  <span className="text-sm font-bold text-slate-900">{payslipData.departmentName}</span>
+                  <span className="text-sm font-bold text-slate-900 dark:text-slate-100 print:text-black">{payslipData.departmentName}</span>
                 </div>
               </div>
 
@@ -451,7 +452,7 @@ export default function PayrollPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 font-sans">
                 {/* Earnings */}
                 <div className="space-y-2 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 bg-slate-50 dark:bg-slate-800/40 print:border-black print:bg-transparent">
-                  <h4 className="text-xs font-extrabold text-blue-600 print:text-black border-b border-slate-200 dark:border-slate-700 pb-1.5 uppercase">
+                  <h4 className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 print:text-black border-b border-slate-200 dark:border-slate-700 pb-1.5 uppercase">
                     {isRtl ? 'الاستحقاقات والإضافات (+)' : 'Earnings (+)'}
                   </h4>
                   <div className="flex justify-between text-xs text-slate-800 dark:text-slate-200">
@@ -505,11 +506,11 @@ export default function PayrollPage() {
               </div>
 
               {/* Net pay summary panel */}
-              <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-center font-sans print:border-black print:bg-transparent">
-                <span className="text-[10px] font-extrabold text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
+              <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-center font-sans print:border-black print:bg-transparent">
+                <span className="text-[10px] font-extrabold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider block">
                   {isRtl ? 'صافي الراتب المستحق للصرف' : 'Net Take-Home Pay'}
                 </span>
-                <span className="text-3xl font-black text-blue-700 dark:text-blue-400 print:text-black font-sans">
+                <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400 print:text-black font-sans">
                   {payslipData.netPay.toLocaleString()} EGP
                 </span>
               </div>
@@ -523,7 +524,7 @@ export default function PayrollPage() {
             <div id="payslips" className="cleariq-card p-6 cleariq-card-hover space-y-4 scroll-mt-24">
               <div>
                 <h2 className="text-base sm:text-lg font-extrabold text-slate-950 dark:text-white flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-blue-600" />
+                  <DollarSign className="w-5 h-5 text-emerald-600" />
                   {isRtl ? 'محرك احتساب الرواتب والمفردات الشهرية' : 'Payroll Engine & Payslip Generator'}
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -718,7 +719,7 @@ export default function PayrollPage() {
                         <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
                           {a.notes || 'No reason'} ({a.date})
                         </div>
-                        <span className="text-[11px] font-extrabold text-blue-600 dark:text-blue-400 font-sans">
+                        <span className="text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 font-sans">
                           {Number(a.amount).toLocaleString()} EGP
                         </span>
                       </div>
@@ -775,7 +776,7 @@ export default function PayrollPage() {
                         <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
                           Month: {a.month?.substring(0, 7)}
                         </div>
-                        <span className="text-[11px] font-extrabold text-blue-600 dark:text-blue-400 font-sans">
+                        <span className="text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 font-sans">
                           {Number(a.amount).toLocaleString()} EGP
                         </span>
                       </div>

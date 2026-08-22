@@ -192,7 +192,7 @@ export default function SalesCommissionsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center text-slate-500 text-xs">
-        <RefreshCw className="w-5 h-5 animate-spin text-blue-600 mr-2" />
+        <RefreshCw className="w-5 h-5 animate-spin text-emerald-600 mr-2" />
         Loading sales & commissions...
       </div>
     );
@@ -221,7 +221,7 @@ export default function SalesCommissionsPage() {
               </span>
             </div>
             <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-              <TrendingUp className="w-6 h-6 text-blue-600" />
+              <TrendingUp className="w-6 h-6 text-emerald-600" />
               {isRtl ? 'بوابة مبيعات وعمولات الموظفين' : 'Sales & Commission Engine'}
             </h1>
             <p className="text-xs text-slate-400 mt-0.5">
@@ -232,7 +232,7 @@ export default function SalesCommissionsPage() {
           </div>
 
           <div className="flex items-center gap-3 cleariq-card px-4 py-2.5">
-            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 flex items-center justify-center font-bold text-sm">
               💵
             </div>
             <div>
@@ -252,7 +252,7 @@ export default function SalesCommissionsPage() {
           <div className="lg:col-span-1 cleariq-card p-6 cleariq-card-hover space-y-6">
             <div>
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Plus className="w-4 h-4 text-blue-600" />
+                <Plus className="w-4 h-4 text-emerald-600" />
                 {isRtl ? 'تسجيل معاملة بيعية جديدة' : 'Log New Sales Entry'}
               </h3>
               <p className="text-[11px] text-slate-400 mt-0.5">
@@ -367,7 +367,7 @@ export default function SalesCommissionsPage() {
                       <td className="py-3.5 pl-2 font-bold text-slate-900">
                         {item.user?.full_name || 'Employee'}
                       </td>
-                      <td className="py-3.5 font-bold font-sans text-blue-600">
+                      <td className="py-3.5 font-bold font-sans text-emerald-600 dark:text-emerald-400">
                         {Number(item.amount).toLocaleString()} EGP
                       </td>
                       <td className="py-3.5 text-slate-500 font-sans">{item.date}</td>
