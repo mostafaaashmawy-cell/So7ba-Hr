@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '@/lib/context/LanguageContext';
 import HumAiLogo from '@/components/common/HumAiLogo';
+import { logAuditAction } from '@/lib/utils/auditLogger';
 
 interface FinancialAdjustment {
   id: string;
@@ -47,6 +48,7 @@ interface PayslipData {
   commission: number;
   totalSales: number;
   bonuses: number;
+  overtime: number;
   penalties: number;
   advances: number;
   latenessDeductions: number;
@@ -202,6 +204,17 @@ export default function PayrollPage() {
 
       if (error) throw error;
       setAdjustments(adjustments.map((a) => (a.id === id ? { ...a, status: newStatus } : a)));
+
+      if (currentUser?.tenant_id) {
+        logAuditAction(supabase, {
+          tenant_id: currentUser.tenant_id,
+          actor_id: currentUser.id,
+          action_type: newStatus === 'approved' ? 'APPROVE_ADJUSTMENT' : 'REJECT_ADJUSTMENT',
+          entity_name: 'financial_adjustments',
+          entity_id: id,
+          details: { status: newStatus },
+        });
+      }
     } catch (e: unknown) {
       console.error(e);
     } finally {
@@ -216,6 +229,17 @@ export default function PayrollPage() {
 
       if (error) throw error;
       setAdvances(advances.map((a) => (a.id === id ? { ...a, status: newStatus } : a)));
+
+      if (currentUser?.tenant_id) {
+        logAuditAction(supabase, {
+          tenant_id: currentUser.tenant_id,
+          actor_id: currentUser.id,
+          action_type: newStatus === 'approved' ? 'APPROVE_ADVANCE' : 'REJECT_ADVANCE',
+          entity_name: 'advances',
+          entity_id: id,
+          details: { status: newStatus },
+        });
+      }
     } catch (e: unknown) {
       console.error(e);
     } finally {
@@ -290,7 +314,7 @@ export default function PayrollPage() {
 
       const { data: checkins } = await supabase
         .from('attendance')
-        .select('check_in_time')
+        .select('check_in_time, check_out_time')
         .eq('user_id', emp.id)
         .gte('date', startStr)
         .lte('date', endStr);
@@ -339,12 +363,33 @@ export default function PayrollPage() {
         });
       }
 
-      // 5. Insurance deductions
+
+      // 5. Calculate Overtime if enabled
+      let overtimePay = 0;
+      if (settings?.enable_overtime && checkins) {
+        const hourlyRate = (Number(emp.basic_salary || 5000) / 30) / 8;
+        checkins.forEach((c) => {
+          if (c.check_in_time && c.check_out_time) {
+            const durHours = (new Date(c.check_out_time).getTime() - new Date(c.check_in_time).getTime()) / 3600000;
+            if (durHours > 8) {
+              const extraHours = durHours - 8;
+              if (settings.overtime_calculation_mode === 'fixed_rate') {
+                overtimePay += extraHours * (Number(settings.overtime_fixed_rate) || 50);
+              } else {
+                overtimePay += extraHours * hourlyRate * (Number(settings.overtime_rate_multiplier) || 1.5);
+              }
+            }
+          }
+        });
+      }
+      overtimePay = Math.round(overtimePay);
+
+      // 6. Insurance deductions
       const socialIns = Number(emp.social_insurance || 0);
       const healthIns = Number(emp.health_insurance || 0);
 
       // Final calculations
-      const grossEarnings = Number(emp.basic_salary || 0) + commission + bonuses;
+      const grossEarnings = Number(emp.basic_salary || 0) + commission + bonuses + overtimePay;
       const totalDeductions = penalties + totalAdvances + latenessDeductions + socialIns + healthIns;
       const netPay = grossEarnings - totalDeductions;
 
@@ -357,6 +402,7 @@ export default function PayrollPage() {
         commission,
         totalSales,
         bonuses,
+        overtime: overtimePay,
         penalties,
         advances: totalAdvances,
         latenessDeductions,
@@ -467,6 +513,12 @@ export default function PayrollPage() {
                     <span>{isRtl ? 'المكافآت المعتمدة:' : 'Approved Bonuses:'}</span>
                     <span className="font-bold font-sans text-emerald-600 dark:text-emerald-400">{payslipData.bonuses.toLocaleString()} EGP</span>
                   </div>
+                  {payslipData.overtime > 0 && (
+                    <div className="flex justify-between text-xs text-slate-800 dark:text-slate-200">
+                      <span>{isRtl ? 'العمل الإضافي (Overtime):' : 'Approved Overtime:'}</span>
+                      <span className="font-bold font-sans text-emerald-600 dark:text-emerald-400">{payslipData.overtime.toLocaleString()} EGP</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-xs font-extrabold pt-2 border-t border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white print:text-black">
                     <span>{isRtl ? 'إجمالي الاستحقاقات:' : 'Gross Earnings:'}</span>
                     <span className="font-sans">{payslipData.grossEarnings.toLocaleString()} EGP</span>

@@ -1,8 +1,20 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { MapPin, Clock, LogOut as LogOutIcon, AlertCircle, RefreshCw, ListCollapse } from 'lucide-react';
-import { AttendanceRecord, TenantSettings, BranchLocation } from '@/lib/types/database';
+import {
+  MapPin,
+  Clock,
+  LogOut as LogOutIcon,
+  AlertCircle,
+  RefreshCw,
+  Globe,
+} from 'lucide-react';
+import {
+  AttendanceRecord,
+  TenantSettings,
+  BranchLocation,
+  UserProfile,
+} from '@/lib/types/database';
 import { formatTime } from '@/lib/utils/dateUtils';
 import { createClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/lib/context/LanguageContext';
@@ -18,8 +30,9 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [coords, setCoords] = useState<{ lat: number | null; lng: number | null }>({ lat: null, lng: null });
-  const [geoLocating, setGeoLocating] = useState(false);
   const [tenantSettings, setTenantSettings] = useState<TenantSettings | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
   const supabase = createClient();
 
   function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -37,35 +50,44 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
     return R * c; // in metres
   }
 
-  // Fetch current geolocation and tenant settings on mount
+  // Fetch current geolocation, tenant settings, and user profile on mount
   useEffect(() => {
-    const fetchSettings = async () => {
-      const { data } = await supabase.from('tenant_settings').select('*').maybeSingle();
-      if (data) {
-        setTenantSettings(data as TenantSettings);
+    const fetchInitial = async () => {
+      // 1. Fetch Tenant Settings
+      const { data: settings } = await supabase.from('tenant_settings').select('*').maybeSingle();
+      if (settings) {
+        setTenantSettings(settings as TenantSettings);
+      }
+
+      // 2. Fetch User Profile with Shift
+      const { data: profile } = await supabase
+        .from('users')
+        .select('*, shift:shifts(*)')
+        .eq('id', userId)
+        .single();
+      if (profile) {
+        setUserProfile(profile as UserProfile);
       }
     };
-    fetchSettings();
+
+    fetchInitial();
 
     if ('geolocation' in navigator) {
-      setGeoLocating(true);
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           setCoords({
             lat: pos.coords.latitude,
             lng: pos.coords.longitude,
           });
-          setGeoLocating(false);
         },
         (err) => {
           console.warn('Geolocation warning:', err.message);
-          setGeoLocating(false);
         },
         { enableHighAccuracy: true, timeout: 10000 }
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [userId]);
 
   const handleCheckIn = async () => {
     setLoading(true);
@@ -74,71 +96,76 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
     let currentLat = coords.lat;
     let currentLng = coords.lng;
 
-    // Try to get fresh location if missing
-    if (!currentLat && 'geolocation' in navigator) {
-      try {
-        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
-        });
-        currentLat = position.coords.latitude;
-        currentLng = position.coords.longitude;
-      } catch (e) {
-        console.warn('Could not acquire location during check-in', e);
-      }
-    }
+    // Check if user is Remote / Anywhere
+    const isRemote = !!userProfile?.is_remote;
 
-    // Multi-Branch Geofencing validation check
-    const activeBranches: BranchLocation[] =
-      tenantSettings?.branches && tenantSettings.branches.length > 0
-        ? tenantSettings.branches
-        : tenantSettings?.geofencing_lat && tenantSettings?.geofencing_lng
-        ? [
-            {
-              id: 'main',
-              name: 'Main Office',
-              lat: Number(tenantSettings.geofencing_lat),
-              lng: Number(tenantSettings.geofencing_lng),
-              radius: Number(tenantSettings.geofencing_radius) || 150,
-            },
-          ]
-        : [];
-
-    let matchedBranch: BranchLocation | null = null;
-
-    if (activeBranches.length > 0) {
-      if (!currentLat || !currentLng) {
-        setErrorMsg(
-          isRtl
-            ? 'عذراً، يجب السماح بمشاركة الموقع الجغرافي لتسجيل الحضور!'
-            : 'GPS coordinates are required to check in. Please enable location services!'
-        );
-        setLoading(false);
-        return;
-      }
-
-      let minDistance = Infinity;
-      let closestBranchName = '';
-
-      for (const branch of activeBranches) {
-        const d = getDistance(currentLat, currentLng, Number(branch.lat), Number(branch.lng));
-        if (d < minDistance) {
-          minDistance = d;
-          closestBranchName = branch.name;
-        }
-        if (d <= Number(branch.radius)) {
-          matchedBranch = branch;
-          break;
+    if (!isRemote) {
+      // Try to get fresh location if missing
+      if (!currentLat && 'geolocation' in navigator) {
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+          });
+          currentLat = position.coords.latitude;
+          currentLng = position.coords.longitude;
+        } catch (e) {
+          console.warn('Could not acquire location during check-in', e);
         }
       }
 
-      if (!matchedBranch) {
-        setErrorMsg(
-          isRtl
-            ? `أنت خارج نطاق فروع العمل المعتمدة! أقرب فرع: ${closestBranchName} (المسافة: ${Math.round(minDistance)} متر)`
-            : `Outside approved branches! Nearest branch: ${closestBranchName} (Distance: ${Math.round(minDistance)}m)`
-        );
-        setLoading(false);
-        return;
+      // Multi-Branch Geofencing validation check
+      const activeBranches: BranchLocation[] =
+        tenantSettings?.branches && tenantSettings.branches.length > 0
+          ? tenantSettings.branches
+          : tenantSettings?.geofencing_lat && tenantSettings?.geofencing_lng
+          ? [
+              {
+                id: 'main',
+                name: 'Main Office',
+                lat: Number(tenantSettings.geofencing_lat),
+                lng: Number(tenantSettings.geofencing_lng),
+                radius: Number(tenantSettings.geofencing_radius) || 150,
+              },
+            ]
+          : [];
+
+      let matchedBranch: BranchLocation | null = null;
+
+      if (activeBranches.length > 0) {
+        if (!currentLat || !currentLng) {
+          setErrorMsg(
+            isRtl
+              ? 'عذراً، يجب السماح بمشاركة الموقع الجغرافي لتسجيل الحضور!'
+              : 'GPS coordinates are required to check in. Please enable location services!'
+          );
+          setLoading(false);
+          return;
+        }
+
+        let minDistance = Infinity;
+        let closestBranchName = '';
+
+        for (const branch of activeBranches) {
+          const d = getDistance(currentLat, currentLng, Number(branch.lat), Number(branch.lng));
+          if (d < minDistance) {
+            minDistance = d;
+            closestBranchName = branch.name;
+          }
+          if (d <= Number(branch.radius)) {
+            matchedBranch = branch;
+            break;
+          }
+        }
+
+        if (!matchedBranch) {
+          setErrorMsg(
+            isRtl
+              ? `أنت خارج نطاق فروع العمل المعتمدة! أقرب فرع: ${closestBranchName} (المسافة: ${Math.round(minDistance)} متر)`
+              : `Outside approved branches! Nearest branch: ${closestBranchName} (Distance: ${Math.round(minDistance)}m)`
+          );
+          setLoading(false);
+          return;
+        }
       }
     }
 
@@ -150,8 +177,8 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
       .insert({
         user_id: userId,
         check_in_time: nowIso,
-        lat: currentLat,
-        lng: currentLng,
+        lat: currentLat || 0,
+        lng: currentLng || 0,
         date: todayStr,
       })
       .select()
@@ -195,7 +222,7 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
   const isCheckedIn = !!latestSession && !latestSession.check_out_time;
 
   // Calculate total working hours across all sessions today
-  const calculateTotalWorkingHours = () => {
+  const calculateTotalWorkingMinutes = () => {
     let totalMins = 0;
     sessions.forEach((s) => {
       const start = new Date(s.check_in_time);
@@ -203,34 +230,46 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
       const diff = Math.max(0, Math.floor((end.getTime() - start.getTime()) / 60000));
       totalMins += diff;
     });
-    const hrs = Math.floor(totalMins / 60);
-    const mins = totalMins % 60;
-    return `${hrs}h ${mins}m`;
+    return totalMins;
   };
 
-  return (
-    <div className="cleariq-card p-6 cleariq-card-hover relative overflow-hidden">
-      {/* Glow background accent */}
-      <div className="absolute -top-20 -right-20 w-40 h-40 bg-sky-600/15 rounded-full blur-3xl pointer-events-none" />
+  const totalMinutes = calculateTotalWorkingMinutes();
+  const totalHoursStr = `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`;
 
-      <div className="flex items-center justify-between mb-5">
+  return (
+    <div className="cleariq-card p-6 cleariq-card-hover relative overflow-hidden space-y-5">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20">
+          <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20">
             <Clock className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="font-bold text-lg text-white">{t('attendance')}</h3>
+            <h3 className="font-extrabold text-base sm:text-lg text-slate-950 dark:text-white">
+              {t('attendance')}
+            </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              {isRtl ? 'تسجيل الحضور والإنصراف المتعدد وساعات العمل' : 'Multi-session check-in tracking'}
+              {isRtl ? 'تسجيل الحضور والإنصراف وساعات العمل المعتمدة' : 'Multi-session check-in & work logs'}
             </p>
           </div>
         </div>
 
         {/* Status Badge */}
-        <div>
+        <div className="flex items-center gap-2">
+          {userProfile?.is_remote && (
+            <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800">
+              <Globe className="w-3 h-3" /> {isRtl ? 'عمل عن بعد' : 'Remote Mode'}
+            </span>
+          )}
+
+          {userProfile?.shift && (
+            <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800">
+              ⏰ {userProfile.shift.name} ({userProfile.shift.start_time} - {userProfile.shift.end_time})
+            </span>
+          )}
+
           {isCheckedIn ? (
-            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 pulse-emerald" /> {t('duty')}
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 pulse-emerald" /> {t('duty')}
             </span>
           ) : (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
@@ -241,82 +280,93 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
       </div>
 
       {errorMsg && (
-        <div className="mb-4 p-3 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20 text-xs flex items-center gap-2">
+        <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{errorMsg}</span>
         </div>
       )}
 
-      {/* Calculated Duration */}
-      <div className="mb-6 p-4 rounded-xl bg-sky-950/20 border border-sky-500/20 text-center">
-        <span className="text-xs text-sky-300 font-medium block">{t('totalWorked')}</span>
-        <span className="text-3xl font-extrabold text-white font-sans">
-          {calculateTotalWorkingHours()}
-        </span>
-      </div>
-
-      {/* Geolocation info banner */}
-      <div className="mb-6 px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-        <div className="flex items-center gap-2">
-          <MapPin className="w-4 h-4 text-sky-400" />
-          <span>
-            {coords.lat && coords.lng
-              ? `${t('gpsCaptured')}: (${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)})`
-              : geoLocating
-              ? t('acquiringGps')
-              : t('gpsEnabled')}
+      {/* Main Stats / Flexible Schedule Indicator */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-1">
+          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">
+            {isRtl ? 'إجمالي ساعات العمل اليوم' : 'Total Accumulated Hours Today'}
           </span>
+          <span className="text-2xl font-extrabold text-slate-950 dark:text-white font-sans">
+            {totalHoursStr}
+          </span>
+          {userProfile?.is_flexible && (
+            <div className="text-[10px] text-teal-600 dark:text-teal-400 font-bold">
+              Target: {userProfile.required_daily_hours || 8}h ({Math.min(100, Math.round((totalMinutes / ((userProfile.required_daily_hours || 8) * 60)) * 100))}% completed)
+            </div>
+          )}
+        </div>
+
+        <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-1">
+          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">
+            {isRtl ? 'حالة الجلسة الحالية' : 'Current Session Status'}
+          </span>
+          {isCheckedIn ? (
+            <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+              {isRtl ? 'تم تسجيل الحضور منذ ' : 'Checked-in since '}{formatTime(latestSession.check_in_time)}
+            </div>
+          ) : (
+            <div className="text-xs text-slate-500 dark:text-slate-400">
+              {isRtl ? 'لا توجد جلسة عمل نشطة حالياً' : 'No active session currently running.'}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="space-y-4">
-        {isCheckedIn ? (
+      {/* Check-In / Check-Out Buttons */}
+      <div className="flex gap-3">
+        {!isCheckedIn ? (
           <button
-            onClick={handleCheckOut}
+            type="button"
+            onClick={handleCheckIn}
             disabled={loading}
-            className="w-full py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+            className="flex-1 gradient-btn py-3.5 rounded-2xl text-xs font-bold text-white shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-all"
           >
-            {loading ? (
-              <RefreshCw className="w-4 h-4 animate-spin" />
-            ) : (
-              <LogOutIcon className="w-4 h-4" />
-            )}
-            {t('checkOut')}
+            {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
+            <span>{loading ? (isRtl ? 'جاري الفحص والتسجيل...' : 'Verifying & Checking In...') : (isRtl ? 'تسجيل حضور الآن (Check-In)' : 'Punch In (Check-In)')}</span>
           </button>
         ) : (
           <button
-            onClick={handleCheckIn}
+            type="button"
+            onClick={handleCheckOut}
             disabled={loading}
-            className="w-full gradient-btn py-3 rounded-xl font-bold text-sm text-white shadow-lg flex items-center justify-center gap-2 hover:opacity-95 transition-all disabled:opacity-50"
+            className="flex-1 bg-rose-600 hover:bg-rose-700 py-3.5 rounded-2xl text-xs font-bold text-white shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-all"
           >
-            {loading ? (
-              <RefreshCw className="w-4 h-4 animate-spin" />
-            ) : (
-              <Clock className="w-4 h-4" />
-            )}
-            {t('checkIn')}
+            {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <LogOutIcon className="w-4 h-4" />}
+            <span>{loading ? (isRtl ? 'جاري التسجيل...' : 'Checking Out...') : (isRtl ? 'تسجيل إنصراف (Check-Out)' : 'Punch Out (Check-Out)')}</span>
           </button>
         )}
       </div>
 
-      {/* Sessions List */}
+      {/* Sessions History List */}
       {sessions.length > 0 && (
-        <div className="mt-6 border-t border-slate-200 dark:border-slate-700 pt-4">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-1.5">
-            <ListCollapse className="w-3.5 h-3.5 text-sky-400" /> {isRtl ? 'جلسات عمل اليوم' : "Today's Work Sessions"}
-          </h4>
-          <div className="space-y-2">
+        <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+          <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
+            {isRtl ? 'جلسات اليوم المسجلة' : "Today's Attendance Logs"}
+          </span>
+          <div className="space-y-1.5">
             {sessions.map((s, idx) => (
-              <div key={s.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs">
-                <span className="font-semibold text-slate-500 dark:text-slate-400">
-                  {isRtl ? `فترة #${sessions.length - idx}` : `Session #${sessions.length - idx}`}
-                </span>
-                <div className="flex gap-4">
-                  <span className="text-emerald-400">{formatTime(s.check_in_time)}</span>
-                  <span className="text-slate-500 dark:text-slate-400">→</span>
-                  <span className="text-rose-400">{s.check_out_time ? formatTime(s.check_out_time) : '--:--'}</span>
+              <div
+                key={s.id || idx}
+                className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-700 flex items-center justify-between text-xs"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-slate-900 dark:text-slate-100">Session #{sessions.length - idx}</span>
+                  <span className="text-slate-500 font-sans">{formatTime(s.check_in_time)}</span>
+                  <span>→</span>
+                  <span className="text-slate-500 font-sans">{s.check_out_time ? formatTime(s.check_out_time) : (isRtl ? 'مستمر...' : 'In Progress...')}</span>
                 </div>
+                {s.check_out_time && (
+                  <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 font-sans">
+                    {Math.floor(Math.max(0, (new Date(s.check_out_time).getTime() - new Date(s.check_in_time).getTime()) / 60000) / 60)}h{' '}
+                    {Math.max(0, Math.floor((new Date(s.check_out_time).getTime() - new Date(s.check_in_time).getTime()) / 60000) % 60)}m
+                  </span>
+                )}
               </div>
             ))}
           </div>

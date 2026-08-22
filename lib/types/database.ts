@@ -9,6 +9,46 @@ export interface BranchLocation {
   radius: number; // in meters
 }
 
+export interface ShiftRecord {
+  id: string;
+  tenant_id: string;
+  name: string;
+  start_time: string; // e.g. "08:00"
+  end_time: string;   // e.g. "16:00"
+  created_at?: string;
+}
+
+export interface ShiftSwapRequestRecord {
+  id: string;
+  tenant_id: string;
+  requester_id: string;
+  target_user_id: string;
+  requested_date: string;
+  requester_shift_id?: string | null;
+  target_shift_id?: string | null;
+  status: 'pending_admin' | 'approved' | 'rejected';
+  notes?: string | null;
+  created_at?: string;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  requester?: UserProfile;
+  target_user?: UserProfile;
+  requester_shift?: ShiftRecord | null;
+  target_shift?: ShiftRecord | null;
+}
+
+export interface SystemAuditLogRecord {
+  id: string;
+  tenant_id: string;
+  actor_id: string;
+  action_type: string;
+  entity_name: string;
+  entity_id?: string | null;
+  details?: Record<string, unknown> | null;
+  created_at?: string;
+  actor?: UserProfile;
+}
+
 export interface TenantSettings {
   tenant_id: string;
   industry?: string;
@@ -18,6 +58,13 @@ export interface TenantSettings {
   enable_insurances: boolean;
   enable_shifts: boolean;
   enable_holiday_work_comp?: boolean;
+  
+  // Overtime Engine
+  enable_overtime?: boolean;
+  overtime_rate_multiplier?: number; // e.g. 1.5, 2.0
+  overtime_calculation_mode?: 'multiplier' | 'fixed_rate';
+  overtime_fixed_rate?: number; // e.g. 50 EGP/hour
+
   work_start_time?: string; // e.g. "09:00"
   work_end_time?: string;   // e.g. "17:00"
   work_days?: string[];     // e.g. ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"]
@@ -66,6 +113,12 @@ export interface UserProfile {
   contract_end_date?: string | null;
   commission_rate?: number | null;
 
+  // Remote & Flexible Work
+  is_remote?: boolean | null;
+  is_flexible?: boolean | null;
+  required_daily_hours?: number | null;
+  shift_id?: string | null;
+
   // Working Hours Granularity
   custom_schedule_enabled?: boolean | null;
   custom_start_time?: string | null;
@@ -76,6 +129,7 @@ export interface UserProfile {
   // Relations
   department?: DepartmentRecord | null;
   manager?: UserProfile | null;
+  shift?: ShiftRecord | null;
 }
 
 export interface AttendanceRecord {

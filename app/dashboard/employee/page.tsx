@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar';
 import AttendanceWidget from '@/components/employee/AttendanceWidget';
 import LeavePermissionForm from '@/components/employee/LeavePermissionForm';
 import KpiTrackerWidget from '@/components/employee/KpiTrackerWidget';
+import ShiftSwapCard from '@/components/employee/ShiftSwapCard';
 import {
   UserProfile,
   AttendanceRecord,
@@ -26,10 +27,10 @@ export default async function EmployeeDashboardPage() {
     redirect('/login');
   }
 
-  // Fetch User Profile
+  // Fetch User Profile with Shift details
   const { data: userProfile } = await supabase
     .from('users')
-    .select('*')
+    .select('*, shift:shifts(*)')
     .eq('id', authUser.id)
     .single();
 
@@ -97,7 +98,7 @@ export default async function EmployeeDashboardPage() {
                   <span className="text-xl">📈</span>
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900">Log Sales Achievements</h3>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Log Sales Achievements</h3>
                   <p className="text-[11px] text-slate-400">Submit logs to earn commissions</p>
                 </div>
               </div>
@@ -112,15 +113,15 @@ export default async function EmployeeDashboardPage() {
             className="cleariq-card p-5 cleariq-card-hover flex flex-col justify-between space-y-4 group"
           >
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+              <div className="w-11 h-11 rounded-2xl bg-purple-50 dark:bg-purple-950/60 border border-purple-100 dark:border-purple-800 flex items-center justify-center text-purple-600 dark:text-purple-400">
                 <span className="text-xl">🎯</span>
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-900">Operational Targets</h3>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Operational Targets</h3>
                 <p className="text-[11px] text-slate-400">View goals vs actual progress</p>
               </div>
             </div>
-            <span className="py-2 px-3 rounded-xl bg-indigo-50 group-hover:bg-indigo-600 group-hover:text-white text-indigo-600 text-xs font-bold transition-all text-center">
+            <span className="py-2 px-3 rounded-xl bg-purple-50 dark:bg-purple-950/40 group-hover:bg-purple-600 group-hover:text-white text-purple-700 dark:text-purple-300 text-xs font-bold transition-all text-center">
               View My Targets
             </span>
           </Link>
@@ -153,6 +154,14 @@ export default async function EmployeeDashboardPage() {
           kpiUnit={user?.kpi_unit || 'tasks'}
           initialEntries={(kpiHistory as KpiEntryRecord[]) || []}
         />
+
+        {/* Shift Swap Request Card (When shifts system is enabled) */}
+        {(!tenantSettings || tenantSettings.enable_shifts) && (
+          <ShiftSwapCard
+            userId={authUser.id}
+            tenantId={user.tenant_id!}
+          />
+        )}
       </main>
     </div>
   );

@@ -9,35 +9,50 @@ import {
   Edit2,
   CheckCircle,
   AlertCircle,
-  FileText,
   Search,
   Download,
-  Upload,
-  ExternalLink,
   Target,
-  Percent,
+  Globe,
+  Clock,
+  ShieldCheck,
 } from 'lucide-react';
-import { UserProfile, DepartmentRecord } from '@/lib/types/database';
+import {
+  UserProfile,
+  UserRole,
+  DepartmentRecord,
+  ShiftRecord,
+  SystemAuditLogRecord,
+  TenantSettings,
+} from '@/lib/types/database';
 import { createClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/lib/context/LanguageContext';
 import { exportToCSV } from '@/lib/utils/csvExport';
+import { logAuditAction } from '@/lib/utils/auditLogger';
 
 interface EmployeeManagementProps {
   initialUsers: UserProfile[];
+  initialShifts?: ShiftRecord[];
+  initialAuditLogs?: SystemAuditLogRecord[];
+  tenantSettings?: TenantSettings | null;
 }
 
-export default function EmployeeManagement({ initialUsers }: EmployeeManagementProps) {
-  const { t, isRtl } = useLanguage();
+export default function EmployeeManagement({
+  initialUsers,
+  initialShifts = [],
+  initialAuditLogs = [],
+}: EmployeeManagementProps) {
+  const { isRtl } = useLanguage();
   const [users, setUsers] = useState<UserProfile[]>(initialUsers);
   const [departments, setDepartments] = useState<DepartmentRecord[]>([]);
+  const [shifts, setShifts] = useState<ShiftRecord[]>(initialShifts);
+  const [auditLogs, setAuditLogs] = useState<SystemAuditLogRecord[]>(initialAuditLogs);
   const [kpiUnits, setKpiUnits] = useState<{ id: string; name: string }[]>([]);
 
-  // TABS: registry (Employee Database), departments, kpis
-  const [activeTab, setActiveTab] = useState<'registry' | 'departments' | 'kpis'>('registry');
+  // TABS: registry (Employee Database), departments, kpis, audit
+  const [activeTab, setActiveTab] = useState<'registry' | 'departments' | 'kpis' | 'audit'>('registry');
 
   // MESSAGES & LOADINGS
   const [loading, setLoading] = useState(false);
-  const [uploadingField, setUploadingField] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ text: string; error: boolean } | null>(null);
 
   // SEARCH & FILTERS
@@ -45,6 +60,9 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
   const [filterDept, setFilterDept] = useState('all');
   const [filterJob, setFilterJob] = useState('all');
   const [filterPayment, setFilterPayment] = useState('all');
+  const [filterShift, setFilterShift] = useState('all');
+  const [filterRemote, setFilterRemote] = useState('all');
+  const [auditSearch, setAuditSearch] = useState('');
 
   // CONFIGURATORS STATE
   const [newDeptName, setNewDeptName] = useState('');
@@ -54,7 +72,7 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [editForm, setEditForm] = useState({
     full_name: '',
-    role: 'employee',
+    role: 'employee' as UserRole,
     basic_salary: 5000,
     commission_rate: 5,
     kpi_unit: 'tasks',
@@ -77,6 +95,11 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
     contract_type: 'Full-Time',
     probation_period: 3,
     contract_end_date: '',
+    // Remote, Flexible & Shift
+    is_remote: false,
+    is_flexible: false,
+    required_daily_hours: 8,
+    shift_id: '',
     custom_schedule_enabled: false,
     custom_start_time: '09:00',
     custom_end_time: '17:00',
@@ -95,11 +118,30 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
     if (data) setDepartments(data);
   };
 
+  const fetchShifts = async () => {
+    if (shifts.length > 0) return;
+    const { data } = await supabase.from('shifts').select('*').order('start_time');
+    if (data) setShifts(data);
+  };
+
+  const fetchAuditLogs = async () => {
+    const { data } = await supabase
+      .from('system_audit_logs')
+      .select('*, actor:users(full_name)')
+      .order('created_at', { ascending: false })
+      .limit(100);
+    if (data) setAuditLogs(data);
+  };
+
   useEffect(() => {
     fetchKpiUnits();
     fetchDepartments();
+    fetchShifts();
+    if (activeTab === 'audit') {
+      fetchAuditLogs();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [activeTab]);
 
   // Filtered employees list
   const filteredUsers = users.filter((u) => {
@@ -110,8 +152,19 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
     if (filterDept !== 'all' && u.department_id !== filterDept) return false;
     if (filterJob !== 'all' && u.job_title !== filterJob) return false;
     if (filterPayment !== 'all' && u.payment_method !== filterPayment) return false;
+    if (filterShift !== 'all' && u.shift_id !== filterShift) return false;
+    if (filterRemote === 'remote' && !u.is_remote) return false;
+    if (filterRemote === 'onsite' && u.is_remote) return false;
 
     return true;
+  });
+
+  // Filtered audit logs
+  const filteredAuditLogs = auditLogs.filter((log) => {
+    const actionMatch = log.action_type.toLowerCase().includes(auditSearch.toLowerCase());
+    const entityMatch = log.entity_name.toLowerCase().includes(auditSearch.toLowerCase());
+    const actorMatch = log.actor?.full_name?.toLowerCase().includes(auditSearch.toLowerCase());
+    return !auditSearch || actionMatch || entityMatch || actorMatch;
   });
 
   // Extract filter dropdown contents
@@ -119,200 +172,173 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
   const uniquePaymentMethods = Array.from(new Set(users.map((u) => u.payment_method).filter((t): t is string => !!t)));
   const managersList = users.filter((u) => u.role === 'manager' || u.role === 'super_admin');
 
-  // File Upload to Supabase Storage
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploadingField(fieldName);
-    setMsg(null);
-
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `employee_docs/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('documents')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: publicUrlData } = supabase.storage
-        .from('documents')
-        .getPublicUrl(filePath);
-
-      setEditForm((prev) => ({
-        ...prev,
-        [fieldName]: publicUrlData.publicUrl,
-      }));
-
-      setMsg({ text: isRtl ? 'تم رفع المستند بنجاح!' : 'Document uploaded successfully!', error: false });
-    } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : 'File upload failed';
-      setMsg({ text: errorMsg, error: true });
-    } finally {
-      setUploadingField(null);
-    }
-  };
-
-  // Export CSV
-  const handleExportCSV = () => {
-    const exportData = filteredUsers.map((u) => {
-      const dept = departments.find((d) => d.id === u.department_id);
-      return {
-        'Full Name': u.full_name,
-        Role: u.role,
-        'Job Title': u.job_title || 'N/A',
-        Department: dept?.name || 'N/A',
-        'Mobile Number': u.mobile || 'N/A',
-        'National ID': u.id_number || 'N/A',
-        Age: u.age || 'N/A',
-        'Basic Salary': u.basic_salary,
-        'Commission Rate (%)': u.commission_rate ?? 5,
-        'Social Insurance': u.social_insurance || 0,
-        'Health Insurance': u.health_insurance || 0,
-        'Contract Type': u.contract_type || 'N/A',
-        'Contract End Date': u.contract_end_date || 'N/A',
-        'Payment Method': u.payment_method || 'N/A',
-      };
-    });
-    exportToCSV(exportData, `HumAi_Employee_Registry_${new Date().toISOString().split('T')[0]}.csv`);
-  };
-
-  // Open Edit Form
-  const handleEditClick = (user: UserProfile) => {
-    setSelectedUser(user);
+  // Handle Edit Profile Click
+  const handleEditClick = (u: UserProfile) => {
+    setSelectedUser(u);
     setEditForm({
-      full_name: user.full_name || '',
-      role: user.role || 'employee',
-      basic_salary: Number(user.basic_salary || 5000),
-      commission_rate: Number(user.commission_rate ?? 5),
-      kpi_unit: user.kpi_unit || 'tasks',
-      manager_id: user.manager_id || '',
-      mobile: user.mobile || '',
-      id_number: user.id_number || '',
-      id_photo_url: user.id_photo_url || '',
-      age: Number(user.age || 20),
-      birth_date: user.birth_date || '',
-      birth_cert_url: user.birth_cert_url || '',
-      qualification: user.qualification || '',
-      qualification_url: user.qualification_url || '',
-      address: user.address || '',
-      job_title: user.job_title || '',
-      criminal_record_url: user.criminal_record_url || '',
-      department_id: user.department_id || '',
-      payment_method: user.payment_method || 'Cash',
-      social_insurance: Number(user.social_insurance || 0),
-      health_insurance: Number(user.health_insurance || 0),
-      contract_type: user.contract_type || 'Full-Time',
-      probation_period: Number(user.probation_period || 3),
-      contract_end_date: user.contract_end_date || '',
-      custom_schedule_enabled: user.custom_schedule_enabled || false,
-      custom_start_time: user.custom_start_time || '09:00',
-      custom_end_time: user.custom_end_time || '17:00',
-      custom_work_days: user.custom_work_days || ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'],
+      full_name: u.full_name || '',
+      role: (u.role as UserRole) || 'employee',
+      basic_salary: Number(u.basic_salary) || 5000,
+      commission_rate: Number(u.commission_rate) || 5,
+      kpi_unit: u.kpi_unit || 'tasks',
+      manager_id: u.manager_id || '',
+      mobile: u.mobile || '',
+      id_number: u.id_number || '',
+      id_photo_url: u.id_photo_url || '',
+      age: Number(u.age) || 20,
+      birth_date: u.birth_date || '',
+      birth_cert_url: u.birth_cert_url || '',
+      qualification: u.qualification || '',
+      qualification_url: u.qualification_url || '',
+      address: u.address || '',
+      job_title: u.job_title || '',
+      criminal_record_url: u.criminal_record_url || '',
+      department_id: u.department_id || '',
+      payment_method: u.payment_method || 'Cash',
+      social_insurance: Number(u.social_insurance) || 0,
+      health_insurance: Number(u.health_insurance) || 0,
+      contract_type: u.contract_type || 'Full-Time',
+      probation_period: Number(u.probation_period) || 3,
+      contract_end_date: u.contract_end_date || '',
+      is_remote: !!u.is_remote,
+      is_flexible: !!u.is_flexible,
+      required_daily_hours: Number(u.required_daily_hours) || 8,
+      shift_id: u.shift_id || '',
+      custom_schedule_enabled: !!u.custom_schedule_enabled,
+      custom_start_time: u.custom_start_time || '09:00',
+      custom_end_time: u.custom_end_time || '17:00',
+      custom_work_days: u.custom_work_days || ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'],
     });
-    setMsg(null);
   };
 
-  // Save Edit Form Changes
-  const handleSaveDetails = async (e: React.FormEvent) => {
+  // Save Employee Changes
+  const handleSaveUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUser) return;
 
     setLoading(true);
     setMsg(null);
 
-    const { data, error } = await supabase
-      .from('users')
-      .update({
-        full_name: editForm.full_name,
-        role: editForm.role,
-        basic_salary: Number(editForm.basic_salary),
-        commission_rate: Number(editForm.commission_rate),
-        kpi_unit: editForm.kpi_unit,
-        manager_id: editForm.manager_id || null,
-        mobile: editForm.mobile,
-        id_number: editForm.id_number,
-        id_photo_url: editForm.id_photo_url,
-        age: Number(editForm.age),
-        birth_date: editForm.birth_date || null,
-        birth_cert_url: editForm.birth_cert_url,
-        qualification: editForm.qualification,
-        qualification_url: editForm.qualification_url,
-        address: editForm.address,
-        job_title: editForm.job_title,
-        criminal_record_url: editForm.criminal_record_url,
-        department_id: editForm.department_id || null,
-        payment_method: editForm.payment_method,
-        social_insurance: Number(editForm.social_insurance),
-        health_insurance: Number(editForm.health_insurance),
-        contract_type: editForm.contract_type,
-        probation_period: Number(editForm.probation_period),
-        contract_end_date: editForm.contract_end_date || null,
-        custom_schedule_enabled: editForm.custom_schedule_enabled,
-        custom_start_time: editForm.custom_start_time,
-        custom_end_time: editForm.custom_end_time,
-        custom_work_days: editForm.custom_work_days,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', selectedUser.id)
-      .select()
-      .single();
-
-    if (error) {
-      setMsg({ text: error.message, error: true });
-    } else if (data) {
-      const { data: refreshedUsers } = await supabase
+    try {
+      const { error } = await supabase
         .from('users')
-        .select('*, department:departments(*)');
+        .update({
+          full_name: editForm.full_name,
+          role: editForm.role,
+          basic_salary: editForm.basic_salary,
+          commission_rate: editForm.commission_rate,
+          kpi_unit: editForm.kpi_unit,
+          manager_id: editForm.manager_id || null,
+          mobile: editForm.mobile || null,
+          id_number: editForm.id_number || null,
+          id_photo_url: editForm.id_photo_url || null,
+          age: editForm.age || null,
+          birth_date: editForm.birth_date || null,
+          birth_cert_url: editForm.birth_cert_url || null,
+          qualification: editForm.qualification || null,
+          qualification_url: editForm.qualification_url || null,
+          address: editForm.address || null,
+          job_title: editForm.job_title || null,
+          criminal_record_url: editForm.criminal_record_url || null,
+          department_id: editForm.department_id || null,
+          payment_method: editForm.payment_method || null,
+          social_insurance: editForm.social_insurance || 0,
+          health_insurance: editForm.health_insurance || 0,
+          contract_type: editForm.contract_type || 'Full-Time',
+          probation_period: editForm.probation_period || 3,
+          contract_end_date: editForm.contract_end_date || null,
+          is_remote: editForm.is_remote,
+          is_flexible: editForm.is_flexible,
+          required_daily_hours: editForm.required_daily_hours,
+          shift_id: editForm.shift_id || null,
+          custom_schedule_enabled: editForm.custom_schedule_enabled,
+          custom_start_time: editForm.custom_schedule_enabled ? editForm.custom_start_time : null,
+          custom_end_time: editForm.custom_schedule_enabled ? editForm.custom_end_time : null,
+          custom_work_days: editForm.custom_schedule_enabled ? editForm.custom_work_days : null,
+        })
+        .eq('id', selectedUser.id);
 
-      if (refreshedUsers) {
-        setUsers(refreshedUsers as UserProfile[]);
-      } else {
-        setUsers(users.map((u) => (u.id === selectedUser.id ? (data as UserProfile) : u)));
+      if (error) throw error;
+
+      // Log action to system audit trail
+      const { data: { user: currentAuth } } = await supabase.auth.getUser();
+      if (currentAuth && selectedUser.tenant_id) {
+        await logAuditAction(supabase, {
+          tenant_id: selectedUser.tenant_id,
+          actor_id: currentAuth.id,
+          action_type: 'UPDATE_EMPLOYEE_PROFILE',
+          entity_name: 'users',
+          entity_id: selectedUser.id,
+          details: {
+            employee_name: editForm.full_name,
+            role: editForm.role,
+            is_remote: editForm.is_remote,
+            is_flexible: editForm.is_flexible,
+            shift_id: editForm.shift_id,
+          },
+        });
       }
 
-      setSelectedUser(null);
+      // Update state locally
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === selectedUser.id
+            ? ({
+                ...u,
+                ...editForm,
+                role: editForm.role as UserRole,
+                manager_id: editForm.manager_id || null,
+                department_id: editForm.department_id || null,
+                shift_id: editForm.shift_id || null,
+                department: departments.find((d) => d.id === editForm.department_id) || u.department,
+                shift: shifts.find((s) => s.id === editForm.shift_id) || null,
+              } as UserProfile)
+            : u
+        )
+      );
+
       setMsg({ text: isRtl ? 'تم تحديث بيانات الموظف بنجاح!' : 'Employee profile updated successfully!', error: false });
+      setSelectedUser(null);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Update failed';
+      setMsg({ text: errMsg, error: true });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   // Add Department
-  const handleAddDept = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddDept = async () => {
     if (!newDeptName.trim()) return;
-
     setLoading(true);
-    setMsg(null);
-
-    const { data, error } = await supabase
-      .from('departments')
-      .insert({ name: newDeptName.trim() })
-      .select()
-      .single();
-
+    const { data: { user: currentAuth } } = await supabase.auth.getUser();
+    const { data, error } = await supabase.from('departments').insert({ name: newDeptName.trim() }).select().single();
     if (error) {
       setMsg({ text: error.message, error: true });
     } else if (data) {
-      setDepartments([...departments, data].sort((a, b) => a.name.localeCompare(b.name)));
+      setDepartments([...departments, data]);
       setNewDeptName('');
-      setMsg({ text: isRtl ? 'تمت إضافة القسم بنجاح!' : 'Department added successfully!', error: false });
+      setMsg({ text: isRtl ? 'تمت إضافة القسم بنجاح!' : 'Department created successfully!', error: false });
+
+      if (currentAuth && users[0]?.tenant_id) {
+        logAuditAction(supabase, {
+          tenant_id: users[0].tenant_id,
+          actor_id: currentAuth.id,
+          action_type: 'CREATE_DEPARTMENT',
+          entity_name: 'departments',
+          entity_id: data.id,
+          details: { name: data.name },
+        });
+      }
     }
     setLoading(false);
   };
 
   // Delete Department
-  const handleDeleteDept = async (id: string, name: string) => {
-    if (!confirm(isRtl ? `هل أنت متأكد من حذف قسم "${name}"؟` : `Are you sure you want to delete "${name}"?`)) return;
-
+  const handleDeleteDept = async (id: string) => {
+    if (!confirm(isRtl ? 'هل أنت متأكد من حذف هذا القسم؟' : 'Are you sure you want to delete this department?')) return;
     setLoading(true);
-    setMsg(null);
-
     const { error } = await supabase.from('departments').delete().eq('id', id);
-
     if (error) {
       setMsg({ text: error.message, error: true });
     } else {
@@ -323,23 +349,14 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
   };
 
   // Add KPI Unit
-  const handleAddUnit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddKpiUnit = async () => {
     if (!newUnitName.trim()) return;
-
     setLoading(true);
-    setMsg(null);
-
-    const { data, error } = await supabase
-      .from('kpi_units')
-      .insert({ name: newUnitName.trim().toLowerCase() })
-      .select()
-      .single();
-
+    const { data, error } = await supabase.from('kpi_units').insert({ name: newUnitName.trim() }).select().single();
     if (error) {
       setMsg({ text: error.message, error: true });
     } else if (data) {
-      setKpiUnits([...kpiUnits, data].sort((a, b) => a.name.localeCompare(b.name)));
+      setKpiUnits([...kpiUnits, data]);
       setNewUnitName('');
       setMsg({ text: isRtl ? 'تمت إضافة وحدة القياس بنجاح!' : 'KPI Unit added successfully!', error: false });
     }
@@ -347,14 +364,10 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
   };
 
   // Delete KPI Unit
-  const handleDeleteUnit = async (id: string, name: string) => {
-    if (!confirm(isRtl ? `هل أنت متأكد من حذف وحدة "${name}"؟` : `Are you sure you want to delete "${name}"?`)) return;
-
+  const handleDeleteKpiUnit = async (id: string) => {
+    if (!confirm(isRtl ? 'هل أنت متأكد من حذف وحدة القياس؟' : 'Are you sure you want to delete this KPI Unit?')) return;
     setLoading(true);
-    setMsg(null);
-
     const { error } = await supabase.from('kpi_units').delete().eq('id', id);
-
     if (error) {
       setMsg({ text: error.message, error: true });
     } else {
@@ -366,7 +379,7 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
 
   return (
     <div className="space-y-6">
-      {/* Tab Selectors */}
+      {/* 4-Tab Horizontal Switchers matching reference */}
       <div className="flex gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 overflow-x-auto">
         <button
           type="button"
@@ -377,7 +390,7 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
               : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
           }`}
         >
-          <Users className="w-4 h-4" /> {isRtl ? 'قاعدة بيانات وسجل الموظفين' : 'Employee Database Registry'}
+          <Users className="w-4 h-4" /> {isRtl ? 'سجل وقاعدة بيانات الموظفين' : 'Employee Database Registry'}
         </button>
 
         <button
@@ -402,6 +415,18 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
           }`}
         >
           <Target className="w-4 h-4" /> {isRtl ? 'إعدادات مؤشرات الأداء' : 'KPI Metrics Config'}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => { setActiveTab('audit'); setSelectedUser(null); }}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+            activeTab === 'audit'
+              ? 'bg-emerald-600 text-white shadow-xs'
+              : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4" /> {isRtl ? 'سجل تدقيق النظام والمشرفين' : 'System Audit Trail'}
         </button>
       </div>
 
@@ -430,589 +455,625 @@ export default function EmployeeManagement({ initialUsers }: EmployeeManagementP
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={isRtl ? 'ابحث بالاسم أو الهاتف...' : 'Search by Name or Mobile...'}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2 text-xs font-semibold text-slate-950 dark:text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2 text-xs font-semibold text-slate-950 dark:text-white focus:outline-none focus:border-emerald-500"
               />
             </div>
 
             <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+              {/* Shift Filter */}
+              {shifts.length > 0 && (
+                <select
+                  value={filterShift}
+                  onChange={(e) => setFilterShift(e.target.value)}
+                  className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-xl px-3 py-2 font-medium focus:outline-none focus:border-emerald-500 cursor-pointer"
+                >
+                  <option value="all">{isRtl ? 'كل الورديات' : 'All Shifts'}</option>
+                  {shifts.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              )}
+
+              {/* Remote / Onsite Filter */}
+              <select
+                value={filterRemote}
+                onChange={(e) => setFilterRemote(e.target.value)}
+                className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-xl px-3 py-2 font-medium focus:outline-none focus:border-emerald-500 cursor-pointer"
+              >
+                <option value="all">{isRtl ? 'العمل المكتبي وعن بعد' : 'All Work Modes'}</option>
+                <option value="remote">{isRtl ? '🌐 عن بعد (Check-in Anywhere)' : '🌐 Remote'}</option>
+                <option value="onsite">{isRtl ? '🏢 مكتبي (Geofenced)' : '🏢 On-Site'}</option>
+              </select>
+
               {/* Department filter */}
               <select
                 value={filterDept}
                 onChange={(e) => setFilterDept(e.target.value)}
-                className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none cursor-pointer"
+                className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-xl px-3 py-2 font-medium focus:outline-none focus:border-emerald-500 cursor-pointer"
               >
-                <option value="all">{isRtl ? 'جميع الأقسام' : 'All Departments'}</option>
+                <option value="all">{isRtl ? 'كل الأقسام' : 'All Departments'}</option>
                 {departments.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
+                  <option key={d.id} value={d.id}>{d.name}</option>
                 ))}
               </select>
 
-              {/* Job Title filter */}
+              {/* Job Title Filter */}
               <select
                 value={filterJob}
                 onChange={(e) => setFilterJob(e.target.value)}
-                className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none cursor-pointer"
+                className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-xl px-3 py-2 font-medium focus:outline-none focus:border-emerald-500 cursor-pointer"
               >
-                <option value="all">{isRtl ? 'جميع المسميات' : 'All Job Titles'}</option>
-                {uniqueJobTitles.map((j) => (
-                  <option key={j} value={j}>
-                    {j}
-                  </option>
+                <option value="all">{isRtl ? 'كل المسميات' : 'All Job Titles'}</option>
+                {uniqueJobTitles.map((job) => (
+                  <option key={job} value={job}>{job}</option>
                 ))}
               </select>
 
-              {/* Payment Method filter */}
-              <select
-                value={filterPayment}
-                onChange={(e) => setFilterPayment(e.target.value)}
-                className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none cursor-pointer"
-              >
-                <option value="all">{isRtl ? 'جميع طرق الدفع' : 'All Payments'}</option>
-                {uniquePaymentMethods.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
+              {/* Payment Method Filter */}
+              {uniquePaymentMethods.length > 0 && (
+                <select
+                  value={filterPayment}
+                  onChange={(e) => setFilterPayment(e.target.value)}
+                  className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-xl px-3 py-2 font-medium focus:outline-none focus:border-emerald-500 cursor-pointer"
+                >
+                  <option value="all">{isRtl ? 'طريقة الدفع' : 'Payment Method'}</option>
+                  {uniquePaymentMethods.map((p) => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+              )}
 
-              {/* Export CSV */}
+              {/* Export to CSV */}
               <button
                 type="button"
-                onClick={handleExportCSV}
-                className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                onClick={() =>
+                  exportToCSV(
+                    filteredUsers.map((u) => ({
+                      Name: u.full_name,
+                      Role: u.role,
+                      Department: u.department?.name || 'N/A',
+                      JobTitle: u.job_title || 'N/A',
+                      Mobile: u.mobile || 'N/A',
+                      BasicSalary: u.basic_salary,
+                      CommissionRate: `${u.commission_rate || 0}%`,
+                      WorkMode: u.is_remote ? 'Remote' : 'Onsite',
+                      Shift: u.shift?.name || 'General',
+                      PaymentMethod: u.payment_method || 'Cash',
+                    })),
+                    'HumAi_Employee_Registry.csv'
+                  )
+                }
+                className="gradient-btn px-4 py-2 rounded-xl text-xs font-bold text-white shadow-xs flex items-center gap-1.5 cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
-                <span>{isRtl ? 'تصدير CSV' : 'Export CSV'}</span>
+                <span>{isRtl ? 'تصدير السجل' : 'Export Registry'}</span>
               </button>
             </div>
           </div>
 
-          {/* Registry Table */}
-          <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
-            <table className="w-full text-left text-xs font-sans">
-              <thead className="bg-slate-100 dark:bg-slate-800 text-slate-950 dark:text-slate-200 uppercase text-[10px] tracking-wider font-extrabold">
-                <tr>
-                  <th className="px-4 py-3.5">{t('fullName')}</th>
-                  <th className="px-4 py-3.5">{isRtl ? 'الهاتف' : 'Contact'}</th>
-                  <th className="px-4 py-3.5">{isRtl ? 'القسم' : 'Department'}</th>
-                  <th className="px-4 py-3.5">{isRtl ? 'المسمى الوظيفي' : 'Job Title'}</th>
-                  <th className="px-4 py-3.5">{isRtl ? 'الراتب الأساسي' : 'Basic Salary'}</th>
-                  <th className="px-4 py-3.5">{isRtl ? 'العمولة %' : 'Commission %'}</th>
-                  <th className="px-4 py-3.5">{isRtl ? 'العقد' : 'Contract'}</th>
-                  <th className="px-4 py-3.5">{isRtl ? 'التأمينات' : 'Insurances'}</th>
-                  <th className="px-4 py-3.5">{isRtl ? 'المستندات' : 'Docs'}</th>
-                  <th className="px-4 py-3.5 text-right">{t('actions')}</th>
+          {/* Employees Table */}
+          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-100 dark:bg-slate-800/80 text-slate-950 dark:text-slate-100 font-semibold uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-800">
+                  <th className="py-3 px-4">{isRtl ? 'الموظف' : 'Employee'}</th>
+                  <th className="py-3 px-4">{isRtl ? 'القسم والمسمى' : 'Dept & Title'}</th>
+                  <th className="py-3 px-4">{isRtl ? 'نظام العمل والوردية' : 'Work Mode & Shift'}</th>
+                  <th className="py-3 px-4">{isRtl ? 'الهاتف والراتب' : 'Contact & Salary'}</th>
+                  <th className="py-3 px-4 text-center">{isRtl ? 'الإجراءات' : 'Actions'}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
-                {filteredUsers.map((u) => {
-                  const dept = departments.find((d) => d.id === u.department_id);
-                  return (
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {filteredUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-slate-400 font-medium">
+                      {isRtl ? 'لا يوجد موظفون مطابقون لخيارات البحث' : 'No employees matching search criteria.'}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredUsers.map((u) => (
                     <tr key={u.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
-                      <td className="px-4 py-3.5 font-bold text-slate-950 dark:text-white">{u.full_name}</td>
-                      <td className="px-4 py-3.5 text-slate-800 dark:text-slate-300 font-sans font-semibold">{u.mobile || '--'}</td>
-                      <td className="px-4 py-3.5 text-emerald-700 dark:text-emerald-400 font-bold">{dept?.name || '--'}</td>
-                      <td className="px-4 py-3.5 text-slate-800 dark:text-slate-300 font-medium">{u.job_title || '--'}</td>
-                      <td className="px-4 py-3.5 font-extrabold text-emerald-700 dark:text-emerald-400 font-sans">
-                        {Number(u.basic_salary || 0).toLocaleString()} EGP
-                      </td>
-                      <td className="px-4 py-3.5 font-extrabold text-emerald-700 dark:text-emerald-400 font-sans">
-                        {u.commission_rate ?? 5}%
-                      </td>
-                      <td className="px-4 py-3.5 text-slate-800 dark:text-slate-300 font-medium">
-                        <span className="font-semibold">{u.contract_type || 'Full-Time'}</span>
-                        {u.contract_end_date && (
-                          <span className="block text-[10px] text-slate-500 dark:text-slate-400 font-sans">
-                            Exp: {u.contract_end_date}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3.5 text-[11px] text-slate-800 dark:text-slate-300 font-sans">
-                        <div>Soc: {u.social_insurance || 0} EGP</div>
-                        <div>Med: {u.health_insurance || 0} EGP</div>
-                      </td>
-                      <td className="px-4 py-3.5 text-slate-400">
-                        <div className="flex gap-2">
-                          {u.id_photo_url && (
-                            <a
-                              href={u.id_photo_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              title="ID Photo"
-                              className="text-emerald-600 hover:text-emerald-700 p-1 bg-emerald-50 dark:bg-emerald-950/40 rounded-md"
-                            >
-                              <FileText className="w-3.5 h-3.5" />
-                            </a>
-                          )}
-                          {u.qualification_url && (
-                            <a
-                              href={u.qualification_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              title="Qualification"
-                              className="text-purple-600 hover:text-purple-700 p-1 bg-purple-50 dark:bg-purple-950/40 rounded-md"
-                            >
-                              <FileText className="w-3.5 h-3.5" />
-                            </a>
-                          )}
-                          {u.criminal_record_url && (
-                            <a
-                              href={u.criminal_record_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              title="Criminal Record"
-                              className="text-rose-600 hover:text-rose-700 p-1 bg-rose-50 dark:bg-rose-950/40 rounded-md"
-                            >
-                              <FileText className="w-3.5 h-3.5" />
-                            </a>
-                          )}
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 font-bold flex items-center justify-center font-sans">
+                            {u.full_name.charAt(0)}
+                          </div>
+                          <div>
+                            <span className="font-extrabold text-slate-950 dark:text-white block">{u.full_name}</span>
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide font-sans">{u.role}</span>
+                          </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3.5 text-right">
+
+                      <td className="py-3.5 px-4">
+                        <span className="font-bold text-slate-800 dark:text-slate-200 block">{u.job_title || 'N/A'}</span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400">{u.department?.name || 'Operations'}</span>
+                      </td>
+
+                      <td className="py-3.5 px-4 space-y-1">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {u.is_remote ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800 flex items-center gap-1">
+                              <Globe className="w-3 h-3" /> Remote / Anywhere
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
+                              🏢 On-Site
+                            </span>
+                          )}
+
+                          {u.is_flexible && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800 flex items-center gap-1">
+                              <Clock className="w-3 h-3" /> Flex ({u.required_daily_hours || 8}h)
+                            </span>
+                          )}
+                        </div>
+
+                        {u.shift ? (
+                          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 block">
+                            ⏰ {u.shift.name} ({u.shift.start_time} - {u.shift.end_time})
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 block">Standard Hours</span>
+                        )}
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        <span className="font-extrabold text-slate-950 dark:text-white font-sans block">
+                          {Number(u.basic_salary).toLocaleString()} EGP
+                        </span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400">{u.mobile || 'No Phone'}</span>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-center">
                         <button
                           type="button"
                           onClick={() => handleEditClick(u)}
-                          className="p-1.5 bg-emerald-50 hover:bg-blue-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-lg transition-all cursor-pointer"
-                          title={isRtl ? 'تعديل البيانات' : 'Edit Profile'}
+                          className="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-600 dark:hover:text-white border border-emerald-200 dark:border-emerald-800 text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
+                          <span>{isRtl ? 'تعديل الملف' : 'Edit Profile'}</span>
                         </button>
                       </td>
                     </tr>
-                  );
-                })}
+                  ))
+                )}
               </tbody>
             </table>
           </div>
         </div>
       )}
 
-      {/* EDIT PROFILE PANEL */}
-      {activeTab === 'registry' && selectedUser && (
+      {/* TAB 4: SYSTEM AUDIT TRAIL */}
+      {activeTab === 'audit' && (
         <div className="cleariq-card p-6 cleariq-card-hover space-y-6">
-          <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h3 className="font-extrabold text-base sm:text-lg text-slate-950 dark:text-white">
-                {isRtl ? `تعديل ملف الموظف: ${selectedUser.full_name}` : `Edit Profile: ${selectedUser.full_name}`}
+              <h3 className="text-base font-extrabold text-slate-950 dark:text-white flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                {isRtl ? 'سجل تدقيق الإجراءات وعمليات المشرفين' : 'System & Administrative Audit Trail'}
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {isRtl ? 'تحديث السجل الإداري والعمولات والمستندات الثبوتية' : 'Update registry fields, commissions, and official documents'}
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {isRtl
+                  ? 'سجل غير قابل للتعديل يوثق جميع التغييرات الإدارية، تعديلات السياسات، والموافقات المالية'
+                  : 'Immutable security log tracking all admin overrides, policy changes, and workflow approvals'}
               </p>
             </div>
+
+            <div className="flex items-center gap-2 relative w-full sm:w-72">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3" />
+              <input
+                type="text"
+                value={auditSearch}
+                onChange={(e) => setAuditSearch(e.target.value)}
+                placeholder={isRtl ? 'بحث في سجل التدقيق...' : 'Search logs by action or actor...'}
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2 text-xs font-semibold text-slate-950 dark:text-white focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+          </div>
+
+          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-100 dark:bg-slate-800/80 text-slate-950 dark:text-slate-100 font-semibold uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-800">
+                  <th className="py-3 px-4">{isRtl ? 'التاريخ والوقت' : 'Timestamp'}</th>
+                  <th className="py-3 px-4">{isRtl ? 'المشرف (الفاعل)' : 'Actor (Admin)'}</th>
+                  <th className="py-3 px-4">{isRtl ? 'نوع الإجراء' : 'Action Type'}</th>
+                  <th className="py-3 px-4">{isRtl ? 'العنصر المستهدف' : 'Entity'}</th>
+                  <th className="py-3 px-4">{isRtl ? 'التفاصيل والبيانات' : 'Details / Payload'}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {filteredAuditLogs.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-slate-400 font-medium">
+                      {isRtl ? 'لا توجد سجلات تدقيق مسجلة بعد' : 'No audit records logged yet.'}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredAuditLogs.map((log) => (
+                    <tr key={log.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
+                      <td className="py-3.5 px-4 font-mono text-[11px] text-slate-500 dark:text-slate-400">
+                        {log.created_at ? new Date(log.created_at).toLocaleString() : 'Recent'}
+                      </td>
+                      <td className="py-3.5 px-4 font-bold text-slate-950 dark:text-white">
+                        {log.actor?.full_name || 'System Admin'}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 uppercase tracking-wider font-mono">
+                          {log.action_type}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 font-semibold text-slate-700 dark:text-slate-300">
+                        {log.entity_name} {log.entity_id ? `(#${String(log.entity_id).slice(0, 6)})` : ''}
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300 font-mono text-[11px] max-w-xs truncate">
+                        {JSON.stringify(log.details || {})}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 2: DEPARTMENTS CONFIG */}
+      {activeTab === 'departments' && (
+        <div className="cleariq-card p-6 cleariq-card-hover space-y-6">
+          <div>
+            <h3 className="text-base font-extrabold text-slate-950 dark:text-white">{isRtl ? 'إدارة الأقسام والوحدات' : 'Manage Corporate Departments'}</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{isRtl ? 'إضافة أو حذف الأقسام التنظيمية في الشركة' : 'Create or remove departments for user assignment.'}</p>
+          </div>
+
+          <div className="flex gap-2 max-w-md">
+            <input
+              type="text"
+              value={newDeptName}
+              onChange={(e) => setNewDeptName(e.target.value)}
+              placeholder={isRtl ? 'اسم القسم الجديد...' : 'e.g. Sales, Marketing, IT...'}
+              className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-950 dark:text-white focus:outline-none focus:border-emerald-500"
+            />
+            <button
+              type="button"
+              onClick={handleAddDept}
+              disabled={loading}
+              className="gradient-btn px-4 py-2 rounded-xl text-xs font-bold text-white shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            >
+              <Plus className="w-4 h-4" /> {isRtl ? 'إضافة' : 'Add'}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {departments.map((dept) => (
+              <div
+                key={dept.id}
+                className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold flex items-center justify-center text-xs">
+                    <FolderOpen className="w-4 h-4" />
+                  </div>
+                  <span className="font-bold text-xs text-slate-900 dark:text-slate-100">{dept.name}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteDept(dept.id)}
+                  className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: KPI METRICS CONFIG */}
+      {activeTab === 'kpis' && (
+        <div className="cleariq-card p-6 cleariq-card-hover space-y-6">
+          <div>
+            <h3 className="text-base font-extrabold text-slate-950 dark:text-white">{isRtl ? 'وحدات قياس ومؤشرات الأداء' : 'KPI Metrics & Units'}</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{isRtl ? 'إضافة وحدات قياس مخصصة لمتابعة الإنتاجية' : 'Define custom productivity measurement units.'}</p>
+          </div>
+
+          <div className="flex gap-2 max-w-md">
+            <input
+              type="text"
+              value={newUnitName}
+              onChange={(e) => setNewUnitName(e.target.value)}
+              placeholder={isRtl ? 'اسم الوحدة (قطع، مكالمات، ملفات...)' : 'e.g. calls, pieces, designs...'}
+              className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-950 dark:text-white focus:outline-none focus:border-emerald-500"
+            />
+            <button
+              type="button"
+              onClick={handleAddKpiUnit}
+              disabled={loading}
+              className="gradient-btn px-4 py-2 rounded-xl text-xs font-bold text-white shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            >
+              <Plus className="w-4 h-4" /> {isRtl ? 'إضافة' : 'Add'}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {kpiUnits.map((unit) => (
+              <div
+                key={unit.id}
+                className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 font-bold flex items-center justify-center text-xs">
+                    <Target className="w-4 h-4" />
+                  </div>
+                  <span className="font-bold text-xs text-slate-900 dark:text-slate-100">{unit.name}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteKpiUnit(unit.id)}
+                  className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* EDIT PROFILE MODAL / VIEW */}
+      {selectedUser && (
+        <div className="cleariq-card p-6 cleariq-card-hover space-y-6">
+          <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
+            <div>
+              <h3 className="text-base font-extrabold text-slate-950 dark:text-white flex items-center gap-2">
+                <Edit2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                {isRtl ? 'تعديل السجل الشامل للموظف' : 'Comprehensive Employee Record & Policies'}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {selectedUser.full_name} ({selectedUser.id})
+              </p>
+            </div>
+
             <button
               type="button"
               onClick={() => setSelectedUser(null)}
-              className="text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 border border-slate-200 dark:border-slate-700 px-3.5 py-1.5 rounded-xl cursor-pointer"
+              className="px-4 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer"
             >
               {isRtl ? 'إلغاء' : 'Cancel'}
             </button>
           </div>
 
-          <form onSubmit={handleSaveDetails} className="space-y-6 font-sans">
-            {/* 1. Core Bio Info */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{t('fullName')}</label>
-                <input
-                  type="text"
-                  required
-                  value={editForm.full_name}
-                  onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{isRtl ? 'رقم الهاتف' : 'Mobile Number'}</label>
-                <input
-                  type="text"
-                  value={editForm.mobile}
-                  onChange={(e) => setEditForm({ ...editForm, mobile: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{isRtl ? 'الرقم القومي' : 'ID National Number'}</label>
-                <input
-                  type="text"
-                  value={editForm.id_number}
-                  onChange={(e) => setEditForm({ ...editForm, id_number: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{isRtl ? 'السن' : 'Age'}</label>
-                <input
-                  type="number"
-                  value={editForm.age}
-                  onChange={(e) => setEditForm({ ...editForm, age: Number(e.target.value) })}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{isRtl ? 'تاريخ الميلاد' : 'Birth Date'}</label>
-                <input
-                  type="date"
-                  value={editForm.birth_date}
-                  onChange={(e) => setEditForm({ ...editForm, birth_date: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{isRtl ? 'المؤهل الدراسي' : 'Academic Qualification'}</label>
-                <input
-                  type="text"
-                  value={editForm.qualification}
-                  onChange={(e) => setEditForm({ ...editForm, qualification: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none"
-                />
-              </div>
-            </div>
-
-            {/* 2. Job & Financial Settings (Including Commission Rate) */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-slate-200 dark:border-slate-800 pt-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{isRtl ? 'المسمى الوظيفي' : 'Job Title'}</label>
-                <input
-                  type="text"
-                  value={editForm.job_title}
-                  onChange={(e) => setEditForm({ ...editForm, job_title: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{isRtl ? 'القسم' : 'Department'}</label>
-                <select
-                  value={editForm.department_id}
-                  onChange={(e) => setEditForm({ ...editForm, department_id: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none cursor-pointer"
-                >
-                  <option value="">{isRtl ? 'لا يوجد قسم' : 'No department'}</option>
-                  {departments.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{isRtl ? 'الراتب الأساسي (ج.م)' : 'Basic Salary (EGP)'}</label>
-                <input
-                  type="number"
-                  value={editForm.basic_salary}
-                  onChange={(e) => setEditForm({ ...editForm, basic_salary: Number(e.target.value) })}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none font-sans"
-                />
-              </div>
-
-              {/* Commission Rate field inside Employee Profile */}
-              <div>
-                <label className="block text-xs font-bold text-emerald-600 dark:text-emerald-400 mb-1 flex items-center gap-1">
-                  <Percent className="w-3.5 h-3.5" />
-                  {isRtl ? 'نسبة العمولة من المبيعات (%)' : 'Sales Commission Rate (%)'}
-                </label>
-                <input
-                  type="number"
-                  step="0.5"
-                  min="0"
-                  max="100"
-                  value={editForm.commission_rate}
-                  onChange={(e) => setEditForm({ ...editForm, commission_rate: Number(e.target.value) })}
-                  className="w-full bg-emerald-50/50 dark:bg-emerald-950/20 border border-blue-300 dark:border-emerald-800 rounded-xl px-3.5 py-2 text-xs font-extrabold text-emerald-700 dark:text-blue-300 focus:outline-none font-sans"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{isRtl ? 'طريقة دفع الراتب' : 'Salary Payment Method'}</label>
-                <select
-                  value={editForm.payment_method}
-                  onChange={(e) => setEditForm({ ...editForm, payment_method: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none cursor-pointer"
-                >
-                  <option value="Cash">{isRtl ? 'نقداً' : 'Cash'}</option>
-                  <option value="Bank Transfer">{isRtl ? 'تحويل بنكي' : 'Bank Transfer'}</option>
-                  <option value="InstaPay">{isRtl ? 'إنستاباي' : 'InstaPay'}</option>
-                  <option value="Vodafone Cash">{isRtl ? 'فودافون كاش' : 'Vodafone Cash'}</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{isRtl ? 'نوع العقد' : 'Contract Type'}</label>
-                <select
-                  value={editForm.contract_type}
-                  onChange={(e) => setEditForm({ ...editForm, contract_type: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none cursor-pointer"
-                >
-                  <option value="Full-Time">Full-Time</option>
-                  <option value="Part-Time">Part-Time</option>
-                  <option value="Internship">Internship</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{isRtl ? 'التأمين الاجتماعي (ج.م)' : 'Social Insurance (EGP)'}</label>
-                <input
-                  type="number"
-                  value={editForm.social_insurance}
-                  onChange={(e) => setEditForm({ ...editForm, social_insurance: Number(e.target.value) })}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none font-sans"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{isRtl ? 'التأمين الصحي (ج.م)' : 'Health Insurance (EGP)'}</label>
-                <input
-                  type="number"
-                  value={editForm.health_insurance}
-                  onChange={(e) => setEditForm({ ...editForm, health_insurance: Number(e.target.value) })}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none font-sans"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{isRtl ? 'تاريخ انتهاء العقد' : 'Contract End Date'}</label>
-                <input
-                  type="date"
-                  value={editForm.contract_end_date}
-                  onChange={(e) => setEditForm({ ...editForm, contract_end_date: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none font-sans"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{t('role')}</label>
-                <select
-                  value={editForm.role}
-                  onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none cursor-pointer"
-                >
-                  <option value="employee">{isRtl ? 'موظف' : 'Employee'}</option>
-                  <option value="manager">{isRtl ? 'مدير' : 'Manager'}</option>
-                  <option value="super_admin">{t('superAdmin')}</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{isRtl ? 'المدير المباشر' : 'Direct Manager'}</label>
-                <select
-                  value={editForm.manager_id}
-                  onChange={(e) => setEditForm({ ...editForm, manager_id: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none cursor-pointer"
-                >
-                  <option value="">{isRtl ? 'بلا مدير' : 'None'}</option>
-                  {managersList.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.full_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">{isRtl ? 'العنوان بالكامل' : 'Full Home Address'}</label>
-              <input
-                type="text"
-                value={editForm.address}
-                onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none"
-              />
-            </div>
-
-            {/* 3. Official Documents Upload Section */}
-            <div className="space-y-4 border-t border-slate-200 dark:border-slate-800 pt-4">
-              <h4 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                {isRtl ? 'المستندات الرسمية والشهادات' : 'Official Documents & Certifications'}
+          <form onSubmit={handleSaveUser} className="space-y-6">
+            {/* 1. Core Profile Details */}
+            <div className="space-y-4">
+              <h4 className="text-xs font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
+                1. {isRtl ? 'البيانات الأساسية والوظيفية' : 'Core Identification & Employment'}
               </h4>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* ID Photo */}
-                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2">
-                  <span className="block text-xs font-bold text-slate-900 dark:text-slate-200">{isRtl ? 'صورة بطاقة الرقم القومي:' : 'National ID Photo:'}</span>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="file"
-                      accept="image/*,application/pdf"
-                      onChange={(e) => handleFileUpload(e, 'id_photo_url')}
-                      className="hidden"
-                      id="upload-id-photo"
-                    />
-                    <label
-                      htmlFor="upload-id-photo"
-                      className="cursor-pointer flex items-center gap-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-3 py-1.5 rounded-xl text-xs hover:bg-slate-100 font-bold transition-all text-slate-800 dark:text-slate-200"
-                    >
-                      <Upload className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>{uploadingField === 'id_photo_url' ? 'Uploading...' : 'Choose File'}</span>
-                    </label>
-                    {editForm.id_photo_url && (
-                      <a
-                        href={editForm.id_photo_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs text-emerald-600 hover:underline flex items-center gap-1 font-bold"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" /> View Uploaded
-                      </a>
-                    )}
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{isRtl ? 'الاسم بالكامل' : 'Full Name'}</label>
+                  <input
+                    type="text"
+                    required
+                    value={editForm.full_name}
+                    onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-950 dark:text-white focus:outline-none focus:border-emerald-500"
+                  />
                 </div>
 
-                {/* Birth Cert */}
-                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2">
-                  <span className="block text-xs font-bold text-slate-900 dark:text-slate-200">{isRtl ? 'شهادة الميلاد:' : 'Birth Certificate Photo:'}</span>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="file"
-                      accept="image/*,application/pdf"
-                      onChange={(e) => handleFileUpload(e, 'birth_cert_url')}
-                      className="hidden"
-                      id="upload-birth-cert"
-                    />
-                    <label
-                      htmlFor="upload-birth-cert"
-                      className="cursor-pointer flex items-center gap-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-3 py-1.5 rounded-xl text-xs hover:bg-slate-100 font-bold transition-all text-slate-800 dark:text-slate-200"
-                    >
-                      <Upload className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>{uploadingField === 'birth_cert_url' ? 'Uploading...' : 'Choose File'}</span>
-                    </label>
-                    {editForm.birth_cert_url && (
-                      <a
-                        href={editForm.birth_cert_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs text-emerald-600 hover:underline flex items-center gap-1 font-bold"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" /> View Uploaded
-                      </a>
-                    )}
-                  </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{isRtl ? 'الدور والصلاحيات' : 'Role Scopes'}</label>
+                  <select
+                    value={editForm.role}
+                    onChange={(e) => setEditForm({ ...editForm, role: e.target.value as UserRole })}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-950 dark:text-white focus:outline-none focus:border-emerald-500 cursor-pointer"
+                  >
+                    <option value="employee">Employee</option>
+                    <option value="manager">Manager</option>
+                    <option value="super_admin">Super Admin</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{isRtl ? 'القسم التنظيمي' : 'Department'}</label>
+                  <select
+                    value={editForm.department_id}
+                    onChange={(e) => setEditForm({ ...editForm, department_id: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-950 dark:text-white focus:outline-none focus:border-emerald-500 cursor-pointer"
+                  >
+                    <option value="">{isRtl ? 'اختر القسم...' : 'Select Department...'}</option>
+                    {departments.map((d) => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{isRtl ? 'المسمى الوظيفي' : 'Job Title'}</label>
+                  <input
+                    type="text"
+                    value={editForm.job_title}
+                    onChange={(e) => setEditForm({ ...editForm, job_title: e.target.value })}
+                    placeholder="e.g. Senior Operations Specialist"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-950 dark:text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{isRtl ? 'المدير المباشر' : 'Direct Supervisor / Manager'}</label>
+                  <select
+                    value={editForm.manager_id}
+                    onChange={(e) => setEditForm({ ...editForm, manager_id: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-950 dark:text-white focus:outline-none focus:border-emerald-500 cursor-pointer"
+                  >
+                    <option value="">{isRtl ? 'بدون مدير مباشر' : 'No Direct Manager'}</option>
+                    {managersList.map((m) => (
+                      <option key={m.id} value={m.id}>{m.full_name} ({m.role})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{isRtl ? 'رقم الهاتف' : 'Mobile Phone'}</label>
+                  <input
+                    type="text"
+                    value={editForm.mobile}
+                    onChange={(e) => setEditForm({ ...editForm, mobile: e.target.value })}
+                    placeholder="01012345678"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-950 dark:text-white focus:outline-none focus:border-emerald-500"
+                  />
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4">
+            {/* 2. Remote Work, Flexible Schedule & Shifts Assignment */}
+            <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+              <h4 className="text-xs font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+                <Globe className="w-4 h-4" /> 2. {isRtl ? 'نظام العمل، الورديات، والعمل عن بعد' : 'Work Mode, Shifts & Remote Overrides'}
+              </h4>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Remote Work Toggle */}
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                      <Globe className="w-4 h-4 text-emerald-600" />
+                      {isRtl ? 'العمل عن بعد (Check-in Anywhere)' : 'Remote Work Override'}
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={editForm.is_remote}
+                      onChange={(e) => setEditForm({ ...editForm, is_remote: e.target.checked })}
+                      className="w-4 h-4 accent-emerald-500 cursor-pointer"
+                    />
+                  </div>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                    {isRtl
+                      ? 'عند التفعيل، يتم تجاوز فحص النطاق الجغرافي (Geofencing) كلياً لهذا الموظف.'
+                      : 'Bypasses GPS geofence restrictions completely for this employee.'}
+                  </p>
+                </div>
+
+                {/* Flexible Schedule Toggle */}
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                      <Clock className="w-4 h-4 text-teal-600" />
+                      {isRtl ? 'ساعات عمل مرنة (Flexible)' : 'Flexible Schedule'}
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={editForm.is_flexible}
+                      onChange={(e) => setEditForm({ ...editForm, is_flexible: e.target.checked })}
+                      className="w-4 h-4 accent-emerald-500 cursor-pointer"
+                    />
+                  </div>
+                  {editForm.is_flexible && (
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                        {isRtl ? 'إجمالي الساعات المطلوبة يومياً' : 'Required Daily Hours'}
+                      </label>
+                      <input
+                        type="number"
+                        value={editForm.required_daily_hours}
+                        onChange={(e) => setEditForm({ ...editForm, required_daily_hours: Number(e.target.value) })}
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-950 dark:text-white font-sans"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Shift Assignment */}
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2">
+                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">
+                    {isRtl ? 'الوردية المسندة (Shift Assignment)' : 'Assigned Shift Schedule'}
+                  </span>
+                  <select
+                    value={editForm.shift_id}
+                    onChange={(e) => setEditForm({ ...editForm, shift_id: e.target.value })}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-950 dark:text-white cursor-pointer"
+                  >
+                    <option value="">{isRtl ? 'بدون وردية (ساعات الشركة الافتراضية)' : 'Default Company Schedule'}</option>
+                    {shifts.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} ({s.start_time} - {s.end_time})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Financial & Compensation Package */}
+            <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+              <h4 className="text-xs font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
+                3. {isRtl ? 'الراتب، العمولات، والتأمينات' : 'Compensation & Insurance Parameters'}
+              </h4>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{isRtl ? 'الراتب الأساسي (EGP)' : 'Basic Salary (EGP)'}</label>
+                  <input
+                    type="number"
+                    required
+                    value={editForm.basic_salary}
+                    onChange={(e) => setEditForm({ ...editForm, basic_salary: Number(e.target.value) })}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-950 dark:text-white focus:outline-none focus:border-emerald-500 font-sans"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{isRtl ? 'نسبة العمولة (%)' : 'Commission Rate (%)'}</label>
+                  <input
+                    type="number"
+                    value={editForm.commission_rate}
+                    onChange={(e) => setEditForm({ ...editForm, commission_rate: Number(e.target.value) })}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-950 dark:text-white focus:outline-none focus:border-emerald-500 font-sans"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{isRtl ? 'التأمين الاجتماعي (EGP)' : 'Social Insurance'}</label>
+                  <input
+                    type="number"
+                    value={editForm.social_insurance}
+                    onChange={(e) => setEditForm({ ...editForm, social_insurance: Number(e.target.value) })}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-950 dark:text-white focus:outline-none focus:border-emerald-500 font-sans"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{isRtl ? 'التأمين الصحي (EGP)' : 'Health Insurance'}</label>
+                  <input
+                    type="number"
+                    value={editForm.health_insurance}
+                    onChange={(e) => setEditForm({ ...editForm, health_insurance: Number(e.target.value) })}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-950 dark:text-white focus:outline-none focus:border-emerald-500 font-sans"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => setSelectedUser(null)}
-                className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 px-5 py-2 rounded-xl text-xs text-slate-800 dark:text-slate-200 font-bold cursor-pointer"
+                className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer"
               >
                 {isRtl ? 'إلغاء' : 'Cancel'}
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="gradient-btn px-6 py-2 rounded-xl text-xs text-white font-bold shadow-sm disabled:opacity-50 cursor-pointer"
+                className="gradient-btn px-6 py-2.5 rounded-xl text-xs font-bold text-white shadow-md cursor-pointer disabled:opacity-50"
               >
-                {loading ? 'Saving...' : t('save')}
+                {loading ? (isRtl ? 'جاري الحفظ...' : 'Saving Changes...') : (isRtl ? 'حفظ التعديلات' : 'Save Employee Profile')}
               </button>
             </div>
           </form>
-        </div>
-      )}
-
-      {/* TAB 2: DEPARTMENTS CONFIGURATOR */}
-      {activeTab === 'departments' && (
-        <div className="cleariq-card p-6 cleariq-card-hover space-y-6">
-          <div>
-            <h3 className="font-extrabold text-base sm:text-lg text-slate-950 dark:text-white">{isRtl ? 'إعدادات الأقسام الإدارية' : 'Departments Registry Config'}</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">{isRtl ? 'إضافة وتعديل الأقسام التي تظهر في قاعدة بيانات الموظفين' : 'Manage core administrative departments for registry dropdowns'}</p>
-          </div>
-
-          <form onSubmit={handleAddDept} className="flex gap-3 max-w-md">
-            <input
-              type="text"
-              required
-              value={newDeptName}
-              onChange={(e) => setNewDeptName(e.target.value)}
-              placeholder={isRtl ? 'اسم القسم الجديد...' : 'New Department name...'}
-              className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none"
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              className="gradient-btn px-4 py-2 rounded-xl text-xs font-bold text-white shadow-sm flex items-center gap-1 shrink-0 cursor-pointer"
-            >
-              <Plus className="w-4 h-4" /> {isRtl ? 'إضافة قسم' : 'Add Department'}
-            </button>
-          </form>
-
-          <div className="space-y-2 max-w-md border-t border-slate-200 dark:border-slate-800 pt-4">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">{isRtl ? 'الأقسام المسجلة' : 'Registered Departments'}</h4>
-            {departments.length === 0 ? (
-              <div className="text-center text-xs text-slate-400 py-4">{isRtl ? 'لا توجد أقسام مسجلة.' : 'No departments found.'}</div>
-            ) : (
-              departments.map((d) => (
-                <div key={d.id} className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl flex justify-between items-center text-xs">
-                  <span className="font-bold text-slate-950 dark:text-white">{d.name}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteDept(d.id, d.name)}
-                    className="p-1 text-rose-600 hover:text-rose-800 dark:text-rose-400 cursor-pointer"
-                    title="Delete"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* TAB 3: KPI CONFIGURATOR */}
-      {activeTab === 'kpis' && (
-        <div className="cleariq-card p-6 cleariq-card-hover space-y-6">
-          <div>
-            <h3 className="font-extrabold text-base sm:text-lg text-slate-950 dark:text-white">{isRtl ? 'إعدادات مؤشرات الأداء' : 'KPI Metrics Settings'}</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">{isRtl ? 'إدارة وحدات قياس مؤشرات الإنتاجية للموظفين' : 'Manage metric units allowed for logging productivity entries'}</p>
-          </div>
-
-          <form onSubmit={handleAddUnit} className="flex gap-3 max-w-md">
-            <input
-              type="text"
-              required
-              value={newUnitName}
-              onChange={(e) => setNewUnitName(e.target.value)}
-              placeholder="e.g. calls, pieces, pages..."
-              className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none"
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              className="gradient-btn px-4 py-2 rounded-xl text-xs font-bold text-white shadow-sm flex items-center gap-1 shrink-0 cursor-pointer"
-            >
-              <Plus className="w-4 h-4" /> {isRtl ? 'إضافة معيار' : 'Add Metric'}
-            </button>
-          </form>
-
-          <div className="space-y-2 max-w-md border-t border-slate-200 dark:border-slate-800 pt-4">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">{isRtl ? 'المعايير المعتمدة' : 'Approved KPI Metric Units'}</h4>
-            {kpiUnits.length === 0 ? (
-              <div className="text-center text-xs text-slate-400 py-4">{isRtl ? 'لا توجد وحدات قياس.' : 'No units configured.'}</div>
-            ) : (
-              kpiUnits.map((u) => (
-                <div key={u.id} className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl flex justify-between items-center text-xs">
-                  <span className="font-bold text-slate-950 dark:text-white capitalize">{u.name}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteUnit(u.id, u.name)}
-                    className="p-1 text-rose-600 hover:text-rose-800 dark:text-rose-400 cursor-pointer"
-                    title="Delete"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
         </div>
       )}
     </div>
