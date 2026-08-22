@@ -1,12 +1,33 @@
 import { parseISO, differenceInMinutes } from 'date-fns';
 
 /**
- * Returns the current date shifted to Africa/Cairo timezone.
+ * Returns a Date object representing the time in Africa/Cairo timezone.
  */
 export function getCairoDate(dateInput: Date | string = new Date()): Date {
   const d = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
   const cairoString = d.toLocaleString('en-US', { timeZone: 'Africa/Cairo' });
   return new Date(cairoString);
+}
+
+/**
+ * Returns current Cairo date as 'YYYY-MM-DD'
+ */
+export function getCairoDateString(dateInput: Date | string = new Date()): string {
+  const d = getCairoDate(dateInput);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Returns current Cairo time as 'HH:mm'
+ */
+export function getCairoTimeString(dateInput: Date | string = new Date()): string {
+  const d = getCairoDate(dateInput);
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}`;
 }
 
 /**
@@ -47,14 +68,24 @@ export function getPayrollCycleRange(dateInput: Date | string = getCairoDate()) 
     const endMonth = month === 11 ? 0 : month + 1;
     const endYear = month === 11 ? year + 1 : year;
     const endDate = new Date(endYear, endMonth, 25);
-    return { startDate, endDate };
+    return {
+      startDate,
+      endDate,
+      startStr: `${year}-${String(month + 1).padStart(2, '0')}-26`,
+      endStr: `${endYear}-${String(endMonth + 1).padStart(2, '0')}-25`,
+    };
   } else {
     // Current cycle started on 26th of previous month, ends on 25th of this month
     const startMonth = month === 0 ? 11 : month - 1;
     const startYear = month === 0 ? year - 1 : year;
     const startDate = new Date(startYear, startMonth, 26);
     const endDate = new Date(year, month, 25);
-    return { startDate, endDate };
+    return {
+      startDate,
+      endDate,
+      startStr: `${startYear}-${String(startMonth + 1).padStart(2, '0')}-26`,
+      endStr: `${year}-${String(month + 1).padStart(2, '0')}-25`,
+    };
   }
 }
 
@@ -69,6 +100,44 @@ export function calculateWorkingHours(checkIn: string, checkOut: string | null):
   const hrs = Math.floor(diffMins / 60);
   const mins = diffMins % 60;
   return `${hrs}h ${mins}m`;
+}
+
+/**
+ * Returns duration between check_in and check_out in total minutes.
+ */
+export function calculateWorkingMinutes(checkIn: string, checkOut: string | null): number {
+  if (!checkOut) return 0;
+  const start = typeof checkIn === 'string' ? parseISO(checkIn) : checkIn;
+  const end = typeof checkOut === 'string' ? parseISO(checkOut) : checkOut;
+  return Math.max(0, differenceInMinutes(end, start));
+}
+
+/**
+ * Calculates lateness in minutes for a check-in event against assigned shift hours.
+ * Supports overnight shifts crossing midnight (e.g. 22:00 -> 06:00).
+ */
+export function calculateShiftLatenessMinutes(
+  checkInIso: string,
+  shiftStartTime: string = '09:00',
+  shiftEndTime: string = '17:00'
+): number {
+  if (!checkInIso) return 0;
+  const checkIn = getCairoDate(checkInIso);
+  const [startH, startM] = shiftStartTime.split(':').map(Number);
+  const [endH] = shiftEndTime.split(':').map(Number);
+
+  const isOvernight = startH > endH;
+  const scheduledStart = new Date(checkIn);
+  scheduledStart.setHours(startH, startM, 0, 0);
+
+  // If overnight shift and employee checked in during early morning hours after midnight (e.g. 01:00 for a 22:00 shift),
+  // the shift anchor began the previous evening.
+  if (isOvernight && checkIn.getHours() < endH + 4 && checkIn.getHours() < startH) {
+    scheduledStart.setDate(scheduledStart.getDate() - 1);
+  }
+
+  const diffMins = differenceInMinutes(checkIn, scheduledStart);
+  return Math.max(0, diffMins);
 }
 
 export function formatDate(dateString: string): string {

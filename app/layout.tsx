@@ -21,6 +21,7 @@ export const metadata: Metadata = {
 import { LanguageProvider } from "@/lib/context/LanguageContext";
 import { ThemeProvider } from "@/lib/context/ThemeContext";
 import { SidebarProvider } from "@/lib/context/SidebarContext";
+import { SettingsProvider } from "@/lib/context/SettingsContext";
 
 export default function RootLayout({
   children,
@@ -36,9 +37,11 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-[--bg] text-[--text-primary] antialiased">
         <ThemeProvider>
           <LanguageProvider>
-            <SidebarProvider>
-              {children}
-            </SidebarProvider>
+            <SettingsProvider>
+              <SidebarProvider>
+                {children}
+              </SidebarProvider>
+            </SettingsProvider>
           </LanguageProvider>
         </ThemeProvider>
         <script

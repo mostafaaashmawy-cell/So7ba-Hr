@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { UserProfile } from '@/lib/types/database';
 import { useLanguage } from '@/lib/context/LanguageContext';
+import { useTenantSettings } from '@/lib/context/SettingsContext';
 import {
   NAV_SECTIONS,
   MOBILE_CORE_ANCHORS,
@@ -34,6 +35,7 @@ export default function AppSidebar({
 }: AppSidebarProps) {
   const pathname = usePathname();
   const { isRtl } = useLanguage();
+  const { isFeatureEnabled } = useTenantSettings();
   const [currentHash, setCurrentHash] = useState('');
 
   useEffect(() => {
@@ -60,15 +62,21 @@ export default function AppSidebar({
   const toggleSection = (id: string) =>
     setExpandedSections((prev) => ({ ...prev, [id]: !prev[id] }));
 
-  // Filter sections and sub-items strictly by user role
+  // Filter sections and sub-items strictly by user role and active feature toggles
   const visibleSections = NAV_SECTIONS.filter(
-    (s) => !s.roles || s.roles.includes(userRole)
-  ).map((s) => ({
-    ...s,
-    subItems: s.subItems.filter(
-      (sub) => !sub.roles || sub.roles.includes(userRole)
-    ),
-  }));
+    (s) =>
+      (!s.roles || s.roles.includes(userRole)) &&
+      (!s.featureToggle || isFeatureEnabled(s.featureToggle))
+  )
+    .map((s) => ({
+      ...s,
+      subItems: s.subItems.filter(
+        (sub) =>
+          (!sub.roles || sub.roles.includes(userRole)) &&
+          (!sub.featureToggle || isFeatureEnabled(sub.featureToggle))
+      ),
+    }))
+    .filter((s) => s.subItems.length > 0);
 
   const visibleMobileAnchors = MOBILE_CORE_ANCHORS.filter(
     (a) => !a.roles || a.roles.includes(userRole)

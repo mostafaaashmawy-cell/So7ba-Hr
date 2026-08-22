@@ -21,6 +21,7 @@ import {
   Receipt,
 } from 'lucide-react';
 import type { ElementType } from 'react';
+import { TenantSettings } from '@/lib/types/database';
 
 export interface NavSubItem {
   titleEn: string;
@@ -28,6 +29,7 @@ export interface NavSubItem {
   href: string;
   icon: ElementType;
   roles?: string[];
+  featureToggle?: keyof TenantSettings | string;
 }
 
 export interface NavSection {
@@ -36,10 +38,11 @@ export interface NavSection {
   titleAr: string;
   icon: ElementType;
   roles?: string[];
+  featureToggle?: keyof TenantSettings | string;
   subItems: NavSubItem[];
 }
 
-// Predictable, static, non-duplicating sidebar structure
+// Predictable, static, non-duplicating sidebar structure with feature toggle bindings
 export const NAV_SECTIONS: NavSection[] = [
   {
     id: 'dashboard',
@@ -132,6 +135,7 @@ export const NAV_SECTIONS: NavSection[] = [
         href: '/dashboard/manager#holiday-compensation',
         icon: Calendar,
         roles: ['manager', 'super_admin'],
+        featureToggle: 'enable_holiday_work_comp',
       },
     ],
   },
@@ -158,6 +162,7 @@ export const NAV_SECTIONS: NavSection[] = [
         titleAr: 'سجل المبيعات والعمولات',
         href: '/dashboard/sales',
         icon: TrendingUp,
+        featureToggle: 'enable_commissions',
       },
     ],
   },
@@ -180,6 +185,7 @@ export const NAV_SECTIONS: NavSection[] = [
         href: '/dashboard/payroll#advances',
         icon: Wallet,
         roles: ['super_admin', 'manager'],
+        featureToggle: 'enable_advances',
       },
       {
         titleEn: 'Payslip Generator',

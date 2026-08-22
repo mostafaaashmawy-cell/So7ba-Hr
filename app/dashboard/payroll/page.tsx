@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { createClient } from '@/lib/supabase/client';
-import { UserProfile } from '@/lib/types/database';
+import { UserProfile, TenantSettings } from '@/lib/types/database';
 import {
   FileText,
   CheckCircle2,
@@ -14,10 +14,16 @@ import {
   Download,
   DollarSign,
   Plus,
+  Wallet,
 } from 'lucide-react';
 import { useLanguage } from '@/lib/context/LanguageContext';
+import { useTenantSettings } from '@/lib/context/SettingsContext';
 import HumAiLogo from '@/components/common/HumAiLogo';
 import { logAuditAction } from '@/lib/utils/auditLogger';
+import {
+  calculateWorkingMinutes,
+  calculateShiftLatenessMinutes,
+} from '@/lib/utils/dateUtils';
 
 interface FinancialAdjustment {
   id: string;
@@ -63,6 +69,7 @@ interface PayslipData {
 export default function PayrollPage() {
   const { isRtl } = useLanguage();
   const supabase = createClient();
+  const { settings: globalSettings, isFeatureEnabled } = useTenantSettings();
 
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
@@ -92,6 +99,11 @@ export default function PayrollPage() {
   const [payslipData, setPayslipData] = useState<PayslipData | null>(null);
   const [showPayslip, setShowPayslip] = useState(false);
 
+  const enableAdvances = isFeatureEnabled('enable_advances');
+  const enableCommissions = isFeatureEnabled('enable_commissions');
+  const enableInsurances = isFeatureEnabled('enable_insurances');
+  const enableOvertime = isFeatureEnabled('enable_overtime');
+
   const loadData = async () => {
     setLoading(true);
     const {
@@ -109,10 +121,10 @@ export default function PayrollPage() {
     if (profile) {
       setCurrentUser(profile as UserProfile);
 
-      // Load all employees in tenant
+      // Load all employees in tenant with shifts and departments
       const { data: users } = await supabase
         .from('users')
-        .select('*, department:departments(name)')
+        .select('*, department:departments(name), shift:shifts(*)')
         .eq('tenant_id', profile.tenant_id);
 
       if (users) {
@@ -128,7 +140,7 @@ export default function PayrollPage() {
         .from('financial_adjustments')
         .select('*, user:users(full_name)')
         .eq('tenant_id', profile.tenant_id)
-        .order('date', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (adj) setAdjustments(adj as FinancialAdjustment[]);
 
@@ -163,9 +175,9 @@ export default function PayrollPage() {
         tenant_id: currentUser.tenant_id,
         user_id: adjEmployee,
         type: adjType,
-        amount: Number(adjAmount),
-        notes: adjNotes.trim() || null,
-        status: finalStatus,
+        amount: Number(adjAmount ?? 0),
+        month: `${selectedMonth}-01`,
+        description: adjNotes.trim() || null,
         created_by: currentUser.id,
       });
 
@@ -259,124 +271,175 @@ export default function PayrollPage() {
       const startStr = `${selectedMonth}-01`;
       const [y, m] = selectedMonth.split('-').map(Number);
       const lastDay = new Date(y, m, 0).getDate();
-      const endStr = `${selectedMonth}-${lastDay}`;
+      const endStr = `${selectedMonth}-${String(lastDay).padStart(2, '0')}`;
 
-      // 1. Fetch Verified Sales
-      const { data: sales } = await supabase
-        .from('sales_entries')
-        .select('amount')
-        .eq('user_id', emp.id)
-        .eq('status', 'approved')
-        .gte('deal_date', startStr)
-        .lte('deal_date', endStr);
+      // 0. Load Tenant Settings
+      const { data: tenantSettings } = await supabase
+        .from('tenant_settings')
+        .select('*')
+        .eq('tenant_id', currentUser.tenant_id)
+        .maybeSingle();
 
-      const totalSales = sales ? sales.reduce((acc, curr) => acc + Number(curr.amount || 0), 0) : 0;
-      // Read commission rate directly from employee's profile
-      const empCommissionRate = Number(emp.commission_rate ?? 5);
-      const commission = totalSales * (empCommissionRate / 100);
+      const settings: TenantSettings | null =
+        (tenantSettings as TenantSettings) || globalSettings;
+
+      // 1. Fetch Verified Sales from sales_logs with tenant_id and date filters
+      let totalSales = 0;
+      let empCommissionRate = 0;
+      let commission = 0;
+
+      if (settings?.enable_commissions !== false) {
+        const { data: sales } = await supabase
+          .from('sales_logs')
+          .select('amount, commission_rate, commission_earned')
+          .eq('tenant_id', currentUser.tenant_id)
+          .eq('user_id', emp.id)
+          .eq('status', 'approved')
+          .gte('date', startStr)
+          .lte('date', endStr);
+
+        totalSales = sales
+          ? sales.reduce((acc, curr) => acc + Number(curr.amount ?? 0), 0)
+          : 0;
+
+        empCommissionRate = Number(emp.commission_rate ?? 5);
+        commission = totalSales * (empCommissionRate / 100);
+      }
 
       // 2. Fetch Adjustments (Bonuses & Penalties)
       const { data: userAdj } = await supabase
         .from('financial_adjustments')
         .select('amount, type')
+        .eq('tenant_id', currentUser.tenant_id)
         .eq('user_id', emp.id)
-        .eq('status', 'approved')
-        .gte('date', startStr)
-        .lte('date', endStr);
+        .gte('month', startStr)
+        .lte('month', endStr);
 
       let bonuses = 0;
       let penalties = 0;
       if (userAdj) {
         userAdj.forEach((a) => {
-          if (a.type === 'bonus') bonuses += Number(a.amount);
-          if (a.type === 'penalty') penalties += Number(a.amount);
-        });
-      }
-
-      // 3. Fetch Automatically Approved Advances
-      const { data: userAdv } = await supabase
-        .from('advances')
-        .select('amount')
-        .eq('user_id', emp.id)
-        .eq('month', startStr)
-        .eq('status', 'approved');
-
-      const totalAdvances = userAdv
-        ? userAdv.reduce((acc, curr) => acc + Number(curr.amount || 0), 0)
-        : 0;
-
-      // 4. Calculate Lateness Deductions automatically using HumAi lateness engine
-      const { data: settings } = await supabase
-        .from('tenant_settings')
-        .select('*')
-        .eq('tenant_id', currentUser.tenant_id)
-        .single();
-
-      const { data: checkins } = await supabase
-        .from('attendance')
-        .select('check_in_time, check_out_time')
-        .eq('user_id', emp.id)
-        .gte('date', startStr)
-        .lte('date', endStr);
-
-      let latenessDeductions = 0;
-      if (checkins && settings) {
-        const dailyRate = Number(emp.basic_salary || 5000) / 30;
-
-        const shiftTimeStr =
-          emp.custom_schedule_enabled && emp.custom_start_time
-            ? emp.custom_start_time
-            : settings.work_start_time || '09:00';
-
-        const [startHour, startMinute] = shiftTimeStr.split(':').map(Number);
-        const gracePeriod = Number(settings.grace_period_mins ?? 15);
-        const latenessMode = settings.lateness_mode || 'tiered';
-
-        checkins.forEach((c) => {
-          const checkinTime = new Date(c.check_in_time);
-          const shiftStart = new Date(checkinTime);
-          shiftStart.setHours(startHour, startMinute, 0, 0);
-
-          const delayMins = Math.max(
-            0,
-            Math.floor((checkinTime.getTime() - shiftStart.getTime()) / 60000)
-          );
-
-          if (delayMins > gracePeriod) {
-            if (latenessMode === 'percentage_per_minute') {
-              const extraMins = delayMins - gracePeriod;
-              const rate = Number(settings.minute_deduction_rate ?? 0.005);
-              const deductionPct = Math.min(1.0, extraMins * rate);
-              latenessDeductions += deductionPct * dailyRate;
-            } else if (settings.lateness_policy?.thresholds) {
-              let maxDeductionPct = 0;
-              settings.lateness_policy.thresholds.forEach(
-                (rule: { mins: number; deduction: number }) => {
-                  if (delayMins >= rule.mins) {
-                    maxDeductionPct = Math.max(maxDeductionPct, rule.deduction);
-                  }
-                }
-              );
-              latenessDeductions += maxDeductionPct * dailyRate;
-            }
+          if (a.type === 'bonus' || a.type === 'holiday_comp') {
+            bonuses += Number(a.amount ?? 0);
+          }
+          if (a.type === 'deduction' || (a.type as string) === 'penalty') {
+            penalties += Number(a.amount ?? 0);
           }
         });
       }
 
+      // 3. Fetch Automatically Approved Advances
+      let totalAdvances = 0;
+      if (settings?.enable_advances !== false) {
+        const { data: userAdv } = await supabase
+          .from('advances')
+          .select('amount')
+          .eq('tenant_id', currentUser.tenant_id)
+          .eq('user_id', emp.id)
+          .eq('month', startStr)
+          .eq('status', 'approved');
+
+        totalAdvances = userAdv
+          ? userAdv.reduce((acc, curr) => acc + Number(curr.amount ?? 0), 0)
+          : 0;
+      }
+
+      // 4. Fetch Attendance & Compute Lateness / Work Shortage
+      const { data: checkins } = await supabase
+        .from('attendance')
+        .select('*')
+        .eq('tenant_id', currentUser.tenant_id)
+        .eq('user_id', emp.id)
+        .gte('date', startStr)
+        .lte('date', endStr);
+
+      const empBasicSalary = Number(emp.basic_salary ?? 0);
+      const dailyRate = empBasicSalary > 0 ? empBasicSalary / 30 : 0;
+      const requiredHours = Number(emp.required_daily_hours ?? 8);
+      const hourlyRate = dailyRate > 0 && requiredHours > 0 ? dailyRate / requiredHours : 0;
+
+      let latenessDeductions = 0;
+      const gracePeriod = Number(settings?.grace_period_mins ?? 15);
+      const latenessMode = settings?.lateness_mode || 'tiered';
+
+      if (checkins && checkins.length > 0 && dailyRate > 0) {
+        if (emp.is_flexible) {
+          // Flexible Work: evaluate accumulated session hours against required_daily_hours
+          checkins.forEach((c) => {
+            if (c.check_in_time && c.check_out_time) {
+              const workedMinutes = calculateWorkingMinutes(c.check_in_time, c.check_out_time);
+              const requiredMinutes = requiredHours * 60;
+              if (workedMinutes < requiredMinutes) {
+                const shortageMins = requiredMinutes - workedMinutes;
+                if (shortageMins > gracePeriod) {
+                  const shortageHours = shortageMins / 60;
+                  latenessDeductions += shortageHours * hourlyRate;
+                }
+              }
+            }
+          });
+        } else {
+          // Shift-based / Fixed Schedule with overnight crossing midnight support
+          let shiftStartStr = '09:00';
+          let shiftEndStr = '17:00';
+
+          if (emp.custom_schedule_enabled && emp.custom_start_time) {
+            shiftStartStr = emp.custom_start_time;
+            shiftEndStr = emp.custom_end_time || '17:00';
+          } else if (emp.shift?.start_time) {
+            shiftStartStr = emp.shift.start_time;
+            shiftEndStr = emp.shift.end_time || '17:00';
+          } else if (settings?.work_start_time) {
+            shiftStartStr = settings.work_start_time;
+            shiftEndStr = settings.work_end_time || '17:00';
+          }
+
+          checkins.forEach((c) => {
+            if (c.check_in_time) {
+              const delayMins = calculateShiftLatenessMinutes(
+                c.check_in_time,
+                shiftStartStr,
+                shiftEndStr
+              );
+
+              if (delayMins > gracePeriod) {
+                if (latenessMode === 'percentage_per_minute') {
+                  const extraMins = delayMins - gracePeriod;
+                  const rate = Number(settings?.minute_deduction_rate ?? 0.005);
+                  const deductionPct = Math.min(1.0, extraMins * rate);
+                  latenessDeductions += deductionPct * dailyRate;
+                } else if (settings?.lateness_policy?.thresholds) {
+                  let maxDeductionPct = 0;
+                  settings.lateness_policy.thresholds.forEach(
+                    (rule: { mins: number; deduction: number }) => {
+                      if (delayMins >= rule.mins) {
+                        maxDeductionPct = Math.max(maxDeductionPct, rule.deduction);
+                      }
+                    }
+                  );
+                  latenessDeductions += maxDeductionPct * dailyRate;
+                }
+              }
+            }
+          });
+        }
+      }
+
+      latenessDeductions = Math.round(latenessDeductions);
 
       // 5. Calculate Overtime if enabled
       let overtimePay = 0;
-      if (settings?.enable_overtime && checkins) {
-        const hourlyRate = (Number(emp.basic_salary || 5000) / 30) / 8;
+      if (settings?.enable_overtime !== false && checkins && hourlyRate > 0) {
         checkins.forEach((c) => {
           if (c.check_in_time && c.check_out_time) {
-            const durHours = (new Date(c.check_out_time).getTime() - new Date(c.check_in_time).getTime()) / 3600000;
-            if (durHours > 8) {
-              const extraHours = durHours - 8;
-              if (settings.overtime_calculation_mode === 'fixed_rate') {
-                overtimePay += extraHours * (Number(settings.overtime_fixed_rate) || 50);
+            const workedHours = calculateWorkingMinutes(c.check_in_time, c.check_out_time) / 60;
+            if (workedHours > requiredHours) {
+              const extraHours = workedHours - requiredHours;
+              if (settings?.overtime_calculation_mode === 'fixed_rate') {
+                overtimePay += extraHours * (Number(settings?.overtime_fixed_rate) || 50);
               } else {
-                overtimePay += extraHours * hourlyRate * (Number(settings.overtime_rate_multiplier) || 1.5);
+                const multiplier = Number(settings?.overtime_rate_multiplier ?? 1.5);
+                overtimePay += extraHours * hourlyRate * multiplier;
               }
             }
           }
@@ -384,33 +447,40 @@ export default function PayrollPage() {
       }
       overtimePay = Math.round(overtimePay);
 
-      // 6. Insurance deductions
-      const socialIns = Number(emp.social_insurance || 0);
-      const healthIns = Number(emp.health_insurance || 0);
+      // 6. Insurance deductions with enable_insurances guard
+      let socialIns = 0;
+      let healthIns = 0;
+      if (settings?.enable_insurances !== false) {
+        socialIns = Number(emp.social_insurance ?? 0);
+        healthIns = Number(emp.health_insurance ?? 0);
+      }
 
-      // Final calculations
-      const grossEarnings = Number(emp.basic_salary || 0) + commission + bonuses + overtimePay;
-      const totalDeductions = penalties + totalAdvances + latenessDeductions + socialIns + healthIns;
-      const netPay = grossEarnings - totalDeductions;
+      // Final calculations without NaN propagation
+      const grossEarnings = empBasicSalary + commission + bonuses + overtimePay;
+      const totalDeductions =
+        penalties + totalAdvances + latenessDeductions + socialIns + healthIns;
+      const netPay = Math.max(0, grossEarnings - totalDeductions);
 
       setPayslipData({
         employeeName: emp.full_name,
-        departmentName: ((emp as unknown) as { department?: { name?: string } }).department?.name || 'Operations',
+        departmentName:
+          ((emp as unknown) as { department?: { name?: string } }).department?.name ||
+          'Operations',
         jobTitle: emp.job_title || 'Staff',
-        basicSalary: Number(emp.basic_salary || 0),
+        basicSalary: empBasicSalary,
         commissionRate: empCommissionRate,
-        commission,
-        totalSales,
-        bonuses,
+        commission: Math.round(commission),
+        totalSales: Math.round(totalSales),
+        bonuses: Math.round(bonuses),
         overtime: overtimePay,
-        penalties,
-        advances: totalAdvances,
+        penalties: Math.round(penalties),
+        advances: Math.round(totalAdvances),
         latenessDeductions,
-        socialInsurance: socialIns,
-        healthInsurance: healthIns,
-        grossEarnings,
-        totalDeductions,
-        netPay,
+        socialInsurance: Math.round(socialIns),
+        healthInsurance: Math.round(healthIns),
+        grossEarnings: Math.round(grossEarnings),
+        totalDeductions: Math.round(totalDeductions),
+        netPay: Math.round(netPay),
         month: selectedMonth,
       });
 
@@ -453,7 +523,8 @@ export default function PayrollPage() {
                   onClick={handlePrint}
                   className="gradient-btn px-4 py-1.5 rounded-xl text-xs font-bold text-white shadow-xs flex items-center gap-1.5 cursor-pointer"
                 >
-                  <Download className="w-4 h-4" /> {isRtl ? 'طباعة / حفظ PDF' : 'Download / Print Payslip'}
+                  <Download className="w-4 h-4" />{' '}
+                  {isRtl ? 'طباعة / حفظ PDF' : 'Download / Print Payslip'}
                 </button>
                 <button
                   type="button"
@@ -470,27 +541,45 @@ export default function PayrollPage() {
               <div className="flex justify-between items-center border-b-2 border-slate-950 pb-4 mb-4">
                 <div>
                   <HumAiLogo variant="horizontal" size="md" showTagline />
-                  <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mt-1">Official Monthly Payslip Documentation</p>
+                  <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mt-1">
+                    Official Monthly Payslip Documentation
+                  </p>
                 </div>
                 <div className="text-right">
-                  <span className="text-xs font-bold text-slate-500 block">{isRtl ? 'شهر الاستحقاق' : 'Payroll Month'}</span>
-                  <span className="text-base font-extrabold text-emerald-600 dark:text-emerald-400 print:text-black font-sans">{payslipData.month}</span>
+                  <span className="text-xs font-bold text-slate-500 block">
+                    {isRtl ? 'شهر الاستحقاق' : 'Payroll Month'}
+                  </span>
+                  <span className="text-base font-extrabold text-emerald-600 dark:text-emerald-400 print:text-black font-sans">
+                    {payslipData.month}
+                  </span>
                 </div>
               </div>
 
               {/* Bio Grid */}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 py-3 border-b border-slate-200 print:border-black font-sans text-xs">
                 <div>
-                  <span className="font-bold text-slate-500 block">{isRtl ? 'اسم الموظف:' : 'Employee:'}</span>
-                  <span className="text-sm font-extrabold text-slate-950 dark:text-white print:text-black">{payslipData.employeeName}</span>
+                  <span className="font-bold text-slate-500 block">
+                    {isRtl ? 'اسم الموظف:' : 'Employee:'}
+                  </span>
+                  <span className="text-sm font-extrabold text-slate-950 dark:text-white print:text-black">
+                    {payslipData.employeeName}
+                  </span>
                 </div>
                 <div>
-                  <span className="font-bold text-slate-500 block">{isRtl ? 'المسمى الوظيفي:' : 'Job Title:'}</span>
-                  <span className="text-sm font-bold text-slate-900 dark:text-slate-100 print:text-black">{payslipData.jobTitle}</span>
+                  <span className="font-bold text-slate-500 block">
+                    {isRtl ? 'المسمى الوظيفي:' : 'Job Title:'}
+                  </span>
+                  <span className="text-sm font-bold text-slate-900 dark:text-slate-100 print:text-black">
+                    {payslipData.jobTitle}
+                  </span>
                 </div>
                 <div>
-                  <span className="font-bold text-slate-500 block">{isRtl ? 'القسم الإداري:' : 'Department:'}</span>
-                  <span className="text-sm font-bold text-slate-900 dark:text-slate-100 print:text-black">{payslipData.departmentName}</span>
+                  <span className="font-bold text-slate-500 block">
+                    {isRtl ? 'القسم الإداري:' : 'Department:'}
+                  </span>
+                  <span className="text-sm font-bold text-slate-900 dark:text-slate-100 print:text-black">
+                    {payslipData.departmentName}
+                  </span>
                 </div>
               </div>
 
@@ -503,25 +592,41 @@ export default function PayrollPage() {
                   </h4>
                   <div className="flex justify-between text-xs text-slate-800 dark:text-slate-200">
                     <span>{isRtl ? 'الراتب الأساسي:' : 'Basic Salary:'}</span>
-                    <span className="font-bold font-sans">{payslipData.basicSalary.toLocaleString()} EGP</span>
+                    <span className="font-bold font-sans">
+                      {payslipData.basicSalary.toLocaleString()} EGP
+                    </span>
                   </div>
-                  <div className="flex justify-between text-xs text-slate-800 dark:text-slate-200">
-                    <span>{isRtl ? `العمولات (${payslipData.commissionRate}%):` : `Commissions (${payslipData.commissionRate}%):`}</span>
-                    <span className="font-bold font-sans">{payslipData.commission.toLocaleString()} EGP</span>
-                  </div>
+                  {enableCommissions && (
+                    <div className="flex justify-between text-xs text-slate-800 dark:text-slate-200">
+                      <span>
+                        {isRtl
+                          ? `العمولات (${payslipData.commissionRate}%):`
+                          : `Commissions (${payslipData.commissionRate}%):`}
+                      </span>
+                      <span className="font-bold font-sans">
+                        {payslipData.commission.toLocaleString()} EGP
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-xs text-slate-800 dark:text-slate-200">
                     <span>{isRtl ? 'المكافآت المعتمدة:' : 'Approved Bonuses:'}</span>
-                    <span className="font-bold font-sans text-emerald-600 dark:text-emerald-400">{payslipData.bonuses.toLocaleString()} EGP</span>
+                    <span className="font-bold font-sans text-emerald-600 dark:text-emerald-400">
+                      {payslipData.bonuses.toLocaleString()} EGP
+                    </span>
                   </div>
-                  {payslipData.overtime > 0 && (
+                  {enableOvertime && payslipData.overtime > 0 && (
                     <div className="flex justify-between text-xs text-slate-800 dark:text-slate-200">
                       <span>{isRtl ? 'العمل الإضافي (Overtime):' : 'Approved Overtime:'}</span>
-                      <span className="font-bold font-sans text-emerald-600 dark:text-emerald-400">{payslipData.overtime.toLocaleString()} EGP</span>
+                      <span className="font-bold font-sans text-emerald-600 dark:text-emerald-400">
+                        {payslipData.overtime.toLocaleString()} EGP
+                      </span>
                     </div>
                   )}
                   <div className="flex justify-between text-xs font-extrabold pt-2 border-t border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white print:text-black">
                     <span>{isRtl ? 'إجمالي الاستحقاقات:' : 'Gross Earnings:'}</span>
-                    <span className="font-sans">{payslipData.grossEarnings.toLocaleString()} EGP</span>
+                    <span className="font-sans">
+                      {payslipData.grossEarnings.toLocaleString()} EGP
+                    </span>
                   </div>
                 </div>
 
@@ -530,29 +635,47 @@ export default function PayrollPage() {
                   <h4 className="text-xs font-extrabold text-rose-600 print:text-black border-b border-slate-200 dark:border-slate-700 pb-1.5 uppercase">
                     {isRtl ? 'الاستقطاعات والخصومات (-)' : 'Deductions (-)'}
                   </h4>
-                  <div className="flex justify-between text-xs text-slate-800 dark:text-slate-200">
-                    <span>{isRtl ? 'السلف المسحوبة:' : 'Advances Deducted:'}</span>
-                    <span className="font-bold font-sans">{payslipData.advances.toLocaleString()} EGP</span>
-                  </div>
+                  {enableAdvances && (
+                    <div className="flex justify-between text-xs text-slate-800 dark:text-slate-200">
+                      <span>{isRtl ? 'السلف المسحوبة:' : 'Advances Deducted:'}</span>
+                      <span className="font-bold font-sans">
+                        {payslipData.advances.toLocaleString()} EGP
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-xs text-slate-800 dark:text-slate-200">
                     <span>{isRtl ? 'الجزاءات والخصومات:' : 'Penalties:'}</span>
-                    <span className="font-bold font-sans text-rose-600 dark:text-rose-400">{payslipData.penalties.toLocaleString()} EGP</span>
+                    <span className="font-bold font-sans text-rose-600 dark:text-rose-400">
+                      {payslipData.penalties.toLocaleString()} EGP
+                    </span>
                   </div>
                   <div className="flex justify-between text-xs text-slate-800 dark:text-slate-200">
                     <span>{isRtl ? 'خصم التأخير التلقائي:' : 'Lateness Deductions:'}</span>
-                    <span className="font-bold font-sans">{payslipData.latenessDeductions.toLocaleString()} EGP</span>
+                    <span className="font-bold font-sans">
+                      {payslipData.latenessDeductions.toLocaleString()} EGP
+                    </span>
                   </div>
-                  <div className="flex justify-between text-xs text-slate-800 dark:text-slate-200">
-                    <span>{isRtl ? 'التأمين الاجتماعي:' : 'Social Insurance:'}</span>
-                    <span className="font-bold font-sans">{payslipData.socialInsurance.toLocaleString()} EGP</span>
-                  </div>
-                  <div className="flex justify-between text-xs text-slate-800 dark:text-slate-200">
-                    <span>{isRtl ? 'التأمين الصحي:' : 'Health Insurance:'}</span>
-                    <span className="font-bold font-sans">{payslipData.healthInsurance.toLocaleString()} EGP</span>
-                  </div>
+                  {enableInsurances && (
+                    <>
+                      <div className="flex justify-between text-xs text-slate-800 dark:text-slate-200">
+                        <span>{isRtl ? 'التأمين الاجتماعي:' : 'Social Insurance:'}</span>
+                        <span className="font-bold font-sans">
+                          {payslipData.socialInsurance.toLocaleString()} EGP
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-xs text-slate-800 dark:text-slate-200">
+                        <span>{isRtl ? 'التأمين الصحي:' : 'Health Insurance:'}</span>
+                        <span className="font-bold font-sans">
+                          {payslipData.healthInsurance.toLocaleString()} EGP
+                        </span>
+                      </div>
+                    </>
+                  )}
                   <div className="flex justify-between text-xs font-extrabold pt-2 border-t border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white print:text-black">
                     <span>{isRtl ? 'إجمالي الاستقطاعات:' : 'Total Deductions:'}</span>
-                    <span className="font-sans">{payslipData.totalDeductions.toLocaleString()} EGP</span>
+                    <span className="font-sans">
+                      {payslipData.totalDeductions.toLocaleString()} EGP
+                    </span>
                   </div>
                 </div>
               </div>
@@ -598,7 +721,8 @@ export default function PayrollPage() {
                   >
                     {employees.map((e) => (
                       <option key={e.id} value={e.id}>
-                        {e.full_name} ({e.job_title || 'Staff'} - Comm: {e.commission_rate ?? 5}%)
+                        {e.full_name} ({e.job_title || 'Staff'} - Comm:{' '}
+                        {e.commission_rate ?? 5}%)
                       </option>
                     ))}
                   </select>
@@ -772,7 +896,7 @@ export default function PayrollPage() {
                           {a.notes || 'No reason'} ({a.date})
                         </div>
                         <span className="text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 font-sans">
-                          {Number(a.amount).toLocaleString()} EGP
+                          {Number(a.amount ?? 0).toLocaleString()} EGP
                         </span>
                       </div>
 
@@ -813,66 +937,73 @@ export default function PayrollPage() {
                     </div>
                   ))}
 
-                  <h4 className="text-xs font-bold text-slate-900 dark:text-slate-300 uppercase tracking-wider pt-3 border-t border-slate-200 dark:border-slate-700">
-                    {isRtl ? 'طلبات السلف المالية (مقدمة من الموظف)' : 'Employee Salary Advance Requests'}
-                  </h4>
-                  {advances.map((a) => (
-                    <div
-                      key={a.id}
-                      className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-between text-xs font-sans"
-                    >
-                      <div>
-                        <div className="font-bold text-slate-950 dark:text-white">
-                          {a.user?.full_name || 'Employee'}
-                        </div>
-                        <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                          Month: {a.month?.substring(0, 7)}
-                        </div>
-                        <span className="text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 font-sans">
-                          {Number(a.amount).toLocaleString()} EGP
-                        </span>
-                      </div>
+                  {enableAdvances && (
+                    <>
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-slate-300 uppercase tracking-wider pt-3 border-t border-slate-200 dark:border-slate-700 flex items-center gap-1.5">
+                        <Wallet className="w-3.5 h-3.5 text-emerald-600" />
+                        {isRtl
+                          ? 'طلبات السلف المالية (مقدمة من الموظف)'
+                          : 'Employee Salary Advance Requests'}
+                      </h4>
+                      {advances.map((a) => (
+                        <div
+                          key={a.id}
+                          className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-between text-xs font-sans"
+                        >
+                          <div>
+                            <div className="font-bold text-slate-950 dark:text-white">
+                              {a.user?.full_name || 'Employee'}
+                            </div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                              Month: {a.month?.substring(0, 7)}
+                            </div>
+                            <span className="text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 font-sans">
+                              {Number(a.amount ?? 0).toLocaleString()} EGP
+                            </span>
+                          </div>
 
-                      <div className="flex items-center gap-2">
-                        {isSuperAdmin && a.status === 'pending' ? (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => handleStatusAdvance(a.id, 'approved')}
-                              disabled={actionId === a.id}
-                              className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-lg cursor-pointer"
-                              title="Approve"
-                            >
-                              <Check className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleStatusAdvance(a.id, 'rejected')}
-                              disabled={actionId === a.id}
-                              className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-800 rounded-lg cursor-pointer"
-                              title="Reject"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          </>
-                        ) : (
-                          <span
-                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                              a.status === 'approved'
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400'
-                                : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400'
-                            }`}
-                          >
-                            {a.status}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  {advances.length === 0 && (
-                    <div className="text-center py-3 text-xs text-slate-400">
-                      {isRtl ? 'لا توجد طلبات سلف مسجلة.' : 'No advance requests found.'}
-                    </div>
+                          <div className="flex items-center gap-2">
+                            {isSuperAdmin && a.status === 'pending' ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleStatusAdvance(a.id, 'approved')}
+                                  disabled={actionId === a.id}
+                                  className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-lg cursor-pointer"
+                                  title="Approve"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleStatusAdvance(a.id, 'rejected')}
+                                  disabled={actionId === a.id}
+                                  className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-800 rounded-lg cursor-pointer"
+                                  title="Reject"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </>
+                            ) : (
+                              <span
+                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                                  a.status === 'approved'
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400'
+                                    : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400'
+                                }`}
+                              >
+                                {a.status}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      {advances.length === 0 && (
+                        <div className="text-center py-3 text-xs text-slate-400">
+                          {isRtl ? 'لا توجد طلبات سلف مسجلة.' : 'No advance requests found.'}
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
