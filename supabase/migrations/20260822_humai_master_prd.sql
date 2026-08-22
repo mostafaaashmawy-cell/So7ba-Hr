@@ -15,11 +15,13 @@ CREATE TABLE IF NOT EXISTS public.shifts (
 -- Enable RLS on shifts
 ALTER TABLE public.shifts ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view shifts in their tenant" ON public.shifts;
 CREATE POLICY "Users can view shifts in their tenant" ON public.shifts
     FOR SELECT USING (
         tenant_id = (SELECT tenant_id FROM public.users WHERE id = auth.uid())
     );
 
+DROP POLICY IF EXISTS "Super Admins can manage shifts" ON public.shifts;
 CREATE POLICY "Super Admins can manage shifts" ON public.shifts
     FOR ALL USING (
         EXISTS (
@@ -49,16 +51,19 @@ CREATE TABLE IF NOT EXISTS public.shift_swap_requests (
 -- Enable RLS on shift_swap_requests
 ALTER TABLE public.shift_swap_requests ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view swap requests in their tenant" ON public.shift_swap_requests;
 CREATE POLICY "Users can view swap requests in their tenant" ON public.shift_swap_requests
     FOR SELECT USING (
         tenant_id = (SELECT tenant_id FROM public.users WHERE id = auth.uid())
     );
 
+DROP POLICY IF EXISTS "Users can create swap requests" ON public.shift_swap_requests;
 CREATE POLICY "Users can create swap requests" ON public.shift_swap_requests
     FOR INSERT WITH CHECK (
         requester_id = auth.uid()
     );
 
+DROP POLICY IF EXISTS "Super Admins can manage and review swap requests" ON public.shift_swap_requests;
 CREATE POLICY "Super Admins can manage and review swap requests" ON public.shift_swap_requests
     FOR ALL USING (
         EXISTS (
@@ -84,6 +89,7 @@ CREATE TABLE IF NOT EXISTS public.system_audit_logs (
 -- Enable RLS on system_audit_logs
 ALTER TABLE public.system_audit_logs ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Super Admins can view audit logs" ON public.system_audit_logs;
 CREATE POLICY "Super Admins can view audit logs" ON public.system_audit_logs
     FOR SELECT USING (
         EXISTS (
@@ -94,6 +100,7 @@ CREATE POLICY "Super Admins can view audit logs" ON public.system_audit_logs
         )
     );
 
+DROP POLICY IF EXISTS "System and Admins can insert audit logs" ON public.system_audit_logs;
 CREATE POLICY "System and Admins can insert audit logs" ON public.system_audit_logs
     FOR INSERT WITH CHECK (
         actor_id = auth.uid()
