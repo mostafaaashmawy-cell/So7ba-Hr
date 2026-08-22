@@ -498,7 +498,7 @@ export default function PayrollPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[--bg] flex items-center justify-center text-slate-400 text-xs font-bold">
+      <div className="min-h-screen bg-(--bg) flex items-center justify-center text-slate-400 text-xs font-bold">
         <RefreshCw className="w-5 h-5 animate-spin text-emerald-600 mr-2" />
         Loading payroll engine...
       </div>
@@ -506,7 +506,7 @@ export default function PayrollPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[--bg] text-slate-900 dark:text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-(--bg) text-slate-900 dark:text-slate-100 flex flex-col font-sans">
       <Navbar user={currentUser} activeRoleView={isSuperAdmin ? 'super_admin' : 'manager'} />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-8 space-y-6 print:bg-white print:text-black print:p-0">

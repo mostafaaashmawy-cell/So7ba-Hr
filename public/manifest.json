@@ -1,10 +1,12 @@
 {
-  "name": "HumAi - HR & Operations Platform",
+  "id": "/",
+  "scope": "/",
+  "name": "HumAi - Smart HR & Operations Platform",
   "short_name": "HumAi",
   "description": "HumAi Smart Operations & Multi-Tenant HR Platform with Geofencing, Shifts, and AI Analytics",
   "start_url": "/dashboard/employee",
   "display": "standalone",
-  "background_color": "#1F2937",
+  "background_color": "#0F172A",
   "theme_color": "#10B981",
   "orientation": "portrait-primary",
   "icons": [
@@ -12,13 +14,25 @@
       "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

@@ -123,7 +123,7 @@ export default async function SuperAdminDashboardPage() {
   const settings = tenantSettings as TenantSettings | null;
 
   return (
-    <div className="min-h-screen bg-[--bg] text-slate-900 dark:text-slate-100 flex flex-col font-sans pb-16 md:pb-8">
+    <div className="min-h-screen bg-(--bg) text-slate-900 dark:text-slate-100 flex flex-col font-sans pb-16 md:pb-8">
       <Navbar user={admin} activeRoleView="super_admin" />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-8 space-y-8">

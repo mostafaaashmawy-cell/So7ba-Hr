@@ -260,3 +260,44 @@ textarea::placeholder {
   color: #34d399;
   border-right: 2px solid #10b981;
 }
+
+/* ═══════════════════════════════════════════════════════
+   Print & PDF Export Engine Styles
+   ═══════════════════════════════════════════════════════ */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 12pt;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  nav,
+  aside,
+  .app-sidebar,
+  .print-hide,
+  button:not(.print-show) {
+    display: none !important;
+  }
+
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  .cleariq-card {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+  }
+
+  @page {
+    margin: 1.5cm;
+    size: auto;
+  }
+}
+

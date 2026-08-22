@@ -32,7 +32,7 @@ export default function ContractsPage() {
 
   const defaultTemplate = `EMPLOYMENT AGREEMENT
 
-This Agreement is made on {{Current_Date}} between HumAi Smart Operations Platform (hereinafter "the Company") and {{Employee_Name}} (hereinafter "the Employee").
+This Agreement is made on {{Current_Date}} between HumAi Smart Operations Platform (hereinafter "the Company") and {{Employee_Name}} (hereinafter "the Employee"), holder of National ID {{National_ID}}.
 
 1. POSITION AND DESIGNATION:
 The Employee is hired as a {{Job_Title}} in the {{Department_Name}} department.
@@ -161,12 +161,16 @@ For the Company                         Employee Signature`;
     const today = new Date().toLocaleDateString();
 
     text = text.replace(/{{Employee_Name}}/g, emp.full_name || 'N/A');
+    text = text.replace(/{{National_ID}}/g, emp.id_number || 'N/A');
+    text = text.replace(/{{ID_Number}}/g, emp.id_number || 'N/A');
+    text = text.replace(/{{Mobile}}/g, emp.mobile || 'N/A');
+    text = text.replace(/{{Address}}/g, emp.address || 'N/A');
     text = text.replace(/{{Job_Title}}/g, emp.job_title || 'N/A');
-    text = text.replace(/{{Basic_Salary}}/g, Number(emp.basic_salary || 0).toLocaleString() + ' EGP');
+    text = text.replace(/{{Basic_Salary}}/g, Number(emp.basic_salary ?? 0).toLocaleString() + ' EGP');
     text = text.replace(/{{Department_Name}}/g, ((emp as unknown) as { department?: { name?: string } }).department?.name || 'N/A');
-    text = text.replace(/{{Payment_Method}}/g, emp.payment_method || 'Cash');
+    text = text.replace(/{{Payment_Method}}/g, emp.payment_method || 'Bank Transfer');
     text = text.replace(/{{Contract_Type}}/g, emp.contract_type || 'Full-Time');
-    text = text.replace(/{{Probation_Period}}/g, String(emp.probation_period || 3));
+    text = text.replace(/{{Probation_Period}}/g, String(emp.probation_period ?? 3));
     text = text.replace(/{{Contract_End_Date}}/g, emp.contract_end_date || 'Undetermined');
     text = text.replace(/{{Start_Date}}/g, emp.created_at ? new Date(emp.created_at).toLocaleDateString() : today);
     text = text.replace(/{{Current_Date}}/g, today);
@@ -185,7 +189,7 @@ For the Company                         Employee Signature`;
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[--bg] flex items-center justify-center text-slate-500 dark:text-slate-400 text-xs">
+      <div className="min-h-screen bg-(--bg) flex items-center justify-center text-slate-500 dark:text-slate-400 text-xs">
         <RefreshCw className="w-5 h-5 animate-spin text-emerald-500 mr-2" />
         Loading contracts configurator...
       </div>
@@ -193,7 +197,7 @@ For the Company                         Employee Signature`;
   }
 
   return (
-    <div className="min-h-screen bg-[--bg] text-slate-900 dark:text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-(--bg) text-slate-900 dark:text-slate-100 flex flex-col font-sans">
       <Navbar user={currentUser} activeRoleView="super_admin" />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-8 space-y-6 print:bg-white print:text-black print:p-0">
@@ -268,7 +272,7 @@ For the Company                         Employee Signature`;
                 You can write custom contracts using template variables. They will auto-fill with selected employee details:
                 <br />
                 <code className="text-emerald-600 dark:text-emerald-400 text-[10px] font-sans">
-                  {"{{Employee_Name}}"}, {"{{Job_Title}}"}, {"{{Basic_Salary}}"}, {"{{Department_Name}}"}, {"{{Payment_Method}}"}, {"{{Contract_Type}}"}, {"{{Probation_Period}}"}, {"{{Contract_End_Date}}"}, {"{{Manager_Name}}"}, {"{{Current_Date}}"}
+                  {"{{Employee_Name}}"}, {"{{National_ID}}"}, {"{{Mobile}}"}, {"{{Address}}"}, {"{{Job_Title}}"}, {"{{Basic_Salary}}"}, {"{{Department_Name}}"}, {"{{Payment_Method}}"}, {"{{Contract_Type}}"}, {"{{Probation_Period}}"}, {"{{Contract_End_Date}}"}, {"{{Manager_Name}}"}, {"{{Current_Date}}"}
                 </code>
               </p>
 

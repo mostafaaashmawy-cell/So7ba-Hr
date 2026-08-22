@@ -292,7 +292,7 @@ export default function EvaluationsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[--bg] flex items-center justify-center text-slate-400 text-xs font-bold">
+      <div className="min-h-screen bg-(--bg) flex items-center justify-center text-slate-400 text-xs font-bold">
         <RefreshCw className="w-5 h-5 animate-spin text-emerald-600 mr-2" />
         Loading evaluations...
       </div>
@@ -300,7 +300,7 @@ export default function EvaluationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[--bg] text-slate-900 dark:text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-(--bg) text-slate-900 dark:text-slate-100 flex flex-col font-sans">
       <Navbar
         user={currentUser}
         activeRoleView={

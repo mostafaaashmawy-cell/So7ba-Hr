@@ -223,7 +223,7 @@ export default function TargetsTasksPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center text-slate-500 text-xs">
+      <div className="min-h-screen bg-(--bg) flex items-center justify-center text-slate-500 dark:text-slate-400 text-xs">
         <RefreshCw className="w-5 h-5 animate-spin text-emerald-600 mr-2" />
         Loading HumAi targets board...
       </div>
@@ -231,7 +231,7 @@ export default function TargetsTasksPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-sans pb-16 md:pb-8">
+    <div className="min-h-screen bg-(--bg) text-slate-900 dark:text-slate-100 flex flex-col font-sans pb-16 md:pb-8">
       <Navbar
         user={currentUser}
         activeRoleView={

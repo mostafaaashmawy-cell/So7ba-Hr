@@ -394,7 +394,7 @@ export default function SettingsHubPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[--bg] flex items-center justify-center text-slate-500 dark:text-slate-400 text-xs">
+      <div className="min-h-screen bg-(--bg) flex items-center justify-center text-slate-500 dark:text-slate-400 text-xs">
         <RefreshCw className="w-5 h-5 animate-spin text-emerald-600 mr-2" />
         Loading settings hub...
       </div>
@@ -402,7 +402,7 @@ export default function SettingsHubPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[--bg] text-slate-900 dark:text-slate-100 flex flex-col font-sans pb-16 md:pb-8">
+    <div className="min-h-screen bg-(--bg) text-slate-900 dark:text-slate-100 flex flex-col font-sans pb-16 md:pb-8">
       <Navbar user={currentUser} activeRoleView="super_admin" />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-8 space-y-6">

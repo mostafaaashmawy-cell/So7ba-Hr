@@ -23,7 +23,7 @@ export default function AppLayout({ user, children }: AppLayoutProps) {
   const { isRtl } = useLanguage();
 
   return (
-    <div className="flex min-h-screen w-full bg-[--bg] overflow-hidden">
+    <div className="flex min-h-screen w-full bg-(--bg) overflow-hidden">
       {/* Sidebar Component */}
       <AppSidebar
         user={user}
