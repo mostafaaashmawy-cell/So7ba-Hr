@@ -44,6 +44,12 @@ export interface SystemAuditLogRecord {
   action_type: string;
   entity_name: string;
   entity_id?: string | null;
+  target_entity?: string;
+  target_id?: string | null;
+  ip_address?: string | null;
+  user_agent?: string | null;
+  old_values?: Record<string, unknown> | null;
+  new_values?: Record<string, unknown> | null;
   details?: Record<string, unknown> | null;
   created_at?: string;
   actor?: UserProfile;

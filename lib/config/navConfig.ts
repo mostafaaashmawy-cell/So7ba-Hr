@@ -14,6 +14,7 @@ import {
   DollarSign,
   Calendar,
   ShieldCheck,
+  ShieldAlert,
   ToggleLeft,
   UserCheck,
   FileBadge,
@@ -85,6 +86,13 @@ export const NAV_SECTIONS: NavSection[] = [
         titleAr: 'السياسات وساعات العمل',
         href: '/dashboard/settings',
         icon: Sliders,
+        roles: ['super_admin'],
+      },
+      {
+        titleEn: 'System Audit Logs',
+        titleAr: 'سجل العمليات والرقابة',
+        href: '/dashboard/audit-logs',
+        icon: ShieldAlert,
         roles: ['super_admin'],
       },
       {
