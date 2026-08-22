@@ -81,9 +81,14 @@ export interface TenantSettings {
   geofencing_radius?: number;
 }
 
+export type PayoutMethod = 'bank_transfer' | 'instapay' | 'e_wallet' | 'cash';
+export type MilitaryStatus = 'completed' | 'exempted' | 'postponed' | 'not_applicable';
+
 export interface UserProfile {
   id: string;
   full_name: string;
+  full_name_ar?: string | null;
+  full_name_en?: string | null;
   role: UserRole;
   basic_salary: number;
   kpi_unit: string;
@@ -91,27 +96,50 @@ export interface UserProfile {
   created_at?: string;
   updated_at?: string;
 
-  // Employee details registry (V2)
+  // Personal & Identity (MENA / Egyptian HR)
   mobile?: string | null;
+  national_id?: string | null;
   id_number?: string | null;
+  id_expiry_date?: string | null;
   id_photo_url?: string | null;
+  national_id_front_url?: string | null;
+  national_id_back_url?: string | null;
   age?: number | null;
   birth_date?: string | null;
   birth_cert_url?: string | null;
   qualification?: string | null;
   qualification_url?: string | null;
+  graduation_cert_url?: string | null;
   address?: string | null;
+  emergency_contact_phone?: string | null;
+  emergency_contact_relation?: string | null;
+  military_status?: MilitaryStatus | string | null;
+  military_cert_url?: string | null;
+
+  // Employment & Contracts
   job_title?: string | null;
-  criminal_record_url?: string | null;
   department_id?: string | null;
-  payment_method?: string | null;
-  tenant_id?: string | null;
-  social_insurance?: number | null;
-  health_insurance?: number | null;
+  hire_date?: string | null;
   contract_type?: string | null;
   probation_period?: number | null;
+  probation_end_date?: string | null;
   contract_end_date?: string | null;
+  criminal_record_url?: string | null;
+  tenant_id?: string | null;
+
+  // Financials & Payout Channels
   commission_rate?: number | null;
+  social_insurance?: number | null;
+  health_insurance?: number | null;
+  insurance_number?: string | null;
+  insurance_print_url?: string | null;
+  payment_method?: string | null;
+  payout_method?: PayoutMethod | string | null;
+  bank_name?: string | null;
+  bank_account_number?: string | null;
+  iban?: string | null;
+  wallet_phone_number?: string | null;
+  instapay_handle?: string | null;
 
   // Remote & Flexible Work
   is_remote?: boolean | null;

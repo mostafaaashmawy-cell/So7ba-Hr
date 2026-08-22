@@ -119,9 +119,9 @@ export const NAV_SECTIONS: NavSection[] = [
       {
         titleEn: 'Employee Directory',
         titleAr: 'سجل وإدارة الموظفين',
-        href: '/dashboard/admin#employee-management',
+        href: '/dashboard/employees',
         icon: Users,
-        roles: ['super_admin'],
+        roles: ['super_admin', 'manager'],
       },
       {
         titleEn: 'Contract Builder & PDF',
