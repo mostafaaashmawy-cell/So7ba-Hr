@@ -13,11 +13,11 @@ import {
   TenantSettings,
   ShiftRecord,
   SystemAuditLogRecord,
+  DepartmentRecord,
 } from '@/lib/types/database';
 import AdminWelcomeHeader from '@/components/admin/AdminWelcomeHeader';
 import StatCards from '@/components/dashboard/StatCards';
-import SalaryUnitChart from '@/components/dashboard/SalaryUnitChart';
-import DepartmentDistributionChart from '@/components/dashboard/DepartmentDistributionChart';
+import HRIntelligenceDashboard from '@/components/analytics/HRIntelligenceDashboard';
 import EmployeePerformanceTable from '@/components/dashboard/EmployeePerformanceTable';
 import HomeTaskAnalytics from '@/components/dashboard/HomeTaskAnalytics';
 import {
@@ -42,10 +42,9 @@ export default async function SuperAdminDashboardPage() {
     redirect('/login');
   }
 
-  // Fetch Super Admin Profile
   const { data: userProfile } = await supabase
     .from('users')
-    .select('*')
+    .select('*, department:departments(name)')
     .eq('id', authUser.id)
     .single();
 
@@ -65,6 +64,12 @@ export default async function SuperAdminDashboardPage() {
     .select('*, department:departments(name), shift:shifts(*)')
     .eq('tenant_id', admin.tenant_id)
     .order('created_at', { ascending: false });
+
+  // Fetch Departments
+  const { data: allDepts } = await supabase
+    .from('departments')
+    .select('*')
+    .order('name');
 
   // Fetch All Attendance Records
   const { data: allAttendance } = await supabase
@@ -108,9 +113,9 @@ export default async function SuperAdminDashboardPage() {
 
   const totalEmployees = allUsers?.length || 0;
   const todayStr = new Date().toISOString().split('T')[0];
-  const activeToday =
-    allAttendance?.filter((a) => a.date === todayStr || a.check_in_time?.startsWith(todayStr))
-      .length || 0;
+  const todayAttendanceList =
+    allAttendance?.filter((a) => a.date === todayStr || a.check_in_time?.startsWith(todayStr)) || [];
+  const activeToday = todayAttendanceList.length || 0;
   const totalLeavesMonth = allLeaves?.length || 0;
   const totalPayrollEstimate =
     allUsers?.reduce((sum, u) => sum + Number(u.basic_salary || 5000), 0) || 128000;
@@ -125,7 +130,7 @@ export default async function SuperAdminDashboardPage() {
         {/* Welcome Header */}
         <AdminWelcomeHeader />
 
-        {/* 1. Cleariq High-Level Stat Cards with Radial Gauges */}
+        {/* 1. High-Level Stat Cards with Radial Gauges */}
         <StatCards
           totalEmployees={totalEmployees}
           activeToday={activeToday}
@@ -134,23 +139,25 @@ export default async function SuperAdminDashboardPage() {
           totalPayrollEgp={totalPayrollEstimate}
         />
 
-        {/* 2. Cleariq Charts Section */}
+        {/* 2. Visual Analytics & Advanced HR Charts Engine (Recharts Integration) */}
+        <HRIntelligenceDashboard
+          users={(allUsers as UserProfile[]) || []}
+          departments={(allDepts as DepartmentRecord[]) || []}
+          todayAttendance={(todayAttendanceList as AttendanceRecord[]) || []}
+          leaves={(allLeaves as LeavePermissionRecord[]) || []}
+        />
+
+        {/* 3. Performance Leaderboard & Task Analytics */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
-            <SalaryUnitChart />
+            <HomeTaskAnalytics />
           </div>
           <div className="lg:col-span-1">
             <EmployeePerformanceTable employees={(allUsers as UserProfile[]) || []} />
           </div>
         </div>
 
-        {/* 3. Department & Employee Structure Breakdown */}
-        <DepartmentDistributionChart />
-
-        {/* 4. Monthly Task Completion & Target Progress Analytics */}
-        <HomeTaskAnalytics />
-
-        {/* 5. HumAi Operations Hub: Modular Grid Architecture (Matching Reference) */}
+        {/* 4. HumAi Operations Hub: Modular Grid Architecture */}
         <div className="cleariq-card p-6 cleariq-card-hover space-y-4">
           <div className="flex items-center justify-between">
             <div>
@@ -199,7 +206,7 @@ export default async function SuperAdminDashboardPage() {
                 <FileText className="w-5 h-5" />
               </div>
               <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">Contract Builder</span>
-              <span className="text-[10px] text-slate-400 block truncate">Print Agreements</span>
+              <span className="text-[10px] text-slate-400 block truncate">Agreements & PDF</span>
             </Link>
 
             {/* 4. Sales & Payouts */}
@@ -208,11 +215,11 @@ export default async function SuperAdminDashboardPage() {
                 href="/dashboard/sales"
                 className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 hover:bg-emerald-50/60 dark:hover:bg-emerald-950/30 border border-slate-200/80 dark:border-slate-700 hover:border-emerald-300 dark:hover:border-emerald-600 transition-all text-center space-y-2 group shadow-2xs"
               >
-                <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
                   <TrendingUp className="w-5 h-5" />
                 </div>
                 <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">Sales & Payouts</span>
-                <span className="text-[10px] text-slate-400 block truncate">Commissions Logs</span>
+                <span className="text-[10px] text-slate-400 block truncate">Commissions Log</span>
               </Link>
             )}
 
@@ -221,11 +228,11 @@ export default async function SuperAdminDashboardPage() {
               href="/dashboard/evaluations"
               className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 hover:bg-emerald-50/60 dark:hover:bg-emerald-950/30 border border-slate-200/80 dark:border-slate-700 hover:border-emerald-300 dark:hover:border-emerald-600 transition-all text-center space-y-2 group shadow-2xs"
             >
-              <div className="w-10 h-10 rounded-xl bg-yellow-50 dark:bg-yellow-950/60 text-yellow-600 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800 flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
                 <Star className="w-5 h-5" />
               </div>
               <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">Evaluations</span>
-              <span className="text-[10px] text-slate-400 block truncate">Review Logs & KPIs</span>
+              <span className="text-[10px] text-slate-400 block truncate">Reviews & Ratings</span>
             </Link>
 
             {/* 6. Targets Board */}
@@ -237,7 +244,7 @@ export default async function SuperAdminDashboardPage() {
                 <Target className="w-5 h-5" />
               </div>
               <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">Targets Board</span>
-              <span className="text-[10px] text-slate-400 block truncate">Goals & Metrics</span>
+              <span className="text-[10px] text-slate-400 block truncate">KPIs & Goals</span>
             </Link>
 
             {/* 7. Company Policies */}
@@ -245,39 +252,38 @@ export default async function SuperAdminDashboardPage() {
               href="/dashboard/settings"
               className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 hover:bg-emerald-50/60 dark:hover:bg-emerald-950/30 border border-slate-200/80 dark:border-slate-700 hover:border-emerald-300 dark:hover:border-emerald-600 transition-all text-center space-y-2 group shadow-2xs"
             >
-              <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
                 <Sliders className="w-5 h-5" />
               </div>
               <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">Company Policies</span>
-              <span className="text-[10px] text-slate-400 block truncate">Shifts, Rules & GPS</span>
+              <span className="text-[10px] text-slate-400 block truncate">Hours, GPS & Overtime</span>
             </Link>
 
-            {/* 8. System Logs & Audit Trail */}
-            <a
-              href="#audit-logs"
+            {/* 8. System Audit Logs */}
+            <Link
+              href="/dashboard/settings"
               className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 hover:bg-emerald-50/60 dark:hover:bg-emerald-950/30 border border-slate-200/80 dark:border-slate-700 hover:border-emerald-300 dark:hover:border-emerald-600 transition-all text-center space-y-2 group shadow-2xs"
             >
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+              <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">Audit Trail</span>
-              <span className="text-[10px] text-slate-400 block truncate">System Logs</span>
-            </a>
+              <span className="text-[10px] text-slate-400 block truncate">Security & Overrides</span>
+            </Link>
           </div>
         </div>
 
-        {/* 6. Employee Directory, Custom Schedules, Shifts & Horizontal Tabbed Switchers */}
-        <div id="employee-management" className="scroll-mt-24">
+        {/* 5. Enterprise Employee Directory & Configuration Tabs */}
+        <div>
           <EmployeeManagement
             initialUsers={(allUsers as UserProfile[]) || []}
             initialShifts={(allShifts as ShiftRecord[]) || []}
             initialAuditLogs={(allAuditLogs as SystemAuditLogRecord[]) || []}
-            tenantSettings={settings}
           />
         </div>
 
-        {/* 7. Attendance & Record Audit Log Table */}
-        <div id="audit-logs" className="scroll-mt-24">
+        {/* 6. Admin Record Override Tool */}
+        <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
           <RecordOverrideTable
             initialAttendance={(allAttendance as AttendanceRecord[]) || []}
             initialLeaves={(allLeaves as LeavePermissionRecord[]) || []}
