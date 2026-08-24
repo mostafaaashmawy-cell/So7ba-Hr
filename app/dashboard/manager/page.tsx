@@ -72,6 +72,26 @@ export default async function ManagerDashboardPage() {
     .in('user_id', teamIds.length > 0 ? teamIds : ['00000000-0000-0000-0000-000000000000'])
     .order('created_at', { ascending: false });
 
+  // Fetch Evaluations for team average
+  const { data: teamEvals } = await supabase
+    .from('evaluations')
+    .select('star_punctuality, star_quality, star_problem_solving, star_communication')
+    .in('user_id', teamIds.length > 0 ? teamIds : ['00000000-0000-0000-0000-000000000000']);
+
+  let avgPerformance = 4.8;
+  if (teamEvals && teamEvals.length > 0) {
+    const totalScore = teamEvals.reduce((acc, curr) => {
+      const rowAvg =
+        (Number(curr.star_punctuality || 0) +
+          Number(curr.star_quality || 0) +
+          Number(curr.star_problem_solving || 0) +
+          Number(curr.star_communication || 0)) /
+        4;
+      return acc + rowAvg;
+    }, 0);
+    avgPerformance = Number((totalScore / teamEvals.length).toFixed(1)) || 4.8;
+  }
+
   const totalTeam = teamMembers?.length || 0;
   const todayStr = new Date().toISOString().split('T')[0];
   const activeToday =
@@ -79,6 +99,8 @@ export default async function ManagerDashboardPage() {
       (a) => a.date === todayStr || a.check_in_time?.startsWith(todayStr)
     ).length || 0;
   const totalLeaves = leaveRecords?.length || 0;
+  const totalPayrollEstimate =
+    teamMembers?.reduce((sum, u) => sum + Number(u.basic_salary ?? 0), 0) || 0;
 
   return (
     <div className="min-h-screen bg-(--bg) text-slate-900 dark:text-slate-100 flex flex-col font-sans pb-16 md:pb-8">
@@ -90,8 +112,8 @@ export default async function ManagerDashboardPage() {
           totalEmployees={totalTeam}
           activeToday={activeToday}
           totalLeavesMonth={totalLeaves}
-          avgPerformance={4.4}
-          totalPayrollEgp={totalTeam * 6500}
+          avgPerformance={avgPerformance}
+          totalPayrollEgp={totalPayrollEstimate}
         />
 
         {/* MANAGER COMMAND CENTER */}

@@ -36,6 +36,17 @@ export default function AdvanceRequestModal({
   const isEligible = currentDay >= eligibilityDay;
   const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
 
+  // Calculate accumulated pending + approved advances this month
+  const currentMonthAdvances = history
+    .filter(
+      (item) =>
+        (item.month?.startsWith(currentMonthStr.substring(0, 7)) || item.created_at?.startsWith(currentMonthStr.substring(0, 7))) &&
+        (item.status === 'pending' || item.status === 'approved')
+    )
+    .reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
+
+  const remainingAllowed = Math.max(0, maxAllowed - currentMonthAdvances);
+
   const fetchHistory = async () => {
     const { data } = await supabase
       .from('advances')
@@ -66,11 +77,21 @@ export default function AdvanceRequestModal({
       return;
     }
 
-    if (Number(amount) > maxAllowed) {
+    if (remainingAllowed <= 0) {
       setMsg({
         text: isRtl
-          ? `الحد الأقصى المسموح به هو ${maxAllowed.toLocaleString()} ج.م (${maxPct}% من الراتب الأساسي)!`
-          : `Amount exceeds maximum limit of ${maxAllowed.toLocaleString()} EGP (${maxPct}% of basic salary)!`,
+          ? `لقد استنفدت الحد الأقصى للسلف لهذا الشهر (${maxAllowed.toLocaleString()} ج.م)!`
+          : `You have exhausted the maximum advance limit for this month (${maxAllowed.toLocaleString()} EGP)!`,
+        error: true,
+      });
+      return;
+    }
+
+    if (Number(amount) > remainingAllowed) {
+      setMsg({
+        text: isRtl
+          ? `المبلغ المطلوب يتجاوز الرصيد المتبقي المتاح للسلف وهو ${remainingAllowed.toLocaleString()} ج.م (إجمالي الحد: ${maxAllowed.toLocaleString()} ج.م)!`
+          : `Amount exceeds remaining available advance of ${remainingAllowed.toLocaleString()} EGP (Total monthly cap: ${maxAllowed.toLocaleString()} EGP)!`,
         error: true,
       });
       return;
@@ -213,15 +234,20 @@ export default function AdvanceRequestModal({
                   <label className="text-xs font-bold text-slate-900 dark:text-slate-200">
                     {isRtl ? 'مبلغ السلفة المطلوب (ج.م)' : 'Requested Advance Amount (EGP)'}
                   </label>
-                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-sans font-bold">
-                    {isRtl ? 'الحد الأقصى: ' : 'Max allowed: '}
-                    {maxAllowed.toLocaleString()} EGP
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-slate-500 font-sans">
+                      {isRtl ? 'المتاح: ' : 'Remaining: '}
+                      <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{remainingAllowed.toLocaleString()} EGP</strong>
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-sans">
+                      ({isRtl ? 'الحد: ' : 'Cap: '}{maxAllowed.toLocaleString()} EGP)
+                    </span>
+                  </div>
                 </div>
                 <input
                   type="number"
                   placeholder="e.g. 2000"
-                  max={maxAllowed}
+                  max={remainingAllowed}
                   value={amount}
                   onChange={(e) =>
                     setAmount(e.target.value === '' ? '' : Number(e.target.value))

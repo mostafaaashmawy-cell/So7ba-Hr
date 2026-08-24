@@ -85,6 +85,7 @@ interface EditFormState {
   probation_period: number;
   probation_end_date: string;
   contract_end_date: string;
+  annual_leave_allowance: number;
   shift_id: string;
   is_remote: boolean;
   is_flexible: boolean;
@@ -93,6 +94,7 @@ interface EditFormState {
   // Financials
   basic_salary: number;
   commission_rate: number;
+  income_tax_rate: number;
   social_insurance: number;
   health_insurance: number;
   insurance_number: string;
@@ -136,6 +138,7 @@ const emptyForm: EditFormState = {
   probation_period: 3,
   probation_end_date: '',
   contract_end_date: '',
+  annual_leave_allowance: 21,
   shift_id: '',
   is_remote: false,
   is_flexible: false,
@@ -143,6 +146,7 @@ const emptyForm: EditFormState = {
 
   basic_salary: 6000,
   commission_rate: 5,
+  income_tax_rate: 0,
   social_insurance: 0,
   health_insurance: 0,
   insurance_number: '',
@@ -314,6 +318,7 @@ export default function EmployeeDirectoryPage() {
       probation_period: Number(u.probation_period ?? 3),
       probation_end_date: u.probation_end_date || '',
       contract_end_date: u.contract_end_date || '',
+      annual_leave_allowance: Number(u.annual_leave_allowance ?? 21),
       shift_id: u.shift_id || '',
       is_remote: !!u.is_remote,
       is_flexible: !!u.is_flexible,
@@ -321,6 +326,7 @@ export default function EmployeeDirectoryPage() {
 
       basic_salary: Number(u.basic_salary ?? 6000),
       commission_rate: Number(u.commission_rate ?? 5),
+      income_tax_rate: Number(u.income_tax_rate ?? 0),
       social_insurance: Number(u.social_insurance ?? 0),
       health_insurance: Number(u.health_insurance ?? 0),
       insurance_number: u.insurance_number || '',
@@ -384,6 +390,7 @@ export default function EmployeeDirectoryPage() {
         probation_period: Number(formData.probation_period ?? 3),
         probation_end_date: formData.probation_end_date || null,
         contract_end_date: formData.contract_end_date || null,
+        annual_leave_allowance: Number(formData.annual_leave_allowance ?? 21),
         shift_id: formData.shift_id || null,
         is_remote: formData.is_remote,
         is_flexible: formData.is_flexible,
@@ -391,6 +398,7 @@ export default function EmployeeDirectoryPage() {
 
         basic_salary: Number(formData.basic_salary ?? 0),
         commission_rate: Number(formData.commission_rate ?? 0),
+        income_tax_rate: Number(formData.income_tax_rate ?? 0),
         social_insurance: Number(formData.social_insurance ?? 0),
         health_insurance: Number(formData.health_insurance ?? 0),
         insurance_number: formData.insurance_number.trim() || null,
@@ -1211,7 +1219,7 @@ export default function EmployeeDirectoryPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                       <div>
                         <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">
                           {isRtl ? 'تاريخ التعيين:' : 'Hire Date:'}
@@ -1252,6 +1260,20 @@ export default function EmployeeDirectoryPage() {
                             setFormData({ ...formData, contract_end_date: e.target.value })
                           }
                           className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">
+                          {isRtl ? 'رصيد الإجازات السنوي (أيام):' : 'Annual Leave (Days):'}
+                        </label>
+                        <input
+                          type="number"
+                          value={formData.annual_leave_allowance}
+                          onChange={(e) =>
+                            setFormData({ ...formData, annual_leave_allowance: Number(e.target.value) })
+                          }
+                          className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-950 dark:text-white focus:outline-none font-sans"
                         />
                       </div>
                     </div>
@@ -1357,7 +1379,7 @@ export default function EmployeeDirectoryPage() {
                       </div>
                     )}
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
                         <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">
                           {isRtl ? 'الراتب الأساسي الشهري (ج.م):' : 'Monthly Basic Salary (EGP):'}
@@ -1383,6 +1405,22 @@ export default function EmployeeDirectoryPage() {
                           value={formData.commission_rate}
                           onChange={(e) =>
                             setFormData({ ...formData, commission_rate: Number(e.target.value) })
+                          }
+                          className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-950 dark:text-white font-sans focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">
+                          {isRtl ? 'نسبة ضريبة كسب العمل (%):' : 'Income Tax Rate (%):'}
+                        </label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          disabled={!canEditFinancials}
+                          value={formData.income_tax_rate}
+                          onChange={(e) =>
+                            setFormData({ ...formData, income_tax_rate: Number(e.target.value) })
                           }
                           className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-950 dark:text-white font-sans focus:outline-none"
                         />

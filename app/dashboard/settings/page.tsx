@@ -106,6 +106,7 @@ export default function SettingsHubPage() {
   const [enableCommissions, setEnableCommissions] = useState(true);
   const [enableInsurances, setEnableInsurances] = useState(true);
   const [enableHolidayComp, setEnableHolidayComp] = useState(true);
+  const [enableIncomeTax, setEnableIncomeTax] = useState(false);
 
   // Load User & Tenant Settings
   useEffect(() => {
@@ -163,6 +164,8 @@ export default function SettingsHubPage() {
           if (s.enable_insurances !== undefined) setEnableInsurances(s.enable_insurances);
           if (s.enable_holiday_work_comp !== undefined)
             setEnableHolidayComp(s.enable_holiday_work_comp);
+          if (s.enable_income_tax !== undefined)
+            setEnableIncomeTax(s.enable_income_tax);
 
           if (s.enable_overtime !== undefined) setEnableOvertime(s.enable_overtime);
           if (s.overtime_rate_multiplier !== undefined)
@@ -347,6 +350,7 @@ export default function SettingsHubPage() {
       enable_commissions: Boolean(enableCommissions),
       enable_insurances: Boolean(enableInsurances),
       enable_holiday_work_comp: Boolean(enableHolidayComp),
+      enable_income_tax: Boolean(enableIncomeTax),
       enable_overtime: Boolean(enableOvertime),
       overtime_rate_multiplier: Number(overtimeMultiplier || 1.5),
       overtime_calculation_mode: overtimeMode || 'multiplier',
@@ -1188,6 +1192,19 @@ export default function SettingsHubPage() {
                     type="checkbox"
                     checked={enableHolidayComp}
                     onChange={(e) => setEnableHolidayComp(e.target.checked)}
+                    className="w-4 h-4 accent-emerald-500 cursor-pointer"
+                  />
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">Income Tax Engine</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400">Deduct customized income tax percentage per employee</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={enableIncomeTax}
+                    onChange={(e) => setEnableIncomeTax(e.target.checked)}
                     className="w-4 h-4 accent-emerald-500 cursor-pointer"
                   />
                 </div>

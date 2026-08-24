@@ -113,6 +113,24 @@ export function calculateWorkingMinutes(checkIn: string, checkOut: string | null
 }
 
 /**
+ * Returns the planned scheduled shift duration in minutes, supporting overnight / cross-midnight shifts.
+ * Example: "22:00" -> "06:00" returns 480 minutes (8 hours).
+ */
+export function calculateShiftDurationMinutes(startTime: string = '08:00', endTime: string = '16:00'): number {
+  const [startH, startM] = (startTime || '08:00').split(':').map(Number);
+  const [endH, endM] = (endTime || '16:00').split(':').map(Number);
+  const startTotal = (startH * 60) + (startM || 0);
+  const endTotal = (endH * 60) + (endM || 0);
+
+  if (endTotal >= startTotal) {
+    return endTotal - startTotal;
+  } else {
+    // Crosses midnight (e.g. 22:00 to 06:00 -> 1440 - 1320 + 360 = 480)
+    return (1440 - startTotal) + endTotal;
+  }
+}
+
+/**
  * Calculates lateness in minutes for a check-in event against assigned shift hours.
  * Supports overnight shifts crossing midnight (e.g. 22:00 -> 06:00).
  */

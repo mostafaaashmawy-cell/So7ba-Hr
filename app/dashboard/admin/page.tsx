@@ -111,6 +111,26 @@ export default async function SuperAdminDashboardPage() {
     .order('created_at', { ascending: false })
     .limit(50);
 
+  // Fetch Evaluations for performance average
+  const { data: allEvals } = await supabase
+    .from('evaluations')
+    .select('star_punctuality, star_quality, star_problem_solving, star_communication')
+    .eq('tenant_id', admin.tenant_id);
+
+  let avgPerformance = 4.8;
+  if (allEvals && allEvals.length > 0) {
+    const totalScore = allEvals.reduce((acc, curr) => {
+      const rowAvg =
+        (Number(curr.star_punctuality || 0) +
+          Number(curr.star_quality || 0) +
+          Number(curr.star_problem_solving || 0) +
+          Number(curr.star_communication || 0)) /
+        4;
+      return acc + rowAvg;
+    }, 0);
+    avgPerformance = Number((totalScore / allEvals.length).toFixed(1)) || 4.8;
+  }
+
   const totalEmployees = allUsers?.length || 0;
   const todayStr = new Date().toISOString().split('T')[0];
   const todayAttendanceList =
@@ -118,7 +138,7 @@ export default async function SuperAdminDashboardPage() {
   const activeToday = todayAttendanceList.length || 0;
   const totalLeavesMonth = allLeaves?.length || 0;
   const totalPayrollEstimate =
-    allUsers?.reduce((sum, u) => sum + Number(u.basic_salary || 5000), 0) || 128000;
+    allUsers?.reduce((sum, u) => sum + Number(u.basic_salary ?? 0), 0) || 0;
 
   const settings = tenantSettings as TenantSettings | null;
 
@@ -135,7 +155,7 @@ export default async function SuperAdminDashboardPage() {
           totalEmployees={totalEmployees}
           activeToday={activeToday}
           totalLeavesMonth={totalLeavesMonth}
-          avgPerformance={4.3}
+          avgPerformance={avgPerformance}
           totalPayrollEgp={totalPayrollEstimate}
         />
 

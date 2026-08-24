@@ -92,11 +92,13 @@ export default function EmployeeManagement({
     criminal_record_url: '',
     department_id: '',
     payment_method: 'Cash',
+    income_tax_rate: 0,
     social_insurance: 0,
     health_insurance: 0,
     contract_type: 'Full-Time',
     probation_period: 3,
     contract_end_date: '',
+    annual_leave_allowance: 21,
     // Remote, Flexible & Shift
     is_remote: false,
     is_flexible: false,
@@ -197,11 +199,13 @@ export default function EmployeeManagement({
       criminal_record_url: u.criminal_record_url || '',
       department_id: u.department_id || '',
       payment_method: u.payment_method || 'Cash',
+      income_tax_rate: Number(u.income_tax_rate) || 0,
       social_insurance: Number(u.social_insurance) || 0,
       health_insurance: Number(u.health_insurance) || 0,
       contract_type: u.contract_type || 'Full-Time',
       probation_period: Number(u.probation_period) || 3,
       contract_end_date: u.contract_end_date || '',
+      annual_leave_allowance: Number(u.annual_leave_allowance) || 21,
       is_remote: !!u.is_remote,
       is_flexible: !!u.is_flexible,
       required_daily_hours: Number(u.required_daily_hours) || 8,
@@ -244,11 +248,13 @@ export default function EmployeeManagement({
           criminal_record_url: editForm.criminal_record_url || null,
           department_id: editForm.department_id || null,
           payment_method: editForm.payment_method || null,
+          income_tax_rate: editForm.income_tax_rate || 0,
           social_insurance: editForm.social_insurance || 0,
           health_insurance: editForm.health_insurance || 0,
           contract_type: editForm.contract_type || 'Full-Time',
           probation_period: editForm.probation_period || 3,
           contract_end_date: editForm.contract_end_date || null,
+          annual_leave_allowance: editForm.annual_leave_allowance || 21,
           is_remote: editForm.is_remote,
           is_flexible: editForm.is_flexible,
           required_daily_hours: editForm.required_daily_hours,
@@ -952,6 +958,16 @@ export default function EmployeeManagement({
                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-950 dark:text-white focus:outline-none focus:border-emerald-500"
                   />
                 </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{isRtl ? 'رصيد الإجازات السنوي (أيام)' : 'Annual Leave Allowance (Days)'}</label>
+                  <input
+                    type="number"
+                    value={editForm.annual_leave_allowance}
+                    onChange={(e) => setEditForm({ ...editForm, annual_leave_allowance: Number(e.target.value) })}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-950 dark:text-white focus:outline-none focus:border-emerald-500 font-sans"
+                  />
+                </div>
               </div>
             </div>
 
@@ -1039,7 +1055,7 @@ export default function EmployeeManagement({
                 3. {isRtl ? 'الراتب، العمولات، والتأمينات' : 'Compensation & Insurance Parameters'}
               </h4>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{isRtl ? 'الراتب الأساسي (EGP)' : 'Basic Salary (EGP)'}</label>
                   <input
@@ -1057,6 +1073,17 @@ export default function EmployeeManagement({
                     type="number"
                     value={editForm.commission_rate}
                     onChange={(e) => setEditForm({ ...editForm, commission_rate: Number(e.target.value) })}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-950 dark:text-white focus:outline-none focus:border-emerald-500 font-sans"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{isRtl ? 'نسبة ضريبة كسب العمل (%)' : 'Income Tax Rate (%)'}</label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    value={editForm.income_tax_rate}
+                    onChange={(e) => setEditForm({ ...editForm, income_tax_rate: Number(e.target.value) })}
                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-950 dark:text-white focus:outline-none focus:border-emerald-500 font-sans"
                   />
                 </div>

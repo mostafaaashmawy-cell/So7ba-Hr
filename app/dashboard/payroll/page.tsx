@@ -50,6 +50,8 @@ interface PayslipData {
   departmentName: string;
   jobTitle: string;
   basicSalary: number;
+  isProrated?: boolean;
+  proratedDays?: number;
   commissionRate: number;
   commission: number;
   totalSales: number;
@@ -58,6 +60,7 @@ interface PayslipData {
   penalties: number;
   advances: number;
   latenessDeductions: number;
+  incomeTax: number;
   socialInsurance: number;
   healthInsurance: number;
   grossEarnings: number;
@@ -353,8 +356,27 @@ export default function PayrollPage() {
         .gte('date', startStr)
         .lte('date', endStr);
 
-      const empBasicSalary = Number(emp.basic_salary ?? 0);
-      const dailyRate = empBasicSalary > 0 ? empBasicSalary / 30 : 0;
+      const fullBasicSalary = Number(emp.basic_salary ?? 0);
+      let empBasicSalary = fullBasicSalary;
+      let isProrated = false;
+      let proratedDays = lastDay;
+
+      // Mid-Month Hire Proration (e.g. joined after start of month)
+      if (emp.hire_date && emp.hire_date > startStr) {
+        const hireD = new Date(emp.hire_date);
+        const activeDays = Math.max(1, lastDay - hireD.getDate() + 1);
+        empBasicSalary = Math.round((activeDays / lastDay) * fullBasicSalary);
+        isProrated = true;
+        proratedDays = activeDays;
+      } else if (emp.contract_end_date && emp.contract_end_date < endStr && emp.contract_end_date >= startStr) {
+        const endD = new Date(emp.contract_end_date);
+        const activeDays = Math.max(1, endD.getDate());
+        empBasicSalary = Math.round((activeDays / lastDay) * fullBasicSalary);
+        isProrated = true;
+        proratedDays = activeDays;
+      }
+
+      const dailyRate = fullBasicSalary > 0 ? fullBasicSalary / 30 : 0;
       const requiredHours = Number(emp.required_daily_hours ?? 8);
       const hourlyRate = dailyRate > 0 && requiredHours > 0 ? dailyRate / requiredHours : 0;
 
@@ -455,10 +477,17 @@ export default function PayrollPage() {
         healthIns = Number(emp.health_insurance ?? 0);
       }
 
-      // Final calculations without NaN propagation
+      // 7. Income Tax deduction with enable_income_tax guard and per-employee rate
+      let incomeTax = 0;
       const grossEarnings = empBasicSalary + commission + bonuses + overtimePay;
+      if (settings?.enable_income_tax !== false && Number(emp.income_tax_rate ?? 0) > 0) {
+        const taxableBase = Math.max(0, grossEarnings - socialIns);
+        incomeTax = Math.round(taxableBase * (Number(emp.income_tax_rate) / 100));
+      }
+
+      // Final calculations without NaN propagation
       const totalDeductions =
-        penalties + totalAdvances + latenessDeductions + socialIns + healthIns;
+        penalties + totalAdvances + latenessDeductions + socialIns + healthIns + incomeTax;
       const netPay = Math.max(0, grossEarnings - totalDeductions);
 
       setPayslipData({
@@ -468,6 +497,8 @@ export default function PayrollPage() {
           'Operations',
         jobTitle: emp.job_title || 'Staff',
         basicSalary: empBasicSalary,
+        isProrated,
+        proratedDays,
         commissionRate: empCommissionRate,
         commission: Math.round(commission),
         totalSales: Math.round(totalSales),
@@ -476,6 +507,7 @@ export default function PayrollPage() {
         penalties: Math.round(penalties),
         advances: Math.round(totalAdvances),
         latenessDeductions,
+        incomeTax,
         socialInsurance: Math.round(socialIns),
         healthInsurance: Math.round(healthIns),
         grossEarnings: Math.round(grossEarnings),
@@ -591,7 +623,14 @@ export default function PayrollPage() {
                     {isRtl ? 'الاستحقاقات والإضافات (+)' : 'Earnings (+)'}
                   </h4>
                   <div className="flex justify-between text-xs text-slate-800 dark:text-slate-200">
-                    <span>{isRtl ? 'الراتب الأساسي:' : 'Basic Salary:'}</span>
+                    <span className="flex items-center gap-1.5">
+                      <span>{isRtl ? 'الراتب الأساسي:' : 'Basic Salary:'}</span>
+                      {payslipData.isProrated && (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+                          {isRtl ? `معدل (${payslipData.proratedDays} يوم)` : `Prorated (${payslipData.proratedDays}d)`}
+                        </span>
+                      )}
+                    </span>
                     <span className="font-bold font-sans">
                       {payslipData.basicSalary.toLocaleString()} EGP
                     </span>
@@ -655,6 +694,14 @@ export default function PayrollPage() {
                       {payslipData.latenessDeductions.toLocaleString()} EGP
                     </span>
                   </div>
+                  {payslipData.incomeTax > 0 && (
+                    <div className="flex justify-between text-xs text-slate-800 dark:text-slate-200">
+                      <span>{isRtl ? 'ضريبة كسب العمل:' : 'Income Tax:'}</span>
+                      <span className="font-bold font-sans text-rose-600 dark:text-rose-400">
+                        {payslipData.incomeTax.toLocaleString()} EGP
+                      </span>
+                    </div>
+                  )}
                   {enableInsurances && (
                     <>
                       <div className="flex justify-between text-xs text-slate-800 dark:text-slate-200">

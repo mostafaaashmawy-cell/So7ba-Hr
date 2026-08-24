@@ -11,9 +11,15 @@ interface LeavePermissionProps {
   userId: string;
   initialRecords: LeavePermissionRecord[];
   holidayWorkCount: number;
+  annualLeaveAllowance?: number;
 }
 
-export default function LeavePermissionForm({ userId, initialRecords, holidayWorkCount }: LeavePermissionProps) {
+export default function LeavePermissionForm({
+  userId,
+  initialRecords,
+  holidayWorkCount,
+  annualLeaveAllowance = 21,
+}: LeavePermissionProps) {
   const { t, isRtl } = useLanguage();
   const [records, setRecords] = useState<LeavePermissionRecord[]>(initialRecords);
   const [type, setType] = useState<'leave' | 'permission'>('leave');
@@ -25,7 +31,7 @@ export default function LeavePermissionForm({ userId, initialRecords, holidayWor
 
   const supabase = createClient();
 
-  const ANNUAL_LIMIT = 21;
+  const ANNUAL_LIMIT = annualLeaveAllowance ?? 21;
   const totalAllowance = ANNUAL_LIMIT + holidayWorkCount;
   const consumedLeaves = records.filter((r) => r.type === 'leave' && r.status === 'active').length;
   const remainingLeaves = Math.max(0, totalAllowance - consumedLeaves);

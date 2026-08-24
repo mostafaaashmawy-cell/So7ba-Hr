@@ -64,6 +64,7 @@ export interface TenantSettings {
   enable_insurances: boolean;
   enable_shifts: boolean;
   enable_holiday_work_comp?: boolean;
+  enable_income_tax?: boolean;
   
   // Overtime Engine
   enable_overtime?: boolean;
@@ -131,10 +132,12 @@ export interface UserProfile {
   probation_end_date?: string | null;
   contract_end_date?: string | null;
   criminal_record_url?: string | null;
+  annual_leave_allowance?: number | null;
   tenant_id?: string | null;
 
   // Financials & Payout Channels
   commission_rate?: number | null;
+  income_tax_rate?: number | null;
   social_insurance?: number | null;
   health_insurance?: number | null;
   insurance_number?: string | null;

@@ -149,6 +149,7 @@ export default async function EmployeeDashboardPage() {
             userId={authUser.id}
             initialRecords={(leavesHistory as LeavePermissionRecord[]) || []}
             holidayWorkCount={holidayWorkCount}
+            annualLeaveAllowance={user?.annual_leave_allowance ?? 21}
           />
         </div>
 
