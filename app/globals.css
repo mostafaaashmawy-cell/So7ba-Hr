@@ -273,6 +273,7 @@ textarea::placeholder {
     print-color-adjust: exact;
   }
 
+  header,
   nav,
   aside,
   .app-sidebar,

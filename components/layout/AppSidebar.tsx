@@ -17,6 +17,7 @@ import {
   MOBILE_CORE_ANCHORS,
 } from '@/lib/config/navConfig';
 import HumAiLogo from '@/components/common/HumAiLogo';
+import PwaInstallButton from '@/components/common/PwaInstallButton';
 
 interface AppSidebarProps {
   user: UserProfile | null;
@@ -143,7 +144,8 @@ export default function AppSidebar({
         </div>
 
         {/* ── Mobile Pinned Core Anchors (At Top of Drawer) ────────── */}
-        <div className="lg:hidden p-2.5 border-b" style={{ borderColor: 'var(--border)' }}>
+        <div className="lg:hidden p-2.5 border-b space-y-2" style={{ borderColor: 'var(--border)' }}>
+          <PwaInstallButton variant="drawer" />
           <div className="grid grid-cols-3 gap-1.5">
             {visibleMobileAnchors.map((anchor) => {
               const Icon = anchor.icon;

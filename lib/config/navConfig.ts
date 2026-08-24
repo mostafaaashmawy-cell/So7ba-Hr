@@ -171,7 +171,7 @@ export const NAV_SECTIONS: NavSection[] = [
       {
         titleEn: 'Payslip Generator',
         titleAr: 'مولد مفردات المرتبات',
-        href: '/dashboard/payroll#payslips',
+        href: '/dashboard/payslips',
         icon: Receipt,
         roles: ['super_admin'],
       },
@@ -204,7 +204,7 @@ export const NAV_SECTIONS: NavSection[] = [
       {
         titleEn: 'My Payslips',
         titleAr: 'مفردات راتبي',
-        href: '/dashboard/payroll',
+        href: '/dashboard/payslips',
         icon: FileBadge,
       },
     ],

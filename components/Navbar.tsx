@@ -27,6 +27,7 @@ import { useSidebar } from '@/lib/context/SidebarContext';
 import { generateDynamicNotifications } from '@/lib/utils/notificationHelper';
 import PageGuideModal from '@/components/common/PageGuideModal';
 import HumAiLogo from '@/components/common/HumAiLogo';
+import PwaInstallButton from '@/components/common/PwaInstallButton';
 
 interface NavbarProps {
   user: UserProfile | null;
@@ -139,7 +140,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
   return (
     <>
       <header
-        className="sticky top-0 z-50 backdrop-blur-md bg-white/90 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800 px-4 lg:px-6 py-2.5 transition-colors shadow-xs"
+        className="fixed top-0 left-0 right-0 z-50 lg:sticky lg:top-0 backdrop-blur-md bg-white/95 dark:bg-slate-900/95 border-b border-slate-200 dark:border-slate-800 px-4 lg:px-6 py-2.5 transition-colors shadow-xs"
       >
         <div className="flex items-center justify-between gap-3">
           {/* Left: Sidebar toggle + Brand */}
@@ -224,6 +225,9 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
 
           {/* Right: Action icons */}
           <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* PWA Mobile Install Button */}
+            <PwaInstallButton />
+
             {/* Page Guide */}
             <PageGuideModal />
 
@@ -354,6 +358,9 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
           </div>
         </div>
       </header>
+
+      {/* Mobile Top Spacer so page content is never hidden behind the fixed header */}
+      <div className="h-14 lg:hidden shrink-0" aria-hidden="true" />
 
       {/* Mobile Bottom Navigation Bar */}
       {user && user.tenant_id && (
