@@ -44,6 +44,7 @@ interface PayslipSummary {
   commissions: number;
   bonuses: number;
   overtime: number;
+  nightShiftAllowance: number;
   grossEarnings: number;
   advances: number;
   penalties: number;
@@ -289,9 +290,12 @@ export default function PayslipsPage() {
           overtime = 0;
         }
 
-        const grossEarnings = basicSalary + commissions + bonuses + overtime;
+        // 7. Night Shift Allowance
+        const nightShiftAllowance = emp.shift?.night_shift_allowance ? Number(emp.shift.night_shift_allowance) : 0;
 
-        // 7. Income Tax
+        const grossEarnings = basicSalary + commissions + bonuses + overtime + nightShiftAllowance;
+
+        // 8. Income Tax
         let incomeTax = 0;
         if (settings?.enable_income_tax !== false && Number(emp.income_tax_rate ?? 0) > 0) {
           const taxableBase = Math.max(0, grossEarnings - socialInsurance);
@@ -320,6 +324,7 @@ export default function PayslipsPage() {
           commissions,
           bonuses,
           overtime,
+          nightShiftAllowance,
           grossEarnings,
           advances,
           penalties,
@@ -590,6 +595,17 @@ export default function PayslipsPage() {
                         </span>
                         <span className="font-extrabold font-sans text-slate-900 dark:text-white">
                           {payslip.overtime.toLocaleString()} EGP
+                        </span>
+                      </div>
+                    )}
+
+                    {payslip.nightShiftAllowance > 0 && (
+                      <div className="flex justify-between p-3">
+                        <span className="text-slate-600 dark:text-slate-400">
+                          {isRtl ? 'بدل الوردية الليلية' : 'Night Shift Allowance'}
+                        </span>
+                        <span className="font-extrabold font-sans text-purple-600 dark:text-purple-400">
+                          +{payslip.nightShiftAllowance.toLocaleString()} EGP
                         </span>
                       </div>
                     )}

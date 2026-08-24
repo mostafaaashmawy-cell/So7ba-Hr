@@ -31,8 +31,11 @@ interface FinancialAdjustment {
   type: 'bonus' | 'penalty';
   amount: number;
   date: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'dept_approved' | 'approved' | 'rejected';
   notes: string;
+  rejection_reason?: string | null;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
   user?: { full_name: string };
 }
 
@@ -57,6 +60,7 @@ interface PayslipData {
   totalSales: number;
   bonuses: number;
   overtime: number;
+  nightShiftAllowance: number;
   penalties: number;
   advances: number;
   latenessDeductions: number;
@@ -309,12 +313,13 @@ export default function PayrollPage() {
         commission = totalSales * (empCommissionRate / 100);
       }
 
-      // 2. Fetch Adjustments (Bonuses & Penalties)
+      // 2. Fetch Adjustments (Approved Bonuses & Penalties)
       const { data: userAdj } = await supabase
         .from('financial_adjustments')
-        .select('amount, type')
+        .select('amount, type, status')
         .eq('tenant_id', currentUser.tenant_id)
         .eq('user_id', emp.id)
+        .eq('status', 'approved')
         .gte('month', startStr)
         .lte('month', endStr);
 
@@ -469,7 +474,13 @@ export default function PayrollPage() {
       }
       overtimePay = Math.round(overtimePay);
 
-      // 6. Insurance deductions with enable_insurances guard
+      // 6. Night Shift Allowance if assigned to a night shift
+      let nightShiftAllowance = 0;
+      if (emp.shift?.night_shift_allowance && Number(emp.shift.night_shift_allowance) > 0) {
+        nightShiftAllowance = Math.round(Number(emp.shift.night_shift_allowance));
+      }
+
+      // 7. Insurance deductions with enable_insurances guard
       let socialIns = 0;
       let healthIns = 0;
       if (settings?.enable_insurances !== false) {
@@ -477,9 +488,9 @@ export default function PayrollPage() {
         healthIns = Number(emp.health_insurance ?? 0);
       }
 
-      // 7. Income Tax deduction with enable_income_tax guard and per-employee rate
+      // 8. Income Tax deduction with enable_income_tax guard and per-employee rate
       let incomeTax = 0;
-      const grossEarnings = empBasicSalary + commission + bonuses + overtimePay;
+      const grossEarnings = empBasicSalary + commission + bonuses + overtimePay + nightShiftAllowance;
       if (settings?.enable_income_tax !== false && Number(emp.income_tax_rate ?? 0) > 0) {
         const taxableBase = Math.max(0, grossEarnings - socialIns);
         incomeTax = Math.round(taxableBase * (Number(emp.income_tax_rate) / 100));
@@ -504,6 +515,7 @@ export default function PayrollPage() {
         totalSales: Math.round(totalSales),
         bonuses: Math.round(bonuses),
         overtime: overtimePay,
+        nightShiftAllowance,
         penalties: Math.round(penalties),
         advances: Math.round(totalAdvances),
         latenessDeductions,
@@ -658,6 +670,14 @@ export default function PayrollPage() {
                       <span>{isRtl ? 'العمل الإضافي (Overtime):' : 'Approved Overtime:'}</span>
                       <span className="font-bold font-sans text-emerald-600 dark:text-emerald-400">
                         {payslipData.overtime.toLocaleString()} EGP
+                      </span>
+                    </div>
+                  )}
+                  {payslipData.nightShiftAllowance > 0 && (
+                    <div className="flex justify-between text-xs text-slate-800 dark:text-slate-200">
+                      <span>{isRtl ? 'بدل وردية ليلية:' : 'Night Shift Allowance:'}</span>
+                      <span className="font-bold font-sans text-purple-600 dark:text-purple-400">
+                        +{payslipData.nightShiftAllowance.toLocaleString()} EGP
                       </span>
                     </div>
                   )}
@@ -948,7 +968,7 @@ export default function PayrollPage() {
                       </div>
 
                       <div className="flex items-center gap-2">
-                        {isSuperAdmin && a.status === 'pending' ? (
+                        {isSuperAdmin && (a.status === 'pending' || a.status === 'dept_approved') ? (
                           <>
                             <button
                               type="button"
@@ -974,10 +994,14 @@ export default function PayrollPage() {
                             className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
                               a.status === 'approved'
                                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400'
+                                : a.status === 'dept_approved'
+                                ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400'
+                                : a.status === 'pending'
+                                ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400'
                                 : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400'
                             }`}
                           >
-                            {a.status}
+                            {a.status === 'dept_approved' ? 'Dept Approved' : a.status}
                           </span>
                         )}
                       </div>

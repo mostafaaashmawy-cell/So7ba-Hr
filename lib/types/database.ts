@@ -15,6 +15,14 @@ export interface ShiftRecord {
   name: string;
   start_time: string; // e.g. "08:00"
   end_time: string;   // e.g. "16:00"
+  night_shift_allowance?: number; // e.g. 500 EGP
+  is_split?: boolean;
+  split_start_time_2?: string | null; // e.g. "17:00"
+  split_end_time_2?: string | null;   // e.g. "21:00"
+  break_minutes?: number; // e.g. 60
+  work_days?: string[];
+  roster_type?: 'fixed' | 'rotational_2week';
+  roster_week_b_days?: string[];
   created_at?: string;
 }
 
@@ -80,12 +88,33 @@ export interface TenantSettings {
   minute_deduction_rate?: number; // e.g. 0.005 (0.5% per minute)
   max_advance_percentage?: number; // e.g. 50 (%)
   advance_eligibility_day?: number; // e.g. 15 (after 15th of the month)
+  max_monthly_tenant_advance_budget?: number; // e.g. 50000 EGP company budget
   lateness_policy?: {
     thresholds: Array<{ mins: number; deduction: number }>;
   };
   geofencing_lat?: number | null;
   geofencing_lng?: number | null;
   geofencing_radius?: number;
+}
+
+export type AdjustmentType = 'bonus' | 'penalty' | 'deduction' | 'holiday_comp' | 'other';
+export type AdjustmentStatus = 'pending' | 'dept_approved' | 'approved' | 'rejected';
+
+export interface FinancialAdjustmentRecord {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  type: AdjustmentType;
+  amount: number;
+  month: string;
+  description?: string | null;
+  status: AdjustmentStatus;
+  rejection_reason?: string | null;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  created_at?: string;
+  user?: UserProfile;
+  reviewer?: UserProfile;
 }
 
 export type PayoutMethod = 'bank_transfer' | 'instapay' | 'e_wallet' | 'cash';

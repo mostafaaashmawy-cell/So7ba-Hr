@@ -101,6 +101,27 @@ export default function AdvanceRequestModal({
     setMsg(null);
 
     try {
+      // Check tenant-level monthly liability budget if configured
+      const tenantBudget = Number(tenantSettings?.max_monthly_tenant_advance_budget || 0);
+      if (tenantBudget > 0 && tenantSettings?.tenant_id) {
+        const { data: tenantAdvances } = await supabase
+          .from('advances')
+          .select('amount')
+          .eq('tenant_id', tenantSettings.tenant_id)
+          .gte('month', currentMonthStr)
+          .in('status', ['pending', 'approved']);
+
+        const totalTenantSum = (tenantAdvances || []).reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
+        if (totalTenantSum + Number(amount) > tenantBudget) {
+          const remainingTenant = Math.max(0, tenantBudget - totalTenantSum);
+          throw new Error(
+            isRtl
+              ? `عذراً، تم استهلاك ميزانية سلف الشركة الشهرية المعتمدة (${tenantBudget.toLocaleString()} ج.م). الرصيد المتاح للشركة: ${remainingTenant.toLocaleString()} ج.م`
+              : `Company monthly advance budget limit (${tenantBudget.toLocaleString()} EGP) reached. Remaining available: ${remainingTenant.toLocaleString()} EGP`
+          );
+        }
+      }
+
       const { error } = await supabase.from('advances').insert({
         tenant_id: tenantSettings?.tenant_id,
         user_id: userId,

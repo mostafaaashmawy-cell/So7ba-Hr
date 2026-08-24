@@ -113,21 +113,31 @@ export function calculateWorkingMinutes(checkIn: string, checkOut: string | null
 }
 
 /**
- * Returns the planned scheduled shift duration in minutes, supporting overnight / cross-midnight shifts.
+ * Returns the planned scheduled shift duration in minutes, supporting overnight / cross-midnight shifts,
+ * split shifts (two daily sessions), and break minutes deduction.
  * Example: "22:00" -> "06:00" returns 480 minutes (8 hours).
  */
-export function calculateShiftDurationMinutes(startTime: string = '08:00', endTime: string = '16:00'): number {
-  const [startH, startM] = (startTime || '08:00').split(':').map(Number);
-  const [endH, endM] = (endTime || '16:00').split(':').map(Number);
-  const startTotal = (startH * 60) + (startM || 0);
-  const endTotal = (endH * 60) + (endM || 0);
+export function calculateShiftDurationMinutes(
+  startTime: string = '08:00',
+  endTime: string = '16:00',
+  isSplit: boolean = false,
+  splitStart2?: string | null,
+  splitEnd2?: string | null,
+  breakMinutes: number = 0
+): number {
+  const getSessionMins = (s: string, e: string) => {
+    const [startH, startM] = (s || '08:00').split(':').map(Number);
+    const [endH, endM] = (e || '16:00').split(':').map(Number);
+    const startTotal = (startH * 60) + (startM || 0);
+    const endTotal = (endH * 60) + (endM || 0);
+    return endTotal >= startTotal ? endTotal - startTotal : (1440 - startTotal) + endTotal;
+  };
 
-  if (endTotal >= startTotal) {
-    return endTotal - startTotal;
-  } else {
-    // Crosses midnight (e.g. 22:00 to 06:00 -> 1440 - 1320 + 360 = 480)
-    return (1440 - startTotal) + endTotal;
+  let total = getSessionMins(startTime, endTime);
+  if (isSplit && splitStart2 && splitEnd2) {
+    total += getSessionMins(splitStart2, splitEnd2);
   }
+  return Math.max(0, total - (breakMinutes || 0));
 }
 
 /**

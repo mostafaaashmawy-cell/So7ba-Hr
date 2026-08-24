@@ -140,7 +140,30 @@ export default async function SuperAdminDashboardPage() {
   const totalPayrollEstimate =
     allUsers?.reduce((sum, u) => sum + Number(u.basic_salary ?? 0), 0) || 0;
 
+  // 1. Advance Liabilities MTD
+  const currentMonthStr = todayStr.substring(0, 7);
+  const { data: monthAdvances } = await supabase
+    .from('advances')
+    .select('amount, status')
+    .eq('tenant_id', admin.tenant_id)
+    .gte('month', `${currentMonthStr}-01`);
+
+  const totalAdvancesMTD = (monthAdvances || [])
+    .filter((a) => a.status === 'approved' || a.status === 'pending')
+    .reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
+
+  // 2. Probation Expirations within next 14 days
+  const in14Days = new Date();
+  in14Days.setDate(in14Days.getDate() + 14);
+  const in14DaysStr = in14Days.toISOString().split('T')[0];
+
+  const probationAlerts = (allUsers || []).filter((u) => {
+    if (!u.probation_end_date) return false;
+    return u.probation_end_date <= in14DaysStr;
+  });
+
   const settings = tenantSettings as TenantSettings | null;
+  const tenantAdvanceBudget = Number(settings?.max_monthly_tenant_advance_budget || 0);
 
   return (
     <div className="min-h-screen bg-(--bg) text-slate-900 dark:text-slate-100 flex flex-col font-sans pb-16 md:pb-8">
@@ -149,6 +172,60 @@ export default async function SuperAdminDashboardPage() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-8 space-y-8">
         {/* Welcome Header */}
         <AdminWelcomeHeader />
+
+        {/* Executive Risk & Governance Bar */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Advance Liability Tracker */}
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+            <div className="space-y-1">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                Company Advance Liability MTD
+              </span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-lg font-extrabold text-slate-950 dark:text-white font-sans">
+                  {totalAdvancesMTD.toLocaleString()} EGP
+                </span>
+                {tenantAdvanceBudget > 0 && (
+                  <span className="text-xs font-semibold text-slate-400 font-sans">
+                    / {tenantAdvanceBudget.toLocaleString()} EGP Budget ({Math.min(100, Math.round((totalAdvancesMTD / tenantAdvanceBudget) * 100))}%)
+                  </span>
+                )}
+              </div>
+            </div>
+            <Link
+              href="/dashboard/payroll#advances"
+              className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 text-xs font-bold transition-all"
+            >
+              Review Advances →
+            </Link>
+          </div>
+
+          {/* Probation Expirations */}
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+            <div className="space-y-1">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                Probation Endings (Next 14 Days)
+              </span>
+              <span className="text-lg font-extrabold text-slate-950 dark:text-white font-sans flex items-center gap-1.5">
+                {probationAlerts.length > 0 ? (
+                  <span className="text-amber-600 dark:text-amber-400">
+                    ⚠️ {probationAlerts.length} Employees Awaiting Confirmation
+                  </span>
+                ) : (
+                  <span className="text-emerald-600 dark:text-emerald-400 text-sm font-bold">
+                    ✓ All Team Members Confirmed
+                  </span>
+                )}
+              </span>
+            </div>
+            <Link
+              href="/dashboard/employees"
+              className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 text-xs font-bold transition-all"
+            >
+              Directory →
+            </Link>
+          </div>
+        </div>
 
         {/* 1. High-Level Stat Cards with Radial Gauges */}
         <StatCards

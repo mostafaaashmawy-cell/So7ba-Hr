@@ -75,6 +75,19 @@ export default function SettingsHubPage() {
   const [newShiftName, setNewShiftName] = useState('');
   const [newShiftStart, setNewShiftStart] = useState('08:00');
   const [newShiftEnd, setNewShiftEnd] = useState('16:00');
+  const [newShiftNightAllowance, setNewShiftNightAllowance] = useState<number>(0);
+  const [newShiftIsSplit, setNewShiftIsSplit] = useState(false);
+  const [newShiftSplitStart2, setNewShiftSplitStart2] = useState('17:00');
+  const [newShiftSplitEnd2, setNewShiftSplitEnd2] = useState('21:00');
+  const [newShiftBreakMins, setNewShiftBreakMins] = useState<number>(0);
+  const [newShiftWorkDays, setNewShiftWorkDays] = useState<string[]>([
+    'Sunday',
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+  ]);
+  const [newShiftRosterType, setNewShiftRosterType] = useState<'fixed' | 'rotational_2week'>('fixed');
   const [swapRequests, setSwapRequests] = useState<ShiftSwapRequestRecord[]>([]);
 
   // Overtime Engine
@@ -99,6 +112,7 @@ export default function SettingsHubPage() {
   // Salary Advance
   const [maxAdvancePercentage, setMaxAdvancePercentage] = useState<number>(50);
   const [advanceEligibilityDay, setAdvanceEligibilityDay] = useState<number>(15);
+  const [maxMonthlyTenantAdvanceBudget, setMaxMonthlyTenantAdvanceBudget] = useState<number>(0);
 
   // Feature Toggles
   const [enableShifts, setEnableShifts] = useState(true);
@@ -157,6 +171,8 @@ export default function SettingsHubPage() {
             setMaxAdvancePercentage(s.max_advance_percentage);
           if (s.advance_eligibility_day !== undefined)
             setAdvanceEligibilityDay(s.advance_eligibility_day);
+          if (s.max_monthly_tenant_advance_budget !== undefined)
+            setMaxMonthlyTenantAdvanceBudget(s.max_monthly_tenant_advance_budget);
 
           if (s.enable_shifts !== undefined) setEnableShifts(s.enable_shifts);
           if (s.enable_advances !== undefined) setEnableAdvances(s.enable_advances);
@@ -246,6 +262,13 @@ export default function SettingsHubPage() {
           name: newShiftName.trim(),
           start_time: newShiftStart,
           end_time: newShiftEnd,
+          night_shift_allowance: Number(newShiftNightAllowance || 0),
+          is_split: Boolean(newShiftIsSplit),
+          split_start_time_2: newShiftIsSplit ? newShiftSplitStart2 : null,
+          split_end_time_2: newShiftIsSplit ? newShiftSplitEnd2 : null,
+          break_minutes: Number(newShiftBreakMins || 0),
+          work_days: newShiftWorkDays,
+          roster_type: newShiftRosterType,
         })
         .select()
         .single();
@@ -254,6 +277,9 @@ export default function SettingsHubPage() {
       if (data) {
         setShifts([...shifts, data as ShiftRecord]);
         setNewShiftName('');
+        setNewShiftNightAllowance(0);
+        setNewShiftIsSplit(false);
+        setNewShiftBreakMins(0);
         setMsg({ text: isRtl ? 'تمت إضافة الوردية بنجاح!' : 'Shift schedule created!', error: false });
       }
     } catch (err: unknown) {
@@ -345,6 +371,7 @@ export default function SettingsHubPage() {
       minute_deduction_rate: Number(minuteDeductionRate || 0.005),
       max_advance_percentage: Number(maxAdvancePercentage || 50),
       advance_eligibility_day: Number(advanceEligibilityDay || 15),
+      max_monthly_tenant_advance_budget: Number(maxMonthlyTenantAdvanceBudget || 0),
       enable_shifts: Boolean(enableShifts),
       enable_advances: Boolean(enableAdvances),
       enable_commissions: Boolean(enableCommissions),
@@ -630,76 +657,194 @@ export default function SettingsHubPage() {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                  <div className="sm:col-span-2">
-                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                      {isRtl ? 'اسم الوردية' : 'Shift Name'}
-                    </label>
-                    <input
-                      type="text"
-                      value={newShiftName}
-                      onChange={(e) => setNewShiftName(e.target.value)}
-                      placeholder="e.g. Morning Shift (وردية صباحية)"
-                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-950 dark:text-white"
-                    />
-                  </div>
+                <div className="space-y-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    <div className="sm:col-span-2">
+                      <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                        {isRtl ? 'اسم الوردية' : 'Shift Name'}
+                      </label>
+                      <input
+                        type="text"
+                        value={newShiftName}
+                        onChange={(e) => setNewShiftName(e.target.value)}
+                        placeholder="e.g. Night Ops Shift (وردية ليلية)"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-950 dark:text-white"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                      {isRtl ? 'وقت البدء' : 'Start Time'}
-                    </label>
-                    <input
-                      type="time"
-                      value={newShiftStart}
-                      onChange={(e) => setNewShiftStart(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-950 dark:text-white font-sans"
-                    />
-                  </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                        {isRtl ? 'وقت البدء (Session 1)' : 'Start Time (Session 1)'}
+                      </label>
+                      <input
+                        type="time"
+                        value={newShiftStart}
+                        onChange={(e) => setNewShiftStart(e.target.value)}
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-950 dark:text-white font-sans"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                      {isRtl ? 'وقت الانتهاء' : 'End Time'}
-                    </label>
-                    <div className="flex gap-2">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                        {isRtl ? 'وقت الانتهاء (Session 1)' : 'End Time (Session 1)'}
+                      </label>
                       <input
                         type="time"
                         value={newShiftEnd}
                         onChange={(e) => setNewShiftEnd(e.target.value)}
-                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-950 dark:text-white font-sans"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-950 dark:text-white font-sans"
                       />
-                      <button
-                        type="button"
-                        onClick={handleAddShift}
-                        disabled={saving}
-                        className="gradient-btn px-4 py-2 rounded-xl text-xs font-bold text-white shadow-xs cursor-pointer shrink-0"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
                     </div>
+                  </div>
+
+                  {/* Advanced Shift Attributes */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-200 dark:border-slate-700">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                        {isRtl ? 'بدل الوردية الليلية (ج.م / شهرياً)' : 'Night Shift Allowance (EGP/mo)'}
+                      </label>
+                      <input
+                        type="number"
+                        value={newShiftNightAllowance}
+                        onChange={(e) => setNewShiftNightAllowance(Number(e.target.value))}
+                        placeholder="0"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-950 dark:text-white font-sans"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                        {isRtl ? 'مدة الاستراحة المخصومة (دقائق)' : 'Break Time Deduction (Mins)'}
+                      </label>
+                      <input
+                        type="number"
+                        value={newShiftBreakMins}
+                        onChange={(e) => setNewShiftBreakMins(Number(e.target.value))}
+                        placeholder="0"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-950 dark:text-white font-sans"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                        {isRtl ? 'نظام تدوير العطلات الأسبوعية' : 'Weekend Roster Pattern'}
+                      </label>
+                      <select
+                        value={newShiftRosterType}
+                        onChange={(e) => setNewShiftRosterType(e.target.value as 'fixed' | 'rotational_2week')}
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-950 dark:text-white cursor-pointer"
+                      >
+                        <option value="fixed">{isRtl ? 'ثابت أسبوعياً (Fixed Days)' : 'Fixed 5-Day Roster'}</option>
+                        <option value="rotational_2week">{isRtl ? 'تدوير كل أسبوعين (2-Week Rotational)' : '2-Week Rotational Roster'}</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Split Shift Toggle & Session 2 */}
+                  <div className="pt-2 border-t border-slate-200 dark:border-slate-700 space-y-2">
+                    <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-800 dark:text-slate-200">
+                      <input
+                        type="checkbox"
+                        checked={newShiftIsSplit}
+                        onChange={(e) => setNewShiftIsSplit(e.target.checked)}
+                        className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500"
+                      />
+                      <span>{isRtl ? 'وردية مقسمة على فترتين (Split Shift - Dual Sessions)' : 'Split Shift (Morning + Evening Sessions)'}</span>
+                    </label>
+
+                    {newShiftIsSplit && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-6">
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                            {isRtl ? 'وقت بدء الفترة الثانية' : 'Session 2 Start Time'}
+                          </label>
+                          <input
+                            type="time"
+                            value={newShiftSplitStart2}
+                            onChange={(e) => setNewShiftSplitStart2(e.target.value)}
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-950 dark:text-white font-sans"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                            {isRtl ? 'وقت انتهاء الفترة الثانية' : 'Session 2 End Time'}
+                          </label>
+                          <input
+                            type="time"
+                            value={newShiftSplitEnd2}
+                            onChange={(e) => setNewShiftSplitEnd2(e.target.value)}
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-950 dark:text-white font-sans"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-end pt-2">
+                    <button
+                      type="button"
+                      onClick={handleAddShift}
+                      disabled={saving || !newShiftName.trim()}
+                      className="gradient-btn px-5 py-2 rounded-xl text-xs font-bold text-white shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>{isRtl ? 'إضافة الوردية للنظام' : 'Create Shift Schedule'}</span>
+                    </button>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {shifts.map((shift) => (
                     <div
                       key={shift.id}
-                      className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between"
+                      className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col justify-between space-y-2.5"
                     >
-                      <div>
-                        <span className="text-xs font-extrabold text-slate-950 dark:text-white block">
-                          {shift.name}
-                        </span>
-                        <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 font-sans">
-                          {shift.start_time} — {shift.end_time}
-                        </span>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <span className="text-xs font-extrabold text-slate-950 dark:text-white block">
+                            {shift.name}
+                          </span>
+                          <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 font-sans block">
+                            {shift.start_time} — {shift.end_time}
+                            {shift.is_split && shift.split_start_time_2 && (
+                              <span className="text-teal-600 dark:text-teal-400 block text-[10px]">
+                                & {shift.split_start_time_2} — {shift.split_end_time_2} (Split)
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteShift(shift.id)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteShift(shift.id)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+
+                      {/* Shift Badges */}
+                      <div className="flex flex-wrap gap-1.5 pt-1 border-t border-slate-200/60 dark:border-slate-700/60 text-[10px] font-bold">
+                        {Number(shift.night_shift_allowance || 0) > 0 && (
+                          <span className="px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/40 dark:text-purple-300">
+                            🌙 +{Number(shift.night_shift_allowance).toLocaleString()} EGP
+                          </span>
+                        )}
+                        {shift.is_split && (
+                          <span className="px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200 dark:bg-teal-950/40 dark:text-teal-300">
+                            ⚡ Split Shift
+                          </span>
+                        )}
+                        {Number(shift.break_minutes || 0) > 0 && (
+                          <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300">
+                            ☕ {shift.break_minutes}m Break
+                          </span>
+                        )}
+                        {shift.roster_type === 'rotational_2week' && (
+                          <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300">
+                            🔄 2-Week Roster
+                          </span>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1087,7 +1232,7 @@ export default function SettingsHubPage() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     {isRtl ? 'الحد الأقصى للسلفة (% من الراتب)' : 'Max Advance Percentage (%)'}
@@ -1110,6 +1255,22 @@ export default function SettingsHubPage() {
                     onChange={(e) => setAdvanceEligibilityDay(Number(e.target.value))}
                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-950 dark:text-white font-sans"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    {isRtl ? 'ميزانية سلف الشركة الشهرية (ج.م)' : 'Tenant Monthly Advance Budget (EGP)'}
+                  </label>
+                  <input
+                    type="number"
+                    value={maxMonthlyTenantAdvanceBudget}
+                    onChange={(e) => setMaxMonthlyTenantAdvanceBudget(Number(e.target.value))}
+                    placeholder="0 = Unlimited"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-950 dark:text-white font-sans"
+                  />
+                  <span className="text-[10px] text-slate-400 block mt-1">
+                    {isRtl ? '0 تعني بدون سقف لميزانية الشركة' : 'Set 0 for unlimited company budget'}
+                  </span>
                 </div>
               </div>
             </div>
