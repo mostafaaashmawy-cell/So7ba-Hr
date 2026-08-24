@@ -139,8 +139,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
   return (
     <>
       <header
-        className="sticky top-0 z-30 border-b px-4 lg:px-6 py-2.5 transition-colors shadow-xs"
-        style={headerStyle}
+        className="sticky top-0 z-50 backdrop-blur-md bg-white/90 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800 px-4 lg:px-6 py-2.5 transition-colors shadow-xs"
       >
         <div className="flex items-center justify-between gap-3">
           {/* Left: Sidebar toggle + Brand */}

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
   Users,
   FolderOpen,
@@ -15,6 +16,7 @@ import {
   Globe,
   Clock,
   ShieldCheck,
+  ArrowRight,
 } from 'lucide-react';
 import {
   UserProfile,
@@ -548,10 +550,18 @@ export default function EmployeeManagement({
                 <Download className="w-3.5 h-3.5" />
                 <span>{isRtl ? 'تصدير السجل' : 'Export Registry'}</span>
               </button>
+
+              {/* View Full Directory CTA */}
+              <Link
+                href="/dashboard/employees"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-extrabold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-300 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 transition-all shadow-xs"
+              >
+                <span>{isRtl ? 'دليل الموظفين الكامل (100+) ←' : 'View Full Employee Directory (100+) →'}</span>
+              </Link>
             </div>
           </div>
 
-          {/* Employees Table */}
+          {/* Employees Table (Limited to latest 10) */}
           <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
@@ -571,7 +581,7 @@ export default function EmployeeManagement({
                     </td>
                   </tr>
                 ) : (
-                  filteredUsers.map((u) => (
+                  filteredUsers.slice(0, 10).map((u) => (
                     <tr key={u.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-2.5">
@@ -640,6 +650,23 @@ export default function EmployeeManagement({
                 )}
               </tbody>
             </table>
+
+            {/* Bottom 10-Row Indicator & CTA */}
+            {filteredUsers.length > 10 && (
+              <div className="p-3.5 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-900/30">
+                <span className="text-xs text-slate-500 font-medium">
+                  {isRtl
+                    ? `يتم عرض أحدث 10 موظفين من إجمالي ${filteredUsers.length} موظف`
+                    : `Showing latest 10 of ${filteredUsers.length} employees`}
+                </span>
+                <Link
+                  href="/dashboard/employees"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-extrabold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-300 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 transition-all shadow-xs"
+                >
+                  <span>{isRtl ? 'فتح سجل ودليل الموظفين الشامل (100+) ←' : 'View Full Employee Directory (100+) →'}</span>
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       )}

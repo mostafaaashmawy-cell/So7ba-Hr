@@ -219,7 +219,8 @@ export default function OnboardingPage() {
 
         const { error: settingsErr } = await supabase
           .from('tenant_settings')
-          .update({
+          .upsert({
+            tenant_id: existingTenantId,
             industry,
             branches,
             enable_advances: enableAdvances,
@@ -238,8 +239,8 @@ export default function OnboardingPage() {
             geofencing_lat: primaryBranch ? Number(primaryBranch.lat) : null,
             geofencing_lng: primaryBranch ? Number(primaryBranch.lng) : null,
             geofencing_radius: primaryBranch ? Number(primaryBranch.radius) : 150,
-          })
-          .eq('tenant_id', existingTenantId);
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'tenant_id' });
 
         if (settingsErr) throw settingsErr;
 

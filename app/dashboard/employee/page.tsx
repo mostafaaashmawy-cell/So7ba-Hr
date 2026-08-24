@@ -136,17 +136,21 @@ export default async function EmployeeDashboardPage() {
         </div>
 
         {/* Attendance Widget */}
-        <AttendanceWidget
-          userId={authUser.id}
-          initialAttendance={(todayAttendance as AttendanceRecord[]) || []}
-        />
+        <div id="checkin-section" className="scroll-mt-20">
+          <AttendanceWidget
+            userId={authUser.id}
+            initialAttendance={(todayAttendance as AttendanceRecord[]) || []}
+          />
+        </div>
 
         {/* Leaves & Permissions Management with Holiday comp balance */}
-        <LeavePermissionForm
-          userId={authUser.id}
-          initialRecords={(leavesHistory as LeavePermissionRecord[]) || []}
-          holidayWorkCount={holidayWorkCount}
-        />
+        <div id="leaves-section" className="scroll-mt-20">
+          <LeavePermissionForm
+            userId={authUser.id}
+            initialRecords={(leavesHistory as LeavePermissionRecord[]) || []}
+            holidayWorkCount={holidayWorkCount}
+          />
+        </div>
 
         {/* KPI / Performance Daily Logs Widget */}
         <KpiTrackerWidget

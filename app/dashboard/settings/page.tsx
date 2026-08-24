@@ -56,6 +56,9 @@ export default function SettingsHubPage() {
     'schedule' | 'shifts' | 'overtime' | 'geofence' | 'lateness' | 'advances' | 'toggles'
   >('schedule');
 
+  // Company Industry
+  const [industry, setIndustry] = useState('Organization');
+
   // Schedule
   const [workStartTime, setWorkStartTime] = useState('09:00');
   const [workEndTime, setWorkEndTime] = useState('17:00');
@@ -140,6 +143,7 @@ export default function SettingsHubPage() {
 
         if (settings) {
           const s = settings as TenantSettings;
+          if (s.industry) setIndustry(s.industry);
           if (s.work_start_time) setWorkStartTime(s.work_start_time);
           if (s.work_end_time) setWorkEndTime(s.work_end_time);
           if (s.work_days) setWorkDays(s.work_days);
@@ -324,59 +328,55 @@ export default function SettingsHubPage() {
     setSaving(true);
     setMsg(null);
 
+    const primaryBranch = branches && branches.length > 0 ? branches[0] : null;
+
     const payload = {
       tenant_id: currentUser.tenant_id,
+      industry: industry || 'Organization',
       work_start_time: workStartTime,
       work_end_time: workEndTime,
       work_days: workDays,
-      branches,
-      grace_period_mins: Number(gracePeriodMins),
-      lateness_mode: latenessMode,
-      minute_deduction_rate: Number(minuteDeductionRate),
-      max_advance_percentage: Number(maxAdvancePercentage),
-      advance_eligibility_day: Number(advanceEligibilityDay),
-      enable_shifts: enableShifts,
-      enable_advances: enableAdvances,
-      enable_commissions: enableCommissions,
-      enable_insurances: enableInsurances,
-      enable_holiday_work_comp: enableHolidayComp,
-      enable_overtime: enableOvertime,
-      overtime_rate_multiplier: Number(overtimeMultiplier),
-      overtime_calculation_mode: overtimeMode,
-      overtime_fixed_rate: Number(overtimeFixedRate),
+      branches: branches || [],
+      grace_period_mins: Number(gracePeriodMins || 15),
+      lateness_mode: latenessMode || 'tiered',
+      minute_deduction_rate: Number(minuteDeductionRate || 0.005),
+      max_advance_percentage: Number(maxAdvancePercentage || 50),
+      advance_eligibility_day: Number(advanceEligibilityDay || 15),
+      enable_shifts: Boolean(enableShifts),
+      enable_advances: Boolean(enableAdvances),
+      enable_commissions: Boolean(enableCommissions),
+      enable_insurances: Boolean(enableInsurances),
+      enable_holiday_work_comp: Boolean(enableHolidayComp),
+      enable_overtime: Boolean(enableOvertime),
+      overtime_rate_multiplier: Number(overtimeMultiplier || 1.5),
+      overtime_calculation_mode: overtimeMode || 'multiplier',
+      overtime_fixed_rate: Number(overtimeFixedRate || 50),
+      geofencing_lat: primaryBranch ? Number(primaryBranch.lat) : null,
+      geofencing_lng: primaryBranch ? Number(primaryBranch.lng) : null,
+      geofencing_radius: primaryBranch ? Number(primaryBranch.radius || 200) : 200,
       lateness_policy: {
         thresholds: [
-          { mins: 15, deduction: Number(late15) },
-          { mins: 30, deduction: Number(late30) },
-          { mins: 60, deduction: Number(late60) },
+          { mins: 15, deduction: Number(late15 || 0.25) },
+          { mins: 30, deduction: Number(late30 || 0.5) },
+          { mins: 60, deduction: Number(late60 || 1.0) },
         ],
       },
+      updated_at: new Date().toISOString(),
     };
 
     try {
-      const { data: existing } = await supabase
+      const { error } = await supabase
         .from('tenant_settings')
-        .select('*')
-        .eq('tenant_id', currentUser.tenant_id)
-        .maybeSingle();
+        .upsert(payload, { onConflict: 'tenant_id' });
 
-      if (existing) {
-        const { error } = await supabase
-          .from('tenant_settings')
-          .update(payload)
-          .eq('tenant_id', currentUser.tenant_id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from('tenant_settings').insert(payload);
-        if (error) throw error;
-      }
+      if (error) throw error;
 
       // Log to audit trail
       await logAuditAction(supabase, {
         tenant_id: currentUser.tenant_id,
         actor_id: currentUser.id,
         action_type: 'UPDATE_COMPANY_POLICIES',
-        entity_name: 'tenant_settings',
+        target_entity: 'tenant_settings',
         details: payload,
       });
 
@@ -385,7 +385,13 @@ export default function SettingsHubPage() {
         error: false,
       });
     } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : 'Save failed';
+      console.error('Settings save error:', err);
+      let errMsg = 'Save failed';
+      if (err instanceof Error) {
+        errMsg = err.message;
+      } else if (typeof err === 'object' && err !== null && 'message' in err) {
+        errMsg = String((err as { message: unknown }).message);
+      }
       setMsg({ text: errMsg, error: true });
     } finally {
       setSaving(false);

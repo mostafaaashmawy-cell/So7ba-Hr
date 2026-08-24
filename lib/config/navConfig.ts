@@ -38,22 +38,23 @@ export interface NavSection {
   titleEn: string;
   titleAr: string;
   icon: ElementType;
+  href?: string;
   roles?: string[];
   featureToggle?: keyof TenantSettings | string;
-  subItems: NavSubItem[];
+  subItems?: NavSubItem[];
 }
 
 // Predictable, static, non-duplicating sidebar structure with feature toggle bindings
 export const NAV_SECTIONS: NavSection[] = [
   {
-    id: 'dashboard',
-    titleEn: 'Dashboard / Home',
-    titleAr: 'الرئيسية والمؤشرات',
+    id: 'dashboards',
+    titleEn: 'Command Hubs',
+    titleAr: 'مراكز القيادة',
     icon: LayoutDashboard,
     subItems: [
       {
         titleEn: 'Executive Overview',
-        titleAr: 'لوحة المؤشرات التنفيذية',
+        titleAr: 'نظرة تنفيذية عامة',
         href: '/dashboard/admin',
         icon: LayoutDashboard,
         roles: ['super_admin'],
@@ -79,44 +80,9 @@ export const NAV_SECTIONS: NavSection[] = [
     titleEn: 'Company & Policies',
     titleAr: 'سياسات وإعدادات الشركة',
     icon: Building2,
+    href: '/dashboard/settings',
     roles: ['super_admin'],
-    subItems: [
-      {
-        titleEn: 'Policies & Hours',
-        titleAr: 'السياسات وساعات العمل',
-        href: '/dashboard/settings',
-        icon: Sliders,
-        roles: ['super_admin'],
-      },
-      {
-        titleEn: 'System Audit Logs',
-        titleAr: 'سجل العمليات والرقابة',
-        href: '/dashboard/audit-logs',
-        icon: ShieldAlert,
-        roles: ['super_admin'],
-      },
-      {
-        titleEn: 'Geofencing & Branches',
-        titleAr: 'الفروع والبصمة الجغرافية',
-        href: '/dashboard/settings#geofence',
-        icon: MapPin,
-        roles: ['super_admin'],
-      },
-      {
-        titleEn: 'Deduction Rules',
-        titleAr: 'قواعد الخصومات والتأخير',
-        href: '/dashboard/settings#lateness',
-        icon: ShieldCheck,
-        roles: ['super_admin'],
-      },
-      {
-        titleEn: 'Feature Toggles',
-        titleAr: 'تفعيل وتعطيل الموديولات',
-        href: '/dashboard/settings#toggles',
-        icon: ToggleLeft,
-        roles: ['super_admin'],
-      },
-    ],
+    subItems: [],
   },
   {
     id: 'operations',
@@ -136,6 +102,13 @@ export const NAV_SECTIONS: NavSection[] = [
         titleAr: 'صانع ومحرر العقود',
         href: '/dashboard/contracts',
         icon: FileText,
+      },
+      {
+        titleEn: 'System Audit Logs',
+        titleAr: 'سجل العمليات والرقابة',
+        href: '/dashboard/audit-logs',
+        icon: ShieldAlert,
+        roles: ['super_admin'],
       },
       {
         titleEn: 'Holiday Compensation',
@@ -213,13 +186,13 @@ export const NAV_SECTIONS: NavSection[] = [
       {
         titleEn: 'Check-In & Timers',
         titleAr: 'تسجيل الدخول ومؤقت الدوام',
-        href: '/dashboard/employee#checkin',
+        href: '/dashboard/employee#checkin-section',
         icon: Clock,
       },
       {
         titleEn: 'My Leaves & Requests',
         titleAr: 'إجازاتي وطلباتي',
-        href: '/dashboard/employee#leaves',
+        href: '/dashboard/employee#leaves-section',
         icon: Calendar,
       },
       {

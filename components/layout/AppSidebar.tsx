@@ -70,13 +70,13 @@ export default function AppSidebar({
   )
     .map((s) => ({
       ...s,
-      subItems: s.subItems.filter(
+      subItems: (s.subItems || []).filter(
         (sub) =>
           (!sub.roles || sub.roles.includes(userRole)) &&
           (!sub.featureToggle || isFeatureEnabled(sub.featureToggle))
       ),
     }))
-    .filter((s) => s.subItems.length > 0);
+    .filter((s) => (s.subItems && s.subItems.length > 0) || Boolean(s.href));
 
   const visibleMobileAnchors = MOBILE_CORE_ANCHORS.filter(
     (a) => !a.roles || a.roles.includes(userRole)
@@ -171,14 +171,16 @@ export default function AppSidebar({
         <div className="flex-1 overflow-y-auto overflow-x-hidden py-3 space-y-1 px-2">
           {visibleSections.map((section) => {
             const SectionIcon = section.icon;
+            const hasSubItems = Boolean(section.subItems && section.subItems.length > 0);
             const isExpanded = expandedSections[section.id];
-            const isSectionActive = section.subItems.some((s) => isItemActive(s.href));
+            const targetDirectHref = section.href || (hasSubItems ? section.subItems![0].href : '#');
+            const isSectionActive = isItemActive(targetDirectHref) || (hasSubItems && section.subItems!.some((s) => isItemActive(s.href)));
 
             if (isCollapsed) {
               return (
                 <div key={section.id} className="relative group/section my-1">
                   <Link
-                    href={section.subItems[0]?.href ?? '#'}
+                    href={targetDirectHref}
                     className={`flex items-center justify-center w-10 h-10 mx-auto rounded-xl transition-all ${
                       isSectionActive
                         ? 'bg-emerald-600 text-white shadow-xs'
@@ -187,6 +189,36 @@ export default function AppSidebar({
                     title={isRtl ? section.titleAr : section.titleEn}
                   >
                     <SectionIcon className="w-4 h-4" />
+                  </Link>
+                </div>
+              );
+            }
+
+            // Direct Single Link (no sub-items)
+            if (!hasSubItems && section.href) {
+              const active = isItemActive(section.href);
+              return (
+                <div key={section.id} className="mb-1">
+                  <Link
+                    href={section.href}
+                    onClick={() => {
+                      if (section.href?.includes('#')) {
+                        setCurrentHash('#' + section.href.split('#')[1]);
+                      }
+                      if (onClose && window.innerWidth < 1024) onClose();
+                    }}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                      active
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'text-slate-900 dark:text-slate-100 hover:bg-slate-100/80 dark:hover:bg-slate-800/60'
+                    }`}
+                  >
+                    <SectionIcon
+                      className={`w-4 h-4 shrink-0 ${
+                        active ? 'text-white' : 'text-slate-500 dark:text-slate-400'
+                      }`}
+                    />
+                    <span className="truncate">{isRtl ? section.titleAr : section.titleEn}</span>
                   </Link>
                 </div>
               );
@@ -225,7 +257,7 @@ export default function AppSidebar({
                     className="ml-4 pl-2 py-0.5 space-y-0.5 border-l"
                     style={{ borderColor: 'var(--border)' }}
                   >
-                    {section.subItems.map((sub) => {
+                    {section.subItems?.map((sub) => {
                       const SubIcon = sub.icon;
                       const active = isItemActive(sub.href);
                       return (

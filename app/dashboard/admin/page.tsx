@@ -261,7 +261,7 @@ export default async function SuperAdminDashboardPage() {
 
             {/* 8. System Audit Logs */}
             <Link
-              href="/dashboard/settings"
+              href="/dashboard/audit-logs"
               className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 hover:bg-emerald-50/60 dark:hover:bg-emerald-950/30 border border-slate-200/80 dark:border-slate-700 hover:border-emerald-300 dark:hover:border-emerald-600 transition-all text-center space-y-2 group shadow-2xs"
             >
               <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
