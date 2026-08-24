@@ -28,6 +28,7 @@ import { generateDynamicNotifications } from '@/lib/utils/notificationHelper';
 import PageGuideModal from '@/components/common/PageGuideModal';
 import HumAiLogo from '@/components/common/HumAiLogo';
 import PwaInstallButton from '@/components/common/PwaInstallButton';
+import { MOBILE_NAV_BY_ROLE } from '@/lib/config/navConfig';
 
 interface NavbarProps {
   user: UserProfile | null;
@@ -362,60 +363,49 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
       {/* Mobile Top Spacer so page content is never hidden behind the fixed header */}
       <div className="h-14 lg:hidden shrink-0" aria-hidden="true" />
 
-      {/* Mobile Bottom Navigation Bar */}
+      {/* Mobile Bottom Navigation Bar (5-Slot Role-Tailored Thumb-Zone) */}
       {user && user.tenant_id && (
         <div
-          className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t px-4 py-2 flex items-center justify-around"
-          style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
+          className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t px-2 py-2 flex items-center justify-around backdrop-blur-md bg-white/95 dark:bg-slate-900/95 border-slate-200 dark:border-slate-800 shadow-lg"
         >
-          <Link href="/dashboard/employee"
-            className={`flex flex-col items-center gap-0.5 text-[10px] font-bold transition-colors ${
-              pathname.includes('/employee') ? 'text-emerald-600' : ''
-            }`}
-            style={pathname.includes('/employee') ? {} : { color: 'var(--text-muted)' }}>
-            <LayoutDashboard className="w-5 h-5" />
-            <span>Workspace</span>
-          </Link>
+          {(() => {
+            const roleKey = isSuperAdmin ? 'super_admin' : isManager ? 'manager' : 'employee';
+            const roleItems = MOBILE_NAV_BY_ROLE[roleKey] || MOBILE_NAV_BY_ROLE.employee;
 
-          {isManager && (
-            <Link href="/dashboard/manager"
-              className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${
-                pathname.includes('/manager') ? 'text-emerald-600' : ''
-              }`}
-              style={pathname.includes('/manager') ? {} : { color: 'var(--text-muted)' }}>
-              <Users className="w-5 h-5" />
-              <span>Team</span>
-            </Link>
-          )}
+            return (
+              <>
+                {roleItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = pathname === item.href || (item.href.includes('#') && pathname === item.href.split('#')[0]);
 
-          {isSuperAdmin && (
-            <Link href="/dashboard/admin"
-              className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${
-                pathname.includes('/admin') ? 'text-emerald-600' : ''
-              }`}
-              style={pathname.includes('/admin') ? {} : { color: 'var(--text-muted)' }}>
-              <ShieldCheck className="w-5 h-5" />
-              <span>Admin</span>
-            </Link>
-          )}
+                  return (
+                    <Link
+                      key={item.id}
+                      href={item.href}
+                      className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold px-2 py-1 rounded-xl transition-all ${
+                        isActive
+                          ? 'text-emerald-600 dark:text-emerald-400 font-extrabold'
+                          : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      <Icon className="w-5 h-5 shrink-0" />
+                      <span className="truncate max-w-[58px]">{isRtl ? item.titleAr : item.titleEn}</span>
+                    </Link>
+                  );
+                })}
 
-          <Link href="/dashboard/targets"
-            className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${
-              pathname.includes('/targets') ? 'text-emerald-600' : ''
-            }`}
-            style={pathname.includes('/targets') ? {} : { color: 'var(--text-muted)' }}>
-            <Target className="w-5 h-5" />
-            <span>Targets</span>
-          </Link>
-
-          <Link href="/dashboard/evaluations"
-            className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${
-              pathname.includes('/evaluations') ? 'text-emerald-600' : ''
-            }`}
-            style={pathname.includes('/evaluations') ? {} : { color: 'var(--text-muted)' }}>
-            <Star className="w-5 h-5" />
-            <span>Reviews</span>
-          </Link>
+                {/* 5th Slot: More / Navigation Drawer */}
+                <button
+                  type="button"
+                  onClick={toggleSidebar}
+                  className="flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold px-2 py-1 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-slate-100 cursor-pointer"
+                >
+                  <Menu className="w-5 h-5 shrink-0" />
+                  <span>{isRtl ? 'المزيد' : 'More'}</span>
+                </button>
+              </>
+            );
+          })()}
         </div>
       )}
     </>

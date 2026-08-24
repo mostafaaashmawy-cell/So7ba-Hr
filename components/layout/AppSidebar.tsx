@@ -12,10 +12,7 @@ import {
 import { UserProfile } from '@/lib/types/database';
 import { useLanguage } from '@/lib/context/LanguageContext';
 import { useTenantSettings } from '@/lib/context/SettingsContext';
-import {
-  NAV_SECTIONS,
-  MOBILE_CORE_ANCHORS,
-} from '@/lib/config/navConfig';
+import { NAV_SECTIONS, MOBILE_NAV_BY_ROLE } from '@/lib/config/navConfig';
 import HumAiLogo from '@/components/common/HumAiLogo';
 import PwaInstallButton from '@/components/common/PwaInstallButton';
 
@@ -50,14 +47,13 @@ export default function AppSidebar({
 
   const userRole = user?.role ?? 'employee';
 
-  // Track expanded accordion sections — fixed, predictable defaults
+  // Track expanded accordion sections — 5-domain defaults
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    dashboard: true,
-    company: true,
-    operations: true,
-    performance: true,
-    payroll: true,
     workspace: true,
+    people: true,
+    operations: true,
+    financials: true,
+    admin_hub: true,
   });
 
   const toggleSection = (id: string) =>
@@ -78,10 +74,6 @@ export default function AppSidebar({
       ),
     }))
     .filter((s) => (s.subItems && s.subItems.length > 0) || Boolean(s.href));
-
-  const visibleMobileAnchors = MOBILE_CORE_ANCHORS.filter(
-    (a) => !a.roles || a.roles.includes(userRole)
-  );
 
   // Exact matching for active route highlight
   const isItemActive = (href: string) => {
@@ -146,10 +138,10 @@ export default function AppSidebar({
         {/* ── Mobile Pinned Core Anchors (At Top of Drawer) ────────── */}
         <div className="lg:hidden p-2.5 border-b space-y-2" style={{ borderColor: 'var(--border)' }}>
           <PwaInstallButton variant="drawer" />
-          <div className="grid grid-cols-3 gap-1.5">
-            {visibleMobileAnchors.map((anchor) => {
+          <div className="grid grid-cols-4 gap-1.5">
+            {(MOBILE_NAV_BY_ROLE[userRole] || MOBILE_NAV_BY_ROLE.employee).map((anchor) => {
               const Icon = anchor.icon;
-              const active = pathname === anchor.href;
+              const active = pathname === anchor.href || (anchor.href.includes('#') && pathname === anchor.href.split('#')[0]);
               return (
                 <Link
                   key={anchor.id}

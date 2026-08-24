@@ -20,6 +20,8 @@ import {
   FileBadge,
   Wallet,
   Receipt,
+  CheckSquare,
+  ArrowLeftRight,
 } from 'lucide-react';
 import type { ElementType } from 'react';
 import { TenantSettings } from '@/lib/types/database';
@@ -44,75 +46,112 @@ export interface NavSection {
   subItems?: NavSubItem[];
 }
 
-// Predictable, static, non-duplicating sidebar structure with feature toggle bindings
+// 5-Domain Enterprise Navigation Architecture
 export const NAV_SECTIONS: NavSection[] = [
+  // ① Workspace (Role-Scoped Default Landing)
   {
-    id: 'dashboards',
-    titleEn: 'Command Hubs',
-    titleAr: 'مراكز القيادة',
-    icon: LayoutDashboard,
+    id: 'workspace',
+    titleEn: 'My Workspace',
+    titleAr: 'مساحة العمل',
+    icon: Briefcase,
     subItems: [
       {
-        titleEn: 'Executive Overview',
-        titleAr: 'نظرة تنفيذية عامة',
-        href: '/dashboard/admin',
-        icon: LayoutDashboard,
-        roles: ['super_admin'],
-      },
-      {
-        titleEn: 'Team Overview',
-        titleAr: 'لوحة تحكم الفريق',
-        href: '/dashboard/manager',
-        icon: Users,
-        roles: ['manager'],
-      },
-      {
-        titleEn: 'My Workspace',
-        titleAr: 'مساحة العمل',
+        titleEn: 'My Dashboard',
+        titleAr: 'لوحة عملي المباشرة',
         href: '/dashboard/employee',
         icon: UserCheck,
-        roles: ['employee'],
+      },
+      {
+        titleEn: 'Check-In & Timers',
+        titleAr: 'تسجيل الحضور ومؤقت الدوام',
+        href: '/dashboard/employee#checkin-section',
+        icon: Clock,
+      },
+      {
+        titleEn: 'My Leaves & Requests',
+        titleAr: 'إجازاتي واستئذاناتي',
+        href: '/dashboard/employee#leaves-section',
+        icon: Calendar,
+      },
+      {
+        titleEn: 'My Payslips',
+        titleAr: 'مفردات راتبي الرسمية',
+        href: '/dashboard/payslips',
+        icon: Receipt,
+      },
+      {
+        titleEn: 'Operational Targets',
+        titleAr: 'أهدافي التشغيلية',
+        href: '/dashboard/targets',
+        icon: Target,
       },
     ],
   },
+
+  // ② People & Organization [super_admin / manager]
   {
-    id: 'company',
-    titleEn: 'Company & Policies',
-    titleAr: 'سياسات وإعدادات الشركة',
-    icon: Building2,
-    href: '/dashboard/settings',
-    roles: ['super_admin'],
-    subItems: [],
-  },
-  {
-    id: 'operations',
-    titleEn: 'Employees & Operations',
-    titleAr: 'الموظفين والعمليات',
+    id: 'people',
+    titleEn: 'People & Organization',
+    titleAr: 'الأفراد والهيكل الإداري',
     icon: Users,
+    roles: ['super_admin', 'manager'],
     subItems: [
       {
         titleEn: 'Employee Directory',
-        titleAr: 'سجل وإدارة الموظفين',
+        titleAr: 'دليل وإدارة الموظفين',
         href: '/dashboard/employees',
         icon: Users,
         roles: ['super_admin', 'manager'],
       },
       {
-        titleEn: 'Contract Builder & PDF',
-        titleAr: 'صانع ومحرر العقود',
-        href: '/dashboard/contracts',
-        icon: FileText,
+        titleEn: 'Departments & Org',
+        titleAr: 'الأقسام والهيكل الإداري',
+        href: '/dashboard/departments',
+        icon: Building2,
+        roles: ['super_admin', 'manager'],
       },
       {
-        titleEn: 'System Audit Logs',
-        titleAr: 'سجل العمليات والرقابة',
-        href: '/dashboard/audit-logs',
-        icon: ShieldAlert,
+        titleEn: 'Contract Builder & PDF',
+        titleAr: 'صانع ومحرر العقود الرسمية',
+        href: '/dashboard/contracts',
+        icon: FileText,
         roles: ['super_admin'],
       },
       {
-        titleEn: 'Holiday Compensation',
-        titleAr: 'تعويضات العمل بالعطلات',
+        titleEn: 'Shift Management',
+        titleAr: 'إدارة الورديات وجداول الدوام',
+        href: '/dashboard/shifts',
+        icon: ArrowLeftRight,
+        roles: ['super_admin', 'manager'],
+        featureToggle: 'enable_shifts',
+      },
+    ],
+  },
+
+  // ③ Time & Operations [toggle-gated]
+  {
+    id: 'operations',
+    titleEn: 'Time & Operations',
+    titleAr: 'الوقت والعمليات التشغيلية',
+    icon: Clock,
+    subItems: [
+      {
+        titleEn: 'Attendance Live Monitor',
+        titleAr: 'شاشة الحضور والانصراف الحية',
+        href: '/dashboard/attendance',
+        icon: Clock,
+        roles: ['super_admin', 'manager'],
+      },
+      {
+        titleEn: 'Leave Approvals Ledger',
+        titleAr: 'سجل واعتماد الإجازات',
+        href: '/dashboard/leaves',
+        icon: CheckSquare,
+        roles: ['super_admin', 'manager'],
+      },
+      {
+        titleEn: 'Holiday Work & Overtime',
+        titleAr: 'تعويضات العطلات والعمل الإضافي',
         href: '/dashboard/manager#holiday-compensation',
         icon: Calendar,
         roles: ['manager', 'super_admin'],
@@ -120,23 +159,36 @@ export const NAV_SECTIONS: NavSection[] = [
       },
     ],
   },
+
+  // ④ Payroll & Financials [super_admin / manager]
   {
-    id: 'performance',
-    titleEn: 'Performance & Sales',
-    titleAr: 'الأداء والتقييم والمبيعات',
-    icon: Target,
+    id: 'financials',
+    titleEn: 'Payroll & Financials',
+    titleAr: 'الرواتب والمسيرات المالية',
+    icon: FileSpreadsheet,
+    roles: ['super_admin', 'manager'],
     subItems: [
       {
-        titleEn: 'Targets Board',
-        titleAr: 'لوحة متابعة الأهداف',
-        href: '/dashboard/targets',
-        icon: Target,
+        titleEn: 'Payroll Engine',
+        titleAr: 'محرك حساب الرواتب',
+        href: '/dashboard/payroll',
+        icon: DollarSign,
+        roles: ['super_admin'],
       },
       {
-        titleEn: 'Monthly Reviews',
-        titleAr: 'تقييمات الأداء الشهرية',
-        href: '/dashboard/evaluations',
-        icon: Star,
+        titleEn: 'Salary Advances Tracker',
+        titleAr: 'متابعة واعتماد السلف',
+        href: '/dashboard/payroll#advances',
+        icon: Wallet,
+        roles: ['super_admin', 'manager'],
+        featureToggle: 'enable_advances',
+      },
+      {
+        titleEn: 'Payslip Generator',
+        titleAr: 'مولد قسائم المرتبات',
+        href: '/dashboard/payslips',
+        icon: Receipt,
+        roles: ['super_admin'],
       },
       {
         titleEn: 'Sales & Commissions',
@@ -147,73 +199,80 @@ export const NAV_SECTIONS: NavSection[] = [
       },
     ],
   },
+
+  // ⑤ Analytics & Admin Hub [super_admin / manager]
   {
-    id: 'payroll',
-    titleEn: 'Payroll & Financials',
-    titleAr: 'الرواتب والمسيرات المالية',
-    icon: FileSpreadsheet,
+    id: 'admin_hub',
+    titleEn: 'Analytics & Governance',
+    titleAr: 'التحليلات والحوكمة الإدارية',
+    icon: ShieldCheck,
+    roles: ['super_admin', 'manager'],
     subItems: [
       {
-        titleEn: 'Payroll Engine',
-        titleAr: 'محرك حساب الرواتب',
-        href: '/dashboard/payroll',
-        icon: DollarSign,
-        roles: ['super_admin', 'manager'],
-      },
-      {
-        titleEn: 'Advances Tracker',
-        titleAr: 'متابعة السلف المالية',
-        href: '/dashboard/payroll#advances',
-        icon: Wallet,
-        roles: ['super_admin', 'manager'],
-        featureToggle: 'enable_advances',
-      },
-      {
-        titleEn: 'Payslip Generator',
-        titleAr: 'مولد مفردات المرتبات',
-        href: '/dashboard/payslips',
-        icon: Receipt,
+        titleEn: 'Executive Overview',
+        titleAr: 'النظرة التنفيذية العامة',
+        href: '/dashboard/admin',
+        icon: LayoutDashboard,
         roles: ['super_admin'],
       },
-    ],
-  },
-  {
-    id: 'workspace',
-    titleEn: 'My Workspace',
-    titleAr: 'مساحة عملي المباشرة',
-    icon: Briefcase,
-    subItems: [
       {
-        titleEn: 'Check-In & Timers',
-        titleAr: 'تسجيل الدخول ومؤقت الدوام',
-        href: '/dashboard/employee#checkin-section',
-        icon: Clock,
+        titleEn: 'Team Overview',
+        titleAr: 'لوحة قيادة الفريق',
+        href: '/dashboard/manager',
+        icon: Users,
+        roles: ['manager'],
       },
       {
-        titleEn: 'My Leaves & Requests',
-        titleAr: 'إجازاتي وطلباتي',
-        href: '/dashboard/employee#leaves-section',
-        icon: Calendar,
+        titleEn: 'Performance Reviews',
+        titleAr: 'تقييمات الأداء الدورية',
+        href: '/dashboard/evaluations',
+        icon: Star,
+        roles: ['super_admin', 'manager'],
       },
       {
-        titleEn: 'My Assigned Targets',
-        titleAr: 'أهدافي المسندة',
-        href: '/dashboard/targets',
-        icon: Target,
+        titleEn: 'System Audit Trail Logs',
+        titleAr: 'سجل العمليات والرقابة الأمنية',
+        href: '/dashboard/audit-logs',
+        icon: ShieldAlert,
+        roles: ['super_admin'],
       },
       {
-        titleEn: 'My Payslips',
-        titleAr: 'مفردات راتبي',
-        href: '/dashboard/payslips',
-        icon: FileBadge,
+        titleEn: 'Company & Policies',
+        titleAr: 'سياسات وإعدادات الشركة',
+        href: '/dashboard/settings',
+        icon: Sliders,
+        roles: ['super_admin'],
       },
     ],
   },
 ];
 
-// Mobile pinned core 3 anchors
-export const MOBILE_CORE_ANCHORS = [
-  { id: 'workspace', titleEn: 'Workspace', titleAr: 'مساحتي', href: '/dashboard/employee', icon: Briefcase },
-  { id: 'team', titleEn: 'Team View', titleAr: 'الفريق', href: '/dashboard/manager', icon: Users, roles: ['manager', 'super_admin'] },
-  { id: 'admin', titleEn: 'Super Admin', titleAr: 'المشرف', href: '/dashboard/admin', icon: ShieldCheck, roles: ['super_admin'] },
-];
+// Mobile 5-Slot Thumb-Zone Items (Role Tailored)
+export interface MobileNavItem {
+  id: string;
+  titleEn: string;
+  titleAr: string;
+  href: string;
+  icon: ElementType;
+}
+
+export const MOBILE_NAV_BY_ROLE: Record<string, MobileNavItem[]> = {
+  employee: [
+    { id: 'home', titleEn: 'Home', titleAr: 'الرئيسية', href: '/dashboard/employee', icon: UserCheck },
+    { id: 'checkin', titleEn: 'Check-In', titleAr: 'الحضور', href: '/dashboard/employee#checkin-section', icon: Clock },
+    { id: 'leaves', titleEn: 'Leaves', titleAr: 'الإجازات', href: '/dashboard/employee#leaves-section', icon: Calendar },
+    { id: 'payslip', titleEn: 'Payslip', titleAr: 'الراتب', href: '/dashboard/payslips', icon: Receipt },
+  ],
+  manager: [
+    { id: 'home', titleEn: 'Home', titleAr: 'الرئيسية', href: '/dashboard/manager', icon: Users },
+    { id: 'team', titleEn: 'Team', titleAr: 'الفريق', href: '/dashboard/employees', icon: Building2 },
+    { id: 'approvals', titleEn: 'Approvals', titleAr: 'الاعتمادات', href: '/dashboard/leaves', icon: CheckSquare },
+    { id: 'reviews', titleEn: 'Reviews', titleAr: 'التقييمات', href: '/dashboard/evaluations', icon: Star },
+  ],
+  super_admin: [
+    { id: 'overview', titleEn: 'Overview', titleAr: 'الرئيسية', href: '/dashboard/admin', icon: LayoutDashboard },
+    { id: 'people', titleEn: 'People', titleAr: 'الموظفين', href: '/dashboard/employees', icon: Users },
+    { id: 'payroll', titleEn: 'Payroll', titleAr: 'الرواتب', href: '/dashboard/payroll', icon: DollarSign },
+    { id: 'settings', titleEn: 'Settings', titleAr: 'الإعدادات', href: '/dashboard/settings', icon: Sliders },
+  ],
+};
