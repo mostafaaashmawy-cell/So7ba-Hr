@@ -1,27 +1,22 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { IBM_Plex_Sans_Arabic } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const ibmPlexArabic = IBM_Plex_Sans_Arabic({
+  subsets: ["arabic", "latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-ibm-plex-arabic",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "HumAi - Smart HR & Operations Platform",
-  description: "HumAi - Smart Multi-Tenant HR & Operations Management Platform",
+  title: "HumAi | نظام إدارة موارد بشرية ذكي مدعوم بمساعد واتساب — لشركات مصر والشرق الأوسط",
+  description: "أدر الحضور والانصراف، الإجازات، والرواتب من لوحة تحكم واحدة، أو مباشرة عبر واتساب. نظام HR سحابي مصمم خصيصاً للشركات الصغيرة والمتوسطة في مصر والمنطقة العربية.",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
-
-import { LanguageProvider } from "@/lib/context/LanguageContext";
-import { ThemeProvider } from "@/lib/context/ThemeContext";
-import { SidebarProvider } from "@/lib/context/SidebarContext";
-import { SettingsProvider } from "@/lib/context/SettingsContext";
 
 export default function RootLayout({
   children,
@@ -30,35 +25,12 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-      suppressHydrationWarning
+      lang="ar"
+      dir="rtl"
+      className={`${ibmPlexArabic.variable} font-sans h-full antialiased scroll-smooth`}
     >
-      <body className="min-h-full flex flex-col bg-(--bg) text-(--text-primary) antialiased">
-        <ThemeProvider>
-          <LanguageProvider>
-            <SettingsProvider>
-              <SidebarProvider>
-                {children}
-              </SidebarProvider>
-            </SettingsProvider>
-          </LanguageProvider>
-        </ThemeProvider>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js').then(function(reg) {
-                    console.log('SW registered:', reg.scope);
-                  }).catch(function(err) {
-                    console.warn('SW registration failed:', err);
-                  });
-                });
-              }
-            `,
-          }}
-        />
+      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900 antialiased selection:bg-teal-500 selection:text-white font-[family-name:var(--font-ibm-plex-arabic)]">
+        {children}
       </body>
     </html>
   );

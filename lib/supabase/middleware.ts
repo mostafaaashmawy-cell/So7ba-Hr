@@ -31,13 +31,25 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const publicMarketingRoutes = [
+    '/',
+    '/blueprints',
+    '/whatsapp-assistant',
+    '/pricing',
+    '/security',
+    '/contact',
+  ];
+  const isMarketingPage = publicMarketingRoutes.some(
+    (route) => request.nextUrl.pathname === route || request.nextUrl.pathname.startsWith(`${route}/`)
+  );
   const isAuthPage = request.nextUrl.pathname.startsWith('/login');
   const isPublicAsset = 
     request.nextUrl.pathname === '/sw.js' || 
     request.nextUrl.pathname === '/manifest.json' ||
-    request.nextUrl.pathname.startsWith('/icons/');
+    request.nextUrl.pathname.startsWith('/icons/') ||
+    request.nextUrl.pathname.startsWith('/images/');
 
-  if (!user && !isAuthPage && !isPublicAsset) {
+  if (!user && !isAuthPage && !isPublicAsset && !isMarketingPage) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
