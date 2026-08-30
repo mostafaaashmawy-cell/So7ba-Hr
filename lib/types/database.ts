@@ -235,6 +235,7 @@ export interface KpiEntryRecord {
 
 export interface DepartmentRecord {
   id: string;
+  tenant_id?: string;
   name: string;
   created_at?: string;
 }

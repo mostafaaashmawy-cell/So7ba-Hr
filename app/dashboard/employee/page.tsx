@@ -39,7 +39,7 @@ export default async function EmployeeDashboardPage() {
   }
 
   const user = userProfile as UserProfile;
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }); // YYYY-MM-DD in Cairo TZ
 
   // Fetch Today's Attendance Sessions
   const { data: todayAttendance } = await supabase

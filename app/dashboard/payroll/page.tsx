@@ -182,10 +182,10 @@ export default function PayrollPage() {
         tenant_id: currentUser.tenant_id,
         user_id: adjEmployee,
         type: adjType,
+        status: finalStatus,
         amount: Number(adjAmount ?? 0),
         month: `${selectedMonth}-01`,
         description: adjNotes.trim() || null,
-        created_by: currentUser.id,
       });
 
       if (error) throw error;
@@ -219,7 +219,8 @@ export default function PayrollPage() {
       const { error } = await supabase
         .from('financial_adjustments')
         .update({ status: newStatus })
-        .eq('id', id);
+        .eq('id', id)
+        .eq('tenant_id', currentUser?.tenant_id ?? '');
 
       if (error) throw error;
       setAdjustments(adjustments.map((a) => (a.id === id ? { ...a, status: newStatus } : a)));
@@ -235,6 +236,8 @@ export default function PayrollPage() {
         });
       }
     } catch (e: unknown) {
+      const errMsg = e instanceof Error ? e.message : 'Action failed';
+      setMsg({ text: errMsg, error: true });
       console.error(e);
     } finally {
       setActionId(null);
@@ -244,7 +247,11 @@ export default function PayrollPage() {
   const handleStatusAdvance = async (id: string, newStatus: 'approved' | 'rejected') => {
     setActionId(id);
     try {
-      const { error } = await supabase.from('advances').update({ status: newStatus }).eq('id', id);
+      const { error } = await supabase
+        .from('advances')
+        .update({ status: newStatus })
+        .eq('id', id)
+        .eq('tenant_id', currentUser?.tenant_id ?? '');
 
       if (error) throw error;
       setAdvances(advances.map((a) => (a.id === id ? { ...a, status: newStatus } : a)));
@@ -260,6 +267,8 @@ export default function PayrollPage() {
         });
       }
     } catch (e: unknown) {
+      const errMsg = e instanceof Error ? e.message : 'Action failed';
+      setMsg({ text: errMsg, error: true });
       console.error(e);
     } finally {
       setActionId(null);
@@ -531,7 +540,7 @@ export default function PayrollPage() {
       setShowPayslip(true);
     } catch (e: unknown) {
       const errMsg = e instanceof Error ? e.message : 'Payslip compilation failed';
-      alert(errMsg);
+      setMsg({ text: errMsg, error: true });
     } finally {
       setLoading(false);
     }

@@ -297,6 +297,8 @@ export default function SettingsHubPage() {
     if (!error) {
       setShifts(shifts.filter((s) => s.id !== id));
       setMsg({ text: isRtl ? 'تم حذف الوردية بنجاح.' : 'Shift deleted.', error: false });
+    } else {
+      setMsg({ text: error.message, error: true });
     }
   };
 
@@ -816,7 +818,8 @@ export default function SettingsHubPage() {
                         <button
                           type="button"
                           onClick={() => handleDeleteShift(shift.id)}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                          disabled={saving}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer disabled:opacity-50"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>

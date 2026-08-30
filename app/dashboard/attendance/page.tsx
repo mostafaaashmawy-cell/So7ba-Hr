@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Navbar from '@/components/Navbar';
 import { UserProfile, AttendanceRecord, DepartmentRecord } from '@/lib/types/database';
@@ -26,7 +26,7 @@ interface AttendanceWithDetails extends AttendanceRecord {
 
 export default function AttendanceMonitorPage() {
   const { isRtl } = useLanguage();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
@@ -176,7 +176,8 @@ export default function AttendanceMonitorPage() {
             <button
               type="button"
               onClick={fetchAttendance}
-              className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+              disabled={loading}
+              className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl text-slate-700 dark:text-slate-300 transition-colors cursor-pointer disabled:opacity-50"
               title="Refresh"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
