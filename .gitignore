@@ -9,6 +9,8 @@ node_modules
 .next
 /out/
 /build
+.open-next/
+_saas_backup/
 temp-app/
 temp-app
 git-bin/

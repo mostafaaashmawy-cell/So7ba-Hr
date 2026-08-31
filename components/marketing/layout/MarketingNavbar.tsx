@@ -93,7 +93,7 @@ export function MarketingNavbar() {
           {/* Desktop Action Buttons */}
           <div className="hidden md:flex items-center gap-3">
             <Link
-              href="/login"
+              href="/contact"
               className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/80 rounded-xl transition-colors flex items-center gap-1.5"
             >
               <LogIn className="w-4 h-4 text-slate-400" />
@@ -153,7 +153,7 @@ export function MarketingNavbar() {
 
           <div className="pt-3 border-t border-slate-800/80 space-y-2">
             <Link
-              href="/login"
+              href="/contact"
               className="flex items-center justify-center gap-2 w-full px-4 py-2.5 text-sm font-medium text-slate-300 hover:text-white bg-slate-900 rounded-xl"
             >
               <LogIn className="w-4 h-4 text-slate-400" />
