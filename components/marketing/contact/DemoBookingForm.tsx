@@ -1,260 +1,128 @@
 'use client';
 
-import React, { useState } from 'react';
-import { 
-  Send, 
-  CheckCircle2, 
-  Sparkles, 
-  Building2, 
-  User, 
-  Mail, 
-  Phone, 
-  Users, 
-  MessageSquare,
-  ArrowLeft,
-  ShieldCheck
-} from 'lucide-react';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import type { SiteDictionary } from '@/lib/i18n/types';
 
-export function DemoBookingForm() {
-  const [formData, setFormData] = useState({
-    fullName: '',
-    companyName: '',
-    email: '',
-    phone: '',
-    employeeCount: '1-15',
-    message: '',
-  });
-
-  const [errors, setErrors] = useState<Record<string, string>>({});
+export function DemoBookingForm({ dict }: { dict: SiteDictionary }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-
-  const validate = () => {
-    const newErrors: Record<string, string> = {};
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = 'يرجى إدخال الاسم الكامل';
-    }
-    if (!formData.companyName.trim()) {
-      newErrors.companyName = 'يرجى إدخال اسم الشركة';
-    }
-    if (!formData.email.trim()) {
-      newErrors.email = 'يرجى إدخال البريد الإلكتروني';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'يرجى إدخال بريد إلكتروني صحيح';
-    }
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'يرجى إدخال رقم الهاتف أو واتساب';
-    }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  const [isSuccess, setIsSuccess] = useState(false);
+  const f = dict.contact.form;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
-
     setIsSubmitting(true);
-    // Simulate async submission
     setTimeout(() => {
       setIsSubmitting(false);
-      setIsSubmitted(true);
-    }, 1200);
+      setIsSuccess(true);
+    }, 1500);
   };
 
-  if (isSubmitted) {
-    return (
-      <div className="bg-slate-900 border border-teal-500/40 rounded-3xl p-8 sm:p-12 text-center shadow-2xl space-y-5 animate-in zoom-in-95 duration-300">
-        <div className="w-16 h-16 rounded-full bg-teal-500/20 text-teal-400 flex items-center justify-center mx-auto shadow-inner">
-          <CheckCircle2 className="w-10 h-10" />
-        </div>
-        <div className="space-y-2">
-          <h3 className="text-2xl font-bold text-white">تم استلام طلبك بنجاح!</h3>
-          <p className="text-slate-300 text-sm max-w-md mx-auto leading-relaxed">
-            شكراً لك <span className="font-semibold text-teal-400">{formData.fullName}</span>. سيتواصل معك أحد مستشارينا عبر واتساب أو الهاتف خلال أقل من ساعتين عمل لتحديد موعد العرض التوضيحي المخصص لشركة <span className="font-semibold text-white">{formData.companyName}</span>.
-          </p>
-        </div>
-        <div className="pt-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-center gap-3">
-          <a
-            href="https://wa.me/201000000000"
-            target="_blank"
-            rel="noreferrer"
-            className="px-6 py-3 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs flex items-center gap-2"
-          >
-            <span>تواصل فوراً عبر واتساب</span>
-            <ArrowLeft className="w-4 h-4" />
-          </a>
-          <button
-            onClick={() => {
-              setIsSubmitted(false);
-              setFormData({
-                fullName: '',
-                companyName: '',
-                email: '',
-                phone: '',
-                employeeCount: '1-15',
-                message: '',
-              });
-            }}
-            className="px-4 py-3 rounded-xl bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold"
-          >
-            إرسال طلب آخر
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const inputClass = 'bg-[#161B27] border border-white/[0.06] rounded-xl px-4 py-3 text-[#F0F4FF] focus:border-cyan-400/50 focus:ring-2 focus:ring-cyan-400/10 w-full outline-none transition-all placeholder:text-[#4B5567] text-sm';
+  const labelClass = 'text-sm font-medium text-[#94A3B8] mb-1.5 block';
+
+  const successTitle = dict.locale === 'ar' ? 'شكراً لك!' : 'Thank You!';
+  const successMsg = dict.locale === 'ar' ? 'سنتواصل معك في أقرب وقت ممكن.' : 'We will be in touch shortly.';
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-10 shadow-2xl space-y-6"
-    >
-      <div className="border-b border-slate-800 pb-4">
-        <h3 className="text-xl font-bold text-white flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-teal-400" />
-          <span>بيانات حجز العرض التوضيحي</span>
-        </h3>
-        <p className="text-xs text-slate-400 mt-1">
-          جلسة مجانية تفاعلية لمدة 30 دقيقة للإجابة على كافة استفساراتكم
-        </p>
-      </div>
+    <div className="glass-card rounded-2xl p-8 w-full relative overflow-hidden" dir={dict.dir}>
+      <AnimatePresence mode="wait">
+        {!isSuccess ? (
+          <motion.form
+            key="form"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            onSubmit={handleSubmit}
+            className="space-y-5"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div>
+                <label className={labelClass}>{f.name}</label>
+                <input required type="text" placeholder={f.name} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>{f.company}</label>
+                <input required type="text" placeholder={f.company} className={inputClass} />
+              </div>
+            </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Full Name */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-            <User className="w-3.5 h-3.5 text-teal-400" />
-            <span>الاسم الكامل <span className="text-rose-400">*</span></span>
-          </label>
-          <input
-            type="text"
-            placeholder="مثال: أحمد محمود"
-            value={formData.fullName}
-            onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-            className={`w-full px-4 py-3 bg-slate-950 border rounded-xl text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/50 transition-all ${
-              errors.fullName ? 'border-rose-500' : 'border-slate-800'
-            }`}
-          />
-          {errors.fullName && (
-            <p className="text-[11px] text-rose-400">{errors.fullName}</p>
-          )}
-        </div>
+            <div>
+              <label className={labelClass}>{f.email}</label>
+              <input required type="email" placeholder={f.email} className={inputClass} />
+            </div>
 
-        {/* Company Name */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-            <Building2 className="w-3.5 h-3.5 text-teal-400" />
-            <span>اسم الشركة <span className="text-rose-400">*</span></span>
-          </label>
-          <input
-            type="text"
-            placeholder="مثال: شركة الأمل للتجارة"
-            value={formData.companyName}
-            onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-            className={`w-full px-4 py-3 bg-slate-950 border rounded-xl text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/50 transition-all ${
-              errors.companyName ? 'border-rose-500' : 'border-slate-800'
-            }`}
-          />
-          {errors.companyName && (
-            <p className="text-[11px] text-rose-400">{errors.companyName}</p>
-          )}
-        </div>
+            <div>
+              <label className={labelClass}>{f.phone}</label>
+              <input type="tel" placeholder={f.phone} className={inputClass} />
+            </div>
 
-        {/* Email */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-            <Mail className="w-3.5 h-3.5 text-teal-400" />
-            <span>البريد الإلكتروني <span className="text-rose-400">*</span></span>
-          </label>
-          <input
-            type="email"
-            placeholder="name@company.com"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            className={`w-full px-4 py-3 bg-slate-950 border rounded-xl text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/50 transition-all dir-ltr text-right ${
-              errors.email ? 'border-rose-500' : 'border-slate-800'
-            }`}
-          />
-          {errors.email && (
-            <p className="text-[11px] text-rose-400">{errors.email}</p>
-          )}
-        </div>
+            <div>
+              <label className={labelClass}>{f.employees}</label>
+              <select required className={inputClass}>
+                <option value="">—</option>
+                <option value="1-10">1–10</option>
+                <option value="11-25">11–25</option>
+                <option value="26-50">26–50</option>
+                <option value="51-100">51–100</option>
+                <option value="100+">100+</option>
+              </select>
+            </div>
 
-        {/* Phone / WhatsApp */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-            <Phone className="w-3.5 h-3.5 text-teal-400" />
-            <span>رقم الهاتف / واتساب <span className="text-rose-400">*</span></span>
-          </label>
-          <input
-            type="tel"
-            placeholder="010XXXXXXXX"
-            value={formData.phone}
-            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-            className={`w-full px-4 py-3 bg-slate-950 border rounded-xl text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/50 transition-all dir-ltr text-right ${
-              errors.phone ? 'border-rose-500' : 'border-slate-800'
-            }`}
-          />
-          {errors.phone && (
-            <p className="text-[11px] text-rose-400">{errors.phone}</p>
-          )}
-        </div>
-      </div>
+            <div>
+              <label className={labelClass}>{f.message}</label>
+              <textarea rows={4} placeholder={f.message} className={inputClass} />
+            </div>
 
-      {/* Employee Count */}
-      <div className="space-y-1.5">
-        <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-          <Users className="w-3.5 h-3.5 text-teal-400" />
-          <span>عدد الموظفين في الشركة</span>
-        </label>
-        <select
-          value={formData.employeeCount}
-          onChange={(e) => setFormData({ ...formData, employeeCount: e.target.value })}
-          className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50 transition-all"
-        >
-          <option value="1-15">من 1 إلى 15 موظف (باقة Starter)</option>
-          <option value="16-50">من 16 إلى 50 موظف (باقة Growth)</option>
-          <option value="50+">أكثر من 50 موظف (باقة Enterprise)</option>
-        </select>
-      </div>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="btn-gradient w-full py-3.5 rounded-xl font-bold text-white text-sm flex items-center justify-center gap-2 disabled:opacity-70"
+            >
+              {isSubmitting ? (
+                <>
+                  <svg className="animate-spin w-4 h-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  <span>...</span>
+                </>
+              ) : f.submit}
+            </button>
 
-      {/* Message */}
-      <div className="space-y-1.5">
-        <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-          <MessageSquare className="w-3.5 h-3.5 text-teal-400" />
-          <span>رسالة أو استفسار خاص (اختياري)</span>
-        </label>
-        <textarea
-          rows={3}
-          placeholder="أخبرنا عن طبيعة نشاطك أو أي تحديات تواجهها حالياً في إدارة الحضور أو الرواتب..."
-          value={formData.message}
-          onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-          className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/50 transition-all resize-none"
-        ></textarea>
-      </div>
-
-      {/* Submit Button */}
-      <div className="pt-2 space-y-3">
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full py-4 rounded-xl text-base font-bold text-slate-950 bg-gradient-to-r from-teal-400 to-emerald-400 hover:from-teal-300 hover:to-emerald-300 transition-all shadow-lg shadow-teal-500/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70"
-        >
-          {isSubmitting ? (
-            <span>جاري إرسال طلبك...</span>
-          ) : (
-            <>
-              <span>احجز عرضك التوضيحي المجاني</span>
-              <Send className="w-4 h-4 rotate-180" />
-            </>
-          )}
-        </button>
-
-        <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
-          <ShieldCheck className="w-4 h-4 text-teal-400" />
-          <span>بياناتك محمية تماماً ولن تتم مشاركتها مع أي طرف ثالث.</span>
-        </div>
-      </div>
-    </form>
+            <div className="pt-4 border-t border-white/[0.06]">
+              <a
+                href={dict.contact.whatsappNumber}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-center w-full py-3 px-4 bg-[#25D366]/10 text-[#25D366] border border-[#25D366]/30 rounded-xl hover:bg-[#25D366]/20 transition-all font-semibold text-sm gap-2"
+              >
+                <svg className="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+                </svg>
+                <span>{dict.contact.whatsappLabel}</span>
+              </a>
+            </div>
+          </motion.form>
+        ) : (
+          <motion.div
+            key="success"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col items-center justify-center py-16 text-center"
+          >
+            <div className="w-16 h-16 bg-cyan-400/20 rounded-full flex items-center justify-center mb-6">
+              <svg className="w-8 h-8 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-3">{successTitle}</h3>
+            <p className="text-[#94A3B8]">{successMsg}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
+
+export default DemoBookingForm;

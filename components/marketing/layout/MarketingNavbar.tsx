@@ -1,87 +1,74 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  Sparkles, 
-  Menu, 
-  X, 
-  ArrowLeft, 
-  ShieldCheck, 
-  Layers, 
-  MessageSquare, 
-  CreditCard, 
-  PhoneCall, 
-  LogIn
-} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Sparkles, Menu, X } from 'lucide-react';
+import type { SiteDictionary } from '@/lib/i18n/types';
 
-const NAV_LINKS = [
-  { href: '/', label: 'النظام الأساسي', icon: Layers },
-  { href: '/blueprints', label: 'قوالب التشغيل', icon: Layers },
-  { href: '/whatsapp-assistant', label: 'مساعد واتساب الذكي', icon: MessageSquare },
-  { href: '/security', label: 'الأمان والخصوصية', icon: ShieldCheck },
-  { href: '/pricing', label: 'الأسعار', icon: CreditCard },
-  { href: '/contact', label: 'تواصل معنا', icon: PhoneCall },
-];
-
-export function MarketingNavbar() {
-  const pathname = usePathname();
+export function MarketingNavbar({ dict }: { dict: SiteDictionary }) {
+  const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
+    const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
+    handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   // Close mobile menu on route change
-  useEffect(() => {
-    setMobileMenuOpen(false);
-  }, [pathname]);
+  useEffect(() => { setMobileMenuOpen(false); }, [pathname]);
+
+  const switchLocale = dict.locale === 'ar' ? 'en' : 'ar';
+  // Replace /ar or /en prefix in current path
+  const switchHref = pathname.replace(/^\/(ar|en)/, `/${switchLocale}`);
+
+  const homeHref = dict.locale === 'ar' ? '/ar' : '/en';
+  const ctaHref = dict.locale === 'ar' ? '/ar/contact' : '/en/contact';
 
   return (
     <header
-      className={`sticky top-0 z-50 transition-all duration-300 ${
-        isScrolled
-          ? 'bg-slate-900/95 backdrop-blur-md border-b border-slate-800/80 shadow-lg shadow-slate-950/20'
-          : 'bg-slate-950 border-b border-slate-800/50'
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+        scrolled
+          ? 'bg-[#05070D]/90 backdrop-blur-xl border-b border-white/[0.06] shadow-lg shadow-black/40 py-3'
+          : 'bg-transparent py-5'
       }`}
+      dir={dict.dir}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
+        <div className="flex items-center justify-between">
+
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center shadow-md shadow-teal-500/20 group-hover:scale-105 transition-transform duration-200">
-              <Sparkles className="w-5 h-5 text-slate-950" />
+          <Link href={homeHref} className="flex items-center gap-2.5 group shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-400 to-violet-500 flex items-center justify-center shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition-transform duration-200">
+              <Sparkles className="w-4 h-4 text-white" />
             </div>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1.5">
-                <span className="text-2xl font-bold tracking-tight text-white font-sans">
-                  Hum<span className="text-teal-400">Ai</span>
-                </span>
-              </div>
-              <span className="text-[11px] text-slate-400 font-medium tracking-wide">
-                منظومة إدارة الموارد البشرية الذكية
+            <div className="flex flex-col leading-none">
+              <span className="text-xl font-bold tracking-tight">
+                <span className="text-white">Hum</span>
+                <span className="bg-gradient-to-r from-cyan-400 to-violet-500 bg-clip-text text-transparent">Ai</span>
+              </span>
+              <span className="text-[10px] text-[#4B5567] font-medium tracking-wide hidden sm:block">
+                {dict.nav.logoTagline}
               </span>
             </div>
           </Link>
 
-          {/* Desktop Navigation Links */}
-          <nav className="hidden lg:flex items-center gap-1 bg-slate-900/60 p-1.5 rounded-full border border-slate-800">
-            {NAV_LINKS.map((link) => {
-              const isActive = pathname === link.href;
+          {/* Desktop Nav — pill shaped */}
+          <nav className="hidden lg:flex items-center gap-1 bg-[#0D1117]/80 backdrop-blur-md border border-white/[0.06] rounded-full p-1.5">
+            {dict.nav.links.map((link) => {
+              const isActive = pathname === link.href || (link.href !== homeHref && pathname.startsWith(link.href));
               return (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`px-4 py-2 text-sm font-medium rounded-full transition-all duration-200 ${
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap ${
                     isActive
-                      ? 'bg-teal-500 text-slate-950 font-semibold shadow-sm'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                      ? 'bg-gradient-to-r from-cyan-400/10 to-violet-500/10 text-cyan-400 border border-cyan-400/20'
+                      : 'text-[#94A3B8] hover:text-white border border-transparent'
                   }`}
                 >
                   {link.label}
@@ -91,84 +78,84 @@ export function MarketingNavbar() {
           </nav>
 
           {/* Desktop Action Buttons */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-3 shrink-0">
+            {/* Language Switcher */}
             <Link
-              href="/contact"
-              className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/80 rounded-xl transition-colors flex items-center gap-1.5"
+              href={switchHref}
+              className="border border-white/10 bg-white/5 hover:bg-white/10 text-sm font-semibold px-3 py-1.5 rounded-lg text-white transition-colors"
+              aria-label={dict.locale === 'ar' ? 'Switch to English' : 'التبديل للعربية'}
             >
-              <LogIn className="w-4 h-4 text-slate-400" />
-              <span>تسجيل الدخول</span>
+              {dict.locale === 'ar' ? 'EN' : 'AR'}
             </Link>
+
             <Link
-              href="/contact"
-              className="px-5 py-2.5 text-sm font-semibold text-slate-950 bg-gradient-to-r from-teal-400 to-emerald-400 hover:from-teal-300 hover:to-emerald-300 rounded-xl shadow-md shadow-teal-500/20 hover:shadow-teal-500/30 transition-all duration-200 flex items-center gap-2"
+              href={ctaHref}
+              className="btn-gradient px-5 py-2 rounded-xl text-sm font-bold text-white shadow-md shadow-cyan-500/20 glow-pulse"
             >
-              <span>ابدأ تجربتك المجانية</span>
-              <ArrowLeft className="w-4 h-4" />
+              {dict.nav.cta}
             </Link>
           </div>
 
-          {/* Mobile Menu Button */}
+          {/* Mobile Menu Toggle */}
           <div className="flex md:hidden items-center gap-2">
+            {/* Mobile Language Switcher */}
             <Link
-              href="/contact"
-              className="px-3 py-1.5 text-xs font-semibold text-slate-950 bg-teal-400 rounded-lg"
+              href={switchHref}
+              className="border border-white/10 bg-white/5 text-xs font-semibold px-2.5 py-1.5 rounded-lg text-white"
             >
-              تجربة مجانية
+              {dict.locale === 'ar' ? 'EN' : 'AR'}
             </Link>
             <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 focus:outline-none"
-              aria-label="القائمة الرئيسية"
+              className="p-2 text-white/80 hover:text-white rounded-lg hover:bg-white/5"
+              onClick={() => setMobileMenuOpen((v) => !v)}
+              aria-label="Toggle menu"
             >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile Menu Drawer */}
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-slate-950 border-b border-slate-800 px-4 pt-3 pb-6 space-y-3 animate-in slide-in-from-top-4 duration-200">
-          <div className="space-y-1">
-            {NAV_LINKS.map((link) => {
-              const Icon = link.icon;
-              const isActive = pathname === link.href;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-teal-500 text-slate-950 font-semibold'
-                      : 'text-slate-300 hover:bg-slate-900 hover:text-white'
-                  }`}
-                >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-slate-950' : 'text-teal-400'}`} />
-                  <span>{link.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-
-          <div className="pt-3 border-t border-slate-800/80 space-y-2">
-            <Link
-              href="/contact"
-              className="flex items-center justify-center gap-2 w-full px-4 py-2.5 text-sm font-medium text-slate-300 hover:text-white bg-slate-900 rounded-xl"
-            >
-              <LogIn className="w-4 h-4 text-slate-400" />
-              <span>تسجيل الدخول</span>
-            </Link>
-            <Link
-              href="/contact"
-              className="flex items-center justify-center gap-2 w-full px-4 py-3 text-sm font-semibold text-slate-950 bg-gradient-to-r from-teal-400 to-emerald-400 rounded-xl shadow-md"
-            >
-              <span>ابدأ تجربتك المجانية</span>
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-      )}
+      {/* Mobile Drawer */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="absolute top-full left-0 right-0 bg-[#05070D]/95 backdrop-blur-xl border-b border-white/[0.06] overflow-hidden md:hidden shadow-2xl"
+          >
+            <div className="max-w-7xl mx-auto px-4 py-5 flex flex-col gap-1" dir={dict.dir}>
+              {dict.nav.links.map((link) => {
+                const isActive = pathname === link.href;
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`block px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-gradient-to-r from-cyan-400/10 to-violet-500/10 text-cyan-400 border border-cyan-400/20'
+                        : 'text-[#94A3B8] hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              })}
+              <div className="h-px bg-white/[0.06] my-3" />
+              <Link
+                href={ctaHref}
+                onClick={() => setMobileMenuOpen(false)}
+                className="btn-gradient w-full text-center py-3 rounded-xl text-sm font-bold text-white shadow-lg"
+              >
+                {dict.nav.cta}
+              </Link>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 }

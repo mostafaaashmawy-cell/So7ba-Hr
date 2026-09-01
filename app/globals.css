@@ -1,304 +1,302 @@
 @import "tailwindcss";
 
-/* ═══════════════════════════════════════════════════════
-   HumAi Official Design System — Emerald Green & Deep Charcoal
-   ═══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════
+   HumAi Design System v2 — Futuristic Dark + Cyan-Violet Gradient
+   ═══════════════════════════════════════════════════════════════════ */
 
 :root {
-  /* ── Light Mode Palette ── */
-  --bg:             #f8fafc;
-  --bg-card:        #ffffff;
-  --bg-card-hover:  #f8fafc;
-  --bg-sidebar:     #ffffff;
-  --bg-input:       #f1f5f9;
+  /* ── Core Palette ── */
+  --bg-deep:        #05070D;
+  --bg-surface-1:   #0D1117;
+  --bg-surface-2:   #161B27;
+  --bg-surface-3:   #1C2333;
 
-  --border:         #e2e8f0;
-  --border-focus:   #10b981;
-  --border-hover:   #cbd5e1;
+  /* ── Accent ── */
+  --accent-cyan:    #22D3EE;
+  --accent-violet:  #8B5CF6;
+  --accent-cyan-dim:   rgba(34, 211, 238, 0.15);
+  --accent-violet-dim: rgba(139, 92, 246, 0.15);
 
-  --text-primary:   #1f2937; /* Deep Slate Charcoal */
-  --text-secondary: #4b5563;
-  --text-muted:     #9ca3af;
+  /* ── Borders ── */
+  --border-base:    rgba(255, 255, 255, 0.06);
+  --border-subtle:  rgba(255, 255, 255, 0.04);
+  --border-accent:  rgba(34, 211, 238, 0.3);
 
-  --primary:        #10b981; /* Official HumAi Emerald Green */
-  --primary-hover:  #059669;
-  --primary-light:  #ecfdf5; /* Emerald 50 */
-  --primary-ring:   rgba(16, 185, 129, 0.2);
+  /* ── Text ── */
+  --text-primary:   #F0F4FF;
+  --text-secondary: #94A3B8;
+  --text-muted:     #4B5567;
 
-  --shadow-card:    0 1px 3px rgba(0,0,0,.05), 0 1px 2px rgba(0,0,0,.04);
-  --shadow-hover:   0 8px 24px rgba(16,185,129,.1), 0 2px 8px rgba(0,0,0,.06);
-  --shadow-modal:   0 20px 60px rgba(31,41,55,.15);
+  /* ── Gradients ── */
+  --gradient-accent: linear-gradient(135deg, #22D3EE 0%, #8B5CF6 100%);
+  --gradient-hero-glow: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(34,211,238,0.15), transparent);
 
-  --scrollbar-track: #f1f5f9;
-  --scrollbar-thumb: #cbd5e1;
-
-  --sidebar-width: 18rem; /* 288px / w-72 */
-  --sidebar-collapsed-width: 4.5rem; /* 72px */
+  /* ── Shadows ── */
+  --shadow-glow-cyan:   0 0 30px rgba(34, 211, 238, 0.2);
+  --shadow-glow-violet: 0 0 30px rgba(139, 92, 246, 0.2);
+  --shadow-card:        0 1px 3px rgba(0,0,0,.4), 0 1px 2px rgba(0,0,0,.3);
+  --shadow-card-hover:  0 8px 32px rgba(0,0,0,.5), 0 0 0 1px rgba(34,211,238,0.2);
 }
 
-/* ── Dark Mode Palette (activated by .dark on <html>) ── */
-.dark {
-  --bg:             #0f172a;
-  --bg-card:        #1e293b;
-  --bg-card-hover:  #263348;
-  --bg-sidebar:     #1e293b;
-  --bg-input:       #0f172a;
+/* ═══════════════════════════════════════════════════════════════════
+   Base
+   ═══════════════════════════════════════════════════════════════════ */
 
-  --border:         #334155;
-  --border-focus:   #10b981;
-  --border-hover:   #475569;
+*, *::before, *::after { box-sizing: border-box; }
 
-  --text-primary:   #f8fafc;
-  --text-secondary: #cbd5e1;
-  --text-muted:     #64748b;
-
-  --primary:        #10b981;
-  --primary-hover:  #059669;
-  --primary-light:  rgba(16, 185, 129, 0.15);
-  --primary-ring:   rgba(16, 185, 129, 0.25);
-
-  --shadow-card:    0 1px 3px rgba(0,0,0,.3), 0 1px 2px rgba(0,0,0,.2);
-  --shadow-hover:   0 8px 24px rgba(0,0,0,.4), 0 2px 8px rgba(0,0,0,.3);
-  --shadow-modal:   0 20px 60px rgba(0,0,0,.5);
-
-  --scrollbar-track: #1e293b;
-  --scrollbar-thumb: #334155;
-}
-
-/* ═══════════════════════════════════════════════════════
-   Base Body Styles
-   ═══════════════════════════════════════════════════════ */
+html { scroll-behavior: smooth; }
 
 body {
-  background-color: var(--bg);
+  background-color: var(--bg-deep);
   color: var(--text-primary);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  min-height: 100vh;
 }
 
-/* ═══════════════════════════════════════════════════════
-   Card Utility Classes (theme-aware)
-   ═══════════════════════════════════════════════════════ */
-
-.cleariq-card {
-  background-color: var(--bg-card);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-card);
-  border-radius: 1.25rem;
-  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.cleariq-card-hover {
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.cleariq-card-hover:hover {
-  border-color: var(--border-hover);
-  box-shadow: var(--shadow-hover);
-  transform: translateY(-1px);
-}
-
-/* Legacy alias */
-.glass-card { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 1.25rem; }
-.glass-card-hover { transition: all 0.25s ease; }
-.glass-card-hover:hover { border-color: var(--border-hover); box-shadow: var(--shadow-hover); }
-
-/* ═══════════════════════════════════════════════════════
-   Gradient Button (HumAi Emerald Primary)
-   ═══════════════════════════════════════════════════════ */
-
-.gradient-btn {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: #ffffff;
-  transition: all 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.gradient-btn:hover {
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
-  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
-  transform: translateY(-1px);
-}
-
-.dark .gradient-btn {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-}
-
-.dark .gradient-btn:hover {
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
-  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
-}
-
-/* ═══════════════════════════════════════════════════════
-   Form Inputs — theme-aware tokens
-   ═══════════════════════════════════════════════════════ */
-
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="number"],
-input[type="date"],
-input[type="time"],
-input[type="search"],
-textarea,
-select {
-  background-color: var(--bg-input);
-  border-color: var(--border);
-  color: var(--text-primary);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.2s ease;
-}
-
-input:focus,
-textarea:focus,
-select:focus {
-  outline: none;
-  border-color: var(--border-focus) !important;
-  box-shadow: 0 0 0 3px var(--primary-ring);
-}
-
-input::placeholder,
-textarea::placeholder {
-  color: var(--text-muted);
-}
-
-/* Select option colors in dark mode */
-.dark select option {
-  background-color: #1e293b;
-  color: #f1f5f9;
-}
-
-/* ═══════════════════════════════════════════════════════
-   Sidebar styles (push layout)
-   ═══════════════════════════════════════════════════════ */
-
-.app-sidebar {
-  background-color: var(--bg-sidebar);
-  border-right-color: var(--border);
-  transition: background-color 0.2s ease, border-color 0.2s ease, width 0.3s ease;
-}
-
-/* ═══════════════════════════════════════════════════════
-   Scrollbar Styling
-   ═══════════════════════════════════════════════════════ */
-
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: var(--scrollbar-track); border-radius: 3px; }
-::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
-
-/* ═══════════════════════════════════════════════════════
-   Animation Utilities
-   ═══════════════════════════════════════════════════════ */
-
-.animate-in { animation: animateIn 0.2s ease forwards; }
-.fade-in    { animation: fadeIn 0.25s ease forwards; }
-
-@keyframes animateIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-.pulse-emerald {
-  animation: pulseEmerald 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-@keyframes pulseEmerald {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.7; transform: scale(1.06); }
-}
-
-/* ═══════════════════════════════════════════════════════
-   Gradient text
-   ═══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════
+   Gradient Text Utility
+   ═══════════════════════════════════════════════════════════════════ */
 
 .gradient-text {
-  background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+  background: var(--gradient-accent);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* ═══════════════════════════════════════════════════════
-   Table & modal utilities (theme-aware)
-   ═══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════
+   Glassmorphism Cards
+   ═══════════════════════════════════════════════════════════════════ */
 
-.theme-table thead { border-bottom-color: var(--border); }
-.theme-table tbody tr { border-bottom-color: var(--border); }
-.theme-table tbody tr:hover { background-color: var(--bg-card-hover); }
-
-.theme-modal {
-  background-color: var(--bg-card);
-  border-color: var(--border);
-  box-shadow: var(--shadow-modal);
+.glass-card {
+  background: rgba(13, 17, 23, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-base);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* ═══════════════════════════════════════════════════════
-   Active nav indicator
-   ═══════════════════════════════════════════════════════ */
-
-/* Light mode active */
-.nav-active {
-  background-color: #10b981;
-  color: #ffffff;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+.glass-card:hover {
+  border-color: rgba(34, 211, 238, 0.25);
+  box-shadow: var(--shadow-card-hover);
 }
 
-/* Dark mode active */
-.dark .nav-active {
-  background-color: rgba(16, 185, 129, 0.15);
-  color: #34d399;
-  border-right: 2px solid #10b981;
+.glass-card-featured {
+  background: rgba(13, 17, 23, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  box-shadow: 0 0 0 1px rgba(139,92,246,0.1), inset 0 1px 0 rgba(139,92,246,0.1);
 }
 
-/* ═══════════════════════════════════════════════════════
-   Print & PDF Export Engine Styles
-   ═══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════
+   Dot Grid Pattern
+   ═══════════════════════════════════════════════════════════════════ */
+
+.dot-grid-bg {
+  background-image: radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Gradient Button — Primary CTA
+   ═══════════════════════════════════════════════════════════════════ */
+
+.btn-gradient {
+  position: relative;
+  background: var(--gradient-accent);
+  color: #fff;
+  font-weight: 700;
+  border-radius: 0.875rem;
+  overflow: hidden;
+  transition: opacity 0.2s ease, transform 0.2s ease, box-shadow 0.3s ease;
+}
+
+.btn-gradient::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%, rgba(255,255,255,0.05) 100%);
+  background-size: 200% 200%;
+  background-position: 100% 100%;
+  transition: background-position 0.5s ease;
+}
+
+.btn-gradient:hover::before {
+  background-position: 0% 0%;
+}
+
+.btn-gradient:hover {
+  box-shadow: 0 0 24px rgba(34,211,238,0.35), 0 0 48px rgba(139,92,246,0.2);
+  transform: translateY(-1px);
+}
+
+.btn-gradient:active {
+  transform: translateY(0);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Glow Pulse (for CTA button accent)
+   ═══════════════════════════════════════════════════════════════════ */
+
+.glow-pulse {
+  animation: glowPulse 3s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 16px rgba(34,211,238,0.2), 0 0 32px rgba(139,92,246,0.1); }
+  50%       { box-shadow: 0 0 28px rgba(34,211,238,0.4), 0 0 56px rgba(139,92,246,0.25); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Animated Blob Orbs (Hero background)
+   ═══════════════════════════════════════════════════════════════════ */
+
+.blob-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  will-change: transform;
+}
+
+.blob-orb-1 {
+  width: 600px;
+  height: 400px;
+  background: radial-gradient(ellipse, rgba(34,211,238,0.12) 0%, transparent 70%);
+  animation: blobMove1 18s ease-in-out infinite;
+}
+
+.blob-orb-2 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(ellipse, rgba(139,92,246,0.1) 0%, transparent 70%);
+  animation: blobMove2 22s ease-in-out infinite;
+}
+
+.blob-orb-3 {
+  width: 350px;
+  height: 350px;
+  background: radial-gradient(ellipse, rgba(99,102,241,0.08) 0%, transparent 70%);
+  animation: blobMove3 26s ease-in-out infinite;
+}
+
+@keyframes blobMove1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(60px, -40px) scale(1.08); }
+  66%       { transform: translate(-40px, 30px) scale(0.95); }
+}
+
+@keyframes blobMove2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(-50px, 60px) scale(1.05); }
+  66%       { transform: translate(70px, -30px) scale(0.97); }
+}
+
+@keyframes blobMove3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%       { transform: translate(30px, 50px) scale(1.1); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Typing Indicator Dots (WhatsApp Demo)
+   ═══════════════════════════════════════════════════════════════════ */
+
+.typing-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  animation: typingBounce 1.2s ease-in-out infinite;
+}
+
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+  30%            { transform: translateY(-6px); opacity: 1; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Reduced Motion — Accessibility
+   ═══════════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  .blob-orb,
+  .glow-pulse,
+  .typing-dot {
+    animation: none !important;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Scrollbar
+   ═══════════════════════════════════════════════════════════════════ */
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg-surface-1); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: var(--bg-surface-3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Comparison Table Utilities
+   ═══════════════════════════════════════════════════════════════════ */
+
+.table-check-yes { color: var(--accent-cyan); }
+.table-check-no  { color: #4B5567; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   FAQ Accordion Border
+   ═══════════════════════════════════════════════════════════════════ */
+
+.accordion-item {
+  border-bottom: 1px solid var(--border-base);
+}
+
+.accordion-item:last-child {
+  border-bottom: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Selection
+   ═══════════════════════════════════════════════════════════════════ */
+
+::selection {
+  background-color: rgba(34, 211, 238, 0.25);
+  color: #fff;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Form Inputs
+   ═══════════════════════════════════════════════════════════════════ */
+
+input, textarea, select {
+  background-color: var(--bg-surface-2);
+  border-color: var(--border-base);
+  color: var(--text-primary);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: rgba(34, 211, 238, 0.5) !important;
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.1);
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--text-muted);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Print
+   ═══════════════════════════════════════════════════════════════════ */
+
 @media print {
-  body {
-    background: #ffffff !important;
-    color: #000000 !important;
-    font-size: 12pt;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-
-  header,
-  nav,
-  aside,
-  .app-sidebar,
-  .print-hide,
-  button:not(.print-show) {
-    display: none !important;
-  }
-
-  main {
-    margin: 0 !important;
-    padding: 0 !important;
-    max-width: 100% !important;
-    width: 100% !important;
-  }
-
-  .cleariq-card {
-    border: none !important;
-    box-shadow: none !important;
-    background: transparent !important;
-    padding: 0 !important;
-  }
-
-  @page {
-    margin: 1.5cm;
-    size: auto;
-  }
+  body { background: #ffffff !important; color: #000000 !important; }
+  .blob-orb, header, nav { display: none !important; }
 }
-

@@ -1,137 +1,61 @@
-import { Sparkles } from 'lucide-react';
+'use client';
 
-export function ComparisonSection() {
-  const rows = [
-    {
-      metric: 'وقت الإعداد',
-      excel: 'أيام لكل دورة رواتب',
-      traditional: 'أسابيع للتنفيذ والتدريب',
-      humai: 'دقائق معدودة',
-      highlight: true,
-    },
-    {
-      metric: 'التكلفة الإجمالية',
-      excel: 'مجاني ظاهرياً لكنه مكلّف جداً بالوقت والجهد',
-      traditional: 'مرتفعة، غير مناسبة لإمكانيات الـ SMEs',
-      humai: 'مصممة خصيصاً لميزانية الشركات الصغيرة والمتوسطة',
-      highlight: true,
-    },
-    {
-      metric: 'دعم عربي ومصري كامل',
-      excel: 'جزئي وغير منظم',
-      traditional: 'نادر ويتطلب تعريب معقد',
-      humai: 'كامل (لغة، قنوات دفع: InstaPay، ممارسات العمل)',
-      highlight: true,
-    },
-    {
-      metric: 'تحكم واستعلام عبر واتساب',
-      excel: 'غير متاح ✗',
-      traditional: 'غير متاح ✗',
-      humai: 'متاح ومدمج بالذكاء الاصطناعي ✓',
-      highlight: true,
-      badge: 'ميزة حصرية',
-    },
-    {
-      metric: 'احتمالية الخطأ البشري',
-      excel: 'مرتفعة (معادلات يدوية وتعديل غير مراقب)',
-      traditional: 'متوسطة (تعتمد على إدخال البيانات اليدوي)',
-      humai: 'منخفضة للغاية (تأكيد مزدوج + سجل رقابة كامل)',
-      highlight: true,
-    },
-  ];
+import { motion } from 'framer-motion';
+import type { SiteDictionary, ComparisonRow } from '@/lib/i18n/types';
+
+export function ComparisonSection({ dict }: { dict: SiteDictionary }) {
+  const prefersReduced = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const rows: ComparisonRow[] = dict.home.comparison.rows || [];
+  const headers = dict.home.comparison.headers || ['المعيار', 'Excel', 'أنظمة تقليدية', 'HumAi'];
 
   return (
-    <section className="py-20 bg-slate-950">
+    <section className="py-24 relative z-10 bg-[#0D1117]/40 border-y border-white/[0.06]" dir={dict.dir}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-3xl mx-auto mb-14">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-400 text-xs font-semibold mb-3">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>المقارنة الشاملة</span>
-          </div>
-          <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
-            ليه HumAi وملهوش غيره؟
+        <div className="text-center mb-16 space-y-3">
+          <span className="inline-flex items-center gap-2 bg-cyan-400/5 text-cyan-400 px-4 py-1.5 rounded-full text-xs font-semibold border border-cyan-400/20">
+            {dict.home.comparison.badge}
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-bold text-[#F0F4FF] tracking-tight">
+            {dict.home.comparison.title}
           </h2>
-          <p className="mt-3 text-slate-400 text-base">
-            اكتشف الفرق بين الاعتماد على الطرق التقليدية أو ملفات الإكسيل وبين إدارة شركتك بمنظومة ذكية مؤتمتة بالكامل.
+          <p className="text-[#94A3B8] text-sm sm:text-base max-w-2xl mx-auto">
+            {dict.home.comparison.subtitle}
           </p>
         </div>
 
-        {/* Comparison Table for Desktop / Tablet */}
-        <div className="hidden md:block overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/60 shadow-2xl">
-          <table className="w-full text-right border-collapse">
-            <thead>
-              <tr className="border-b border-slate-800 bg-slate-900/90 text-sm">
-                <th className="py-5 px-6 font-bold text-slate-200 w-1/4">المعيار</th>
-                <th className="py-5 px-6 font-semibold text-slate-400 w-1/4">ملفات Excel يدوية</th>
-                <th className="py-5 px-6 font-semibold text-slate-400 w-1/4">أنظمة HR تقليدية</th>
-                <th className="py-5 px-6 font-bold text-teal-400 w-1/4 bg-teal-950/30 border-r border-l border-teal-500/20">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-teal-400" />
-                    <span>منظومة HumAi</span>
-                  </div>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/80 text-sm">
-              {rows.map((row, index) => (
-                <tr key={index} className="hover:bg-slate-800/30 transition-colors">
-                  <td className="py-4 px-6 font-semibold text-slate-200">
-                    <div className="flex items-center gap-2">
-                      <span>{row.metric}</span>
-                      {row.badge && (
-                        <span className="text-[10px] bg-teal-500/20 text-teal-300 px-2 py-0.5 rounded font-bold border border-teal-500/30">
-                          {row.badge}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="py-4 px-6 text-slate-400">{row.excel}</td>
-                  <td className="py-4 px-6 text-slate-400">{row.traditional}</td>
-                  <td className="py-4 px-6 font-semibold text-white bg-teal-950/20 border-r border-l border-teal-500/20">
-                    <span className="text-teal-300">{row.humai}</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        {/* Header row */}
+        <div className="hidden md:grid grid-cols-4 gap-4 px-6 py-3 mb-3 text-xs font-semibold text-[#94A3B8] uppercase tracking-wider">
+          <div>{headers[0]}</div>
+          <div>{headers[1]}</div>
+          <div>{headers[2]}</div>
+          <div className="text-cyan-400">{headers[3]}</div>
         </div>
 
-        {/* Mobile Stacked Cards */}
-        <div className="md:hidden space-y-4">
-          {rows.map((row, index) => (
-            <div
+        <div className="space-y-2">
+          {rows.map((row: ComparisonRow, index: number) => (
+            <motion.div
               key={index}
-              className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3"
+              initial={prefersReduced ? { opacity: 1 } : { opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-80px' }}
+              transition={{ duration: 0.45, delay: index * 0.08 }}
+              className="glass-card rounded-xl px-6 py-4 grid grid-cols-2 md:grid-cols-4 gap-4 items-center"
             >
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                <span className="font-bold text-white text-sm">{row.metric}</span>
-                {row.badge && (
-                  <span className="text-[10px] bg-teal-500/20 text-teal-300 px-2 py-0.5 rounded font-bold">
-                    {row.badge}
-                  </span>
-                )}
+              <div className="font-semibold text-[#F0F4FF] col-span-2 md:col-span-1 text-sm">
+                {row.criteria}
               </div>
-              <div className="bg-teal-950/40 border border-teal-500/30 rounded-xl p-3">
-                <div className="text-xs font-bold text-teal-400 mb-1 flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" />
-                  <span>HumAi:</span>
-                </div>
-                <p className="text-xs text-white font-medium">{row.humai}</p>
+              <div className="hidden md:block text-[#4B5567] text-sm">{row.excel}</div>
+              <div className="text-[#4B5567] text-sm">{row.legacy}</div>
+              <div className="bg-gradient-to-b from-cyan-400/5 to-violet-500/5 border border-cyan-400/20 rounded-xl px-3 py-2 flex items-center gap-2">
+                <span className="text-cyan-400 font-semibold text-sm">{row.humai}</span>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
-                  <span className="text-slate-400 block mb-1">Excel:</span>
-                  <span className="text-slate-300">{row.excel}</span>
-                </div>
-                <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
-                  <span className="text-slate-400 block mb-1">أنظمة تقليدية:</span>
-                  <span className="text-slate-300">{row.traditional}</span>
-                </div>
-              </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>
     </section>
   );
 }
+
+// Also export as default for backward compat
+export default ComparisonSection;
