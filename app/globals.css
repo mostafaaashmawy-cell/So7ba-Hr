@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ═══════════════════════════════════════════════════════════════════
    HumAi Design System v2 — Futuristic Dark + Cyan-Violet Gradient
    ═══════════════════════════════════════════════════════════════════ */
@@ -300,3 +302,143 @@ input::placeholder, textarea::placeholder {
   body { background: #ffffff !important; color: #000000 !important; }
   .blob-orb, header, nav { display: none !important; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   DASHBOARD DESIGN TOKEN SYSTEM
+   Separate from the marketing palette above — these tokens power
+   all SaaS dashboard components. Light/dark pair via .dark class.
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── App Canvas / Background ── */
+  --bg:              #F8FAFC;   /* slate-50  */
+  /* ── Layer 1: Cards, Panels, Modals, Sidebar ── */
+  --bg-card:         #FFFFFF;
+  --bg-sidebar:      #FFFFFF;
+  /* ── Layer 2: Input Wells, Table Headers, Muted blocks ── */
+  --bg-input:        #F1F5F9;   /* slate-100 */
+  --bg-muted:        #F8FAFC;   /* slate-50  */
+  /* ── Borders & Dividers ── */
+  --border:          #E2E8F0;   /* slate-200 */
+  --border-subtle:   #F1F5F9;   /* slate-100 */
+  /* ── Typography ── */
+  --text-primary:    #0F172A;   /* slate-900 */
+  --text-secondary:  #475569;   /* slate-600 */
+  --text-muted:      #94A3B8;   /* slate-400 */
+  /* ── Brand Accent ── */
+  --accent:          #10B981;   /* emerald-500 */
+  --accent-dim:      rgba(16,185,129,0.12);
+}
+
+.dark {
+  /* ── App Canvas / Background ── */
+  --bg:              #0B0F17;   /* deep obsidian */
+  /* ── Layer 1: Cards, Panels, Modals, Sidebar ── */
+  --bg-card:         #111827;   /* slate-900 */
+  --bg-sidebar:      #0E1526;   /* deeper sidebar */
+  /* ── Layer 2: Input Wells, Table Headers, Muted blocks ── */
+  --bg-input:        #1E293B;   /* slate-800 */
+  --bg-muted:        #1E293B;   /* slate-800 */
+  /* ── Borders & Dividers ── */
+  --border:          #1E293B;   /* slate-800 */
+  --border-subtle:   #0F172A;   /* slate-900 */
+  /* ── Typography ── */
+  --text-primary:    #F1F5F9;   /* slate-100 */
+  --text-secondary:  #94A3B8;   /* slate-400 */
+  --text-muted:      #475569;   /* slate-600 */
+  /* ── Brand Accent ── */
+  --accent:          #34D399;   /* emerald-400 */
+  --accent-dim:      rgba(52,211,153,0.12);
+}
+
+/* ── App surface background utility ── */
+.bg-\(--bg\) {
+  background-color: var(--bg);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DASHBOARD COMPONENT CLASSES
+   cleariq-card: standard surface card used across all dashboard pages
+   gradient-btn: primary CTA button (emerald gradient)
+   ═══════════════════════════════════════════════════════════════════ */
+
+.cleariq-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 1rem;         /* rounded-2xl */
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.dark .cleariq-card {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.cleariq-card-hover {
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+
+.cleariq-card-hover:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04);
+  border-color: rgba(148,163,184,0.5);  /* slate-400/50 */
+}
+
+.dark .cleariq-card-hover:hover {
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  border-color: rgba(51,65,85,0.8);     /* slate-700/80 */
+}
+
+.gradient-btn {
+  position: relative;
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  color: #ffffff;
+  font-weight: 700;
+  border-radius: 0.75rem;       /* rounded-xl */
+  overflow: hidden;
+  transition: opacity 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.gradient-btn:hover {
+  opacity: 0.92;
+  box-shadow: 0 4px 16px rgba(16,185,129,0.35);
+  transform: translateY(-1px);
+}
+
+.gradient-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.gradient-btn:disabled,
+.gradient-btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DASHBOARD: Global Dark-Aware Base Overrides
+   Override the marketing-site input rules above for dashboard pages
+   ═══════════════════════════════════════════════════════════════════ */
+
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: var(--bg-input);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+.dark input:focus,
+.dark textarea:focus,
+.dark select:focus {
+  border-color: rgba(52, 211, 153, 0.5) !important;
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.1);
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: var(--text-muted);
+}
+
