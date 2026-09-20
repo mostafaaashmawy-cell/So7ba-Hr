@@ -31,3 +31,6 @@ yarn-error.log*
 .DS_Store
 *.pem
 *.tsbuildinfo
+
+# Separate Landing Page Project Repository
+Landing page/

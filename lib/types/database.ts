@@ -277,3 +277,18 @@ export interface AdvanceRecord {
   created_at?: string;
   user?: UserProfile;
 }
+
+export interface TenantInvitationRecord {
+  id: string;
+  token: string;
+  company_name: string;
+  email?: string | null;
+  role: UserRole;
+  is_used: boolean;
+  used_by?: string | null;
+  used_at?: string | null;
+  expires_at: string;
+  created_at?: string;
+  created_by?: string | null;
+}
+

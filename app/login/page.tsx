@@ -3,78 +3,53 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { UserRole } from '@/lib/types/database';
-import { Lock, Mail, User, ArrowRight, AlertCircle } from 'lucide-react';
+import { Lock, Mail, ArrowRight, AlertCircle, ShieldCheck } from 'lucide-react';
 import HumAiLogo from '@/components/common/HumAiLogo';
 
 export default function LoginPage() {
-  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [role, setRole] = useState<UserRole>('employee');
-  const [basicSalary, setBasicSalary] = useState(5000);
-  const [kpiUnit, setKpiUnit] = useState('tasks');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const router = useRouter();
   const supabase = createClient();
 
-  const handleAuth = async (e: React.FormEvent) => {
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setErrorMsg(null);
 
     try {
-      if (isSignUp) {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              full_name: fullName,
-              role,
-              basic_salary: basicSalary,
-              kpi_unit: kpiUnit,
-            },
-          },
-        });
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
 
-        if (error) throw error;
+      if (error) throw error;
 
-        if (data.user) {
+      if (data.user) {
+        const { data: profile } = await supabase
+          .from('users')
+          .select('role, tenant_id')
+          .eq('id', data.user.id)
+          .single();
+
+        if (!profile?.tenant_id) {
+          // If user has no tenant, redirect to onboarding to check activation
+          router.push('/onboarding');
+        } else if (profile?.role === 'super_admin') {
+          router.push('/dashboard/admin');
+        } else if (profile?.role === 'manager') {
+          router.push('/dashboard/manager');
+        } else {
           router.push('/dashboard/employee');
-          router.refresh();
         }
-      } else {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (error) throw error;
-
-        if (data.user) {
-          const { data: profile } = await supabase
-            .from('users')
-            .select('role')
-            .eq('id', data.user.id)
-            .single();
-
-          if (profile?.role === 'super_admin') {
-            router.push('/dashboard/admin');
-          } else if (profile?.role === 'manager') {
-            router.push('/dashboard/manager');
-          } else {
-            router.push('/dashboard/employee');
-          }
-          router.refresh();
-        }
+        router.refresh();
       }
     } catch (err: unknown) {
       console.error('Auth error details:', err);
-      let message = 'Authentication failed';
+      let message = 'Invalid email or password';
       if (err && typeof err === 'object') {
         if ('message' in err && typeof err.message === 'string') {
           message = err.message;
@@ -91,86 +66,34 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-slate-50 dark:bg-slate-950">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-slate-50 dark:bg-slate-950 font-sans">
       {/* Subtle background ambient glows */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/10 dark:bg-emerald-600/15 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-slate-800/10 dark:bg-slate-700/20 rounded-full blur-[120px] pointer-events-none" />
 
-      <div className="w-full max-w-md cleariq-card p-8 relative z-10">
-        <div className="text-center mb-8 flex flex-col items-center">
+      <div className="w-full max-w-md cleariq-card p-8 relative z-10 space-y-6">
+        <div className="text-center flex flex-col items-center">
           <HumAiLogo variant="full" size="lg" className="mb-3" />
+          <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+            Sign in to HumAi
+          </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
-            {isSignUp ? 'Register your employee profile' : 'Sign in to access your operations dashboard'}
+            Enter your company credentials to access your operations dashboard
           </p>
         </div>
 
         {errorMsg && (
-          <div className="mb-5 p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-400 text-xs flex items-center gap-2.5 font-medium">
+          <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-400 text-xs flex items-center gap-2.5 font-medium">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{errorMsg}</span>
           </div>
         )}
 
-        <form onSubmit={handleAuth} className="space-y-4">
-          {isSignUp && (
-            <>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Full Name</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    required
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="e.g. Ahmed Mostafa"
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
-                  />
-                  <User className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3 top-3" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Role</label>
-                  <select
-                    value={role}
-                    onChange={(e) => setRole(e.target.value as UserRole)}
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500 cursor-pointer"
-                  >
-                    <option value="employee">Employee</option>
-                    <option value="manager">Manager</option>
-                    <option value="super_admin">Super Admin</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Basic Salary (EGP)</label>
-                  <input
-                    type="number"
-                    required
-                    value={basicSalary}
-                    onChange={(e) => setBasicSalary(Number(e.target.value))}
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Dynamic KPI Unit</label>
-                <input
-                  type="text"
-                  required
-                  value={kpiUnit}
-                  onChange={(e) => setKpiUnit(e.target.value)}
-                  placeholder="e.g. pieces, calls, reports"
-                  className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-            </>
-          )}
-
+        <form onSubmit={handleSignIn} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Email Address</label>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+              Work Email Address
+            </label>
             <div className="relative">
               <input
                 type="email"
@@ -185,7 +108,9 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Password</label>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+              Password
+            </label>
             <div className="relative">
               <input
                 type="password"
@@ -202,29 +127,32 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full gradient-btn py-3 rounded-xl font-bold text-sm text-white shadow-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 mt-6"
+            className="w-full gradient-btn py-3 rounded-xl font-bold text-sm text-white shadow-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 mt-6 cursor-pointer"
           >
             {loading ? (
               <span>Authenticating...</span>
             ) : (
               <>
-                <span>{isSignUp ? 'Register Account' : 'Sign In'}</span>
+                <span>Sign In to Workspace</span>
                 <ArrowRight className="w-4 h-4" />
               </>
             )}
           </button>
         </form>
 
-        <div className="mt-6 text-center">
-          <button
-            type="button"
-            onClick={() => setIsSignUp(!isSignUp)}
-            className="text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-all font-bold cursor-pointer"
-          >
-            {isSignUp ? 'Already have an account? Sign In' : 'Need an account? Register here'}
-          </button>
+        {/* B2B Onboarding & Security Banner */}
+        <div className="pt-4 border-t border-slate-200 dark:border-slate-800 text-center space-y-2">
+          <div className="flex items-center justify-center gap-1.5 text-slate-400 text-xs font-medium">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+            <span>Enterprise Multi-Tenant Isolated Workspace</span>
+          </div>
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 leading-relaxed">
+            New organization? Company registration is strictly by invitation link.
+            Contact your HR department or HumAi Sales for your activation link.
+          </p>
         </div>
       </div>
     </div>
   );
 }
+

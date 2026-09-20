@@ -417,6 +417,29 @@ export default function EmployeeDirectoryPage() {
         insurance_print_url: formData.insurance_print_url,
       };
 
+      const targetUser = users.find((u) => u.id === formData.id);
+      const isPromotingToSuperAdmin = payload.role === 'super_admin' && (!targetUser || targetUser.role !== 'super_admin');
+      if (isPromotingToSuperAdmin) {
+        if (!isSuperAdmin) {
+          setMsg({
+            text: isRtl
+              ? 'خطأ أمني: فقط المسؤول الرئيسي (Super Admin) يمكنه تعيين أو ترقية مستخدمين لهذا الدور.'
+              : 'Security Error: Only an active Super Admin can assign or promote users to Super Admin.',
+            error: true,
+          });
+          setSaving(false);
+          return;
+        }
+
+        const confirmText = isRtl
+          ? `تحذير أمني: هل أنت متأكد من تعيين "${payload.full_name}" كمسؤول رئيسي (Super Admin)؟\nهذا سيمنحه صلاحيات كاملة لإدارة المؤسسة، الاشتراكات، وحسابات المشرفين.`
+          : `Security Confirmation: Are you sure you want to assign "${payload.full_name}" as Super Admin?\nThis will grant them full administrative access over company settings, billing, and user management.`;
+        if (!window.confirm(confirmText)) {
+          setSaving(false);
+          return;
+        }
+      }
+
       if (modalMode === 'edit' && formData.id) {
         const { error } = await supabase
           .from('users')
@@ -424,6 +447,21 @@ export default function EmployeeDirectoryPage() {
           .eq('id', formData.id);
 
         if (error) throw error;
+
+        if (isPromotingToSuperAdmin) {
+          logAuditAction(supabase, {
+            tenant_id: currentUser.tenant_id,
+            actor_id: currentUser.id,
+            action_type: 'PROMOTE_TO_SUPER_ADMIN',
+            entity_name: 'users',
+            entity_id: formData.id,
+            details: {
+              target_user_name: payload.full_name,
+              previous_role: targetUser?.role || 'none',
+              new_role: 'super_admin',
+            },
+          });
+        }
 
         logAuditAction(supabase, {
           tenant_id: currentUser.tenant_id,
@@ -449,6 +487,21 @@ export default function EmployeeDirectoryPage() {
         });
 
         if (error) throw error;
+
+        if (isPromotingToSuperAdmin) {
+          logAuditAction(supabase, {
+            tenant_id: currentUser.tenant_id,
+            actor_id: currentUser.id,
+            action_type: 'PROMOTE_TO_SUPER_ADMIN',
+            entity_name: 'users',
+            entity_id: newId,
+            details: {
+              target_user_name: payload.full_name,
+              previous_role: 'new_registration',
+              new_role: 'super_admin',
+            },
+          });
+        }
 
         logAuditAction(supabase, {
           tenant_id: currentUser.tenant_id,

@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Building, Settings, MapPin, Clock, ArrowRight, ArrowLeft, CheckCircle2, RefreshCw, Plus, Trash2, ShieldCheck, DollarSign } from 'lucide-react';
+import { Building, Settings, MapPin, Clock, ArrowRight, ArrowLeft, CheckCircle2, RefreshCw, Plus, Trash2, ShieldCheck, DollarSign, Lock, Mail, User, AlertCircle } from 'lucide-react';
 import { BranchLocation } from '@/lib/types/database';
 import HumAiLogo from '@/components/common/HumAiLogo';
 
@@ -31,14 +31,27 @@ const DAYS_OF_WEEK = [
   { key: 'Saturday', label: 'Saturday / السبت' },
 ];
 
-export default function OnboardingPage() {
+function OnboardingContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
+
+  const token = searchParams.get('token');
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+
+  // Token Validation State
+  const [tokenValid, setTokenValid] = useState<boolean | null>(null);
+  const [tokenError, setTokenError] = useState<string | null>(null);
+  const [needAccount, setNeedAccount] = useState(false);
+  const [adminName, setAdminName] = useState('');
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   // Step 1: Company Profile & Industry
   const [companyName, setCompanyName] = useState('');
@@ -79,17 +92,53 @@ export default function OnboardingPage() {
   const [existingTenantId, setExistingTenantId] = useState<string | null>(null);
 
   useEffect(() => {
-    const checkUser = async () => {
+    const initOnboarding = async () => {
+      // 1. Check if token is provided
+      if (token) {
+        const { data: tokenRes, error: tokenErr } = await supabase.rpc('validate_activation_token', {
+          p_token: token,
+        });
+
+        if (tokenErr || !tokenRes || !tokenRes.valid) {
+          setTokenValid(false);
+          setTokenError(tokenRes?.error || tokenErr?.message || 'Invalid or expired activation link');
+          setChecking(false);
+          return;
+        }
+
+        setTokenValid(true);
+        if (tokenRes.company_name) setCompanyName(tokenRes.company_name);
+        if (tokenRes.email) setAdminEmail(tokenRes.email);
+
+        // Check if user is already logged in
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (user) {
+          setUserId(user.id);
+          setNeedAccount(false);
+        } else {
+          setNeedAccount(true);
+        }
+        setChecking(false);
+        return;
+      }
+
+      // 2. No token: check if user is an existing Super Admin re-configuring
       const {
         data: { user },
       } = await supabase.auth.getUser();
+
       if (!user) {
-        router.push('/login');
+        setTokenValid(false);
+        setTokenError('An activation token is required to register a new organization on HumAi.');
+        setChecking(false);
         return;
       }
+
       setUserId(user.id);
 
-      // Check if profile already has tenant_id
       const { data: profile } = await supabase
         .from('users')
         .select('*')
@@ -104,6 +153,7 @@ export default function OnboardingPage() {
 
         // Prefill existing settings for Super Admin re-trigger
         setExistingTenantId(profile.tenant_id);
+        setTokenValid(true);
 
         const { data: tenant } = await supabase
           .from('tenants')
@@ -134,12 +184,47 @@ export default function OnboardingPage() {
           if (settings.enable_commissions !== undefined) setEnableCommissions(settings.enable_commissions);
           if (settings.enable_insurances !== undefined) setEnableInsurances(settings.enable_insurances);
         }
+      } else {
+        // User is logged in but has no tenant and provided no token
+        setTokenValid(false);
+        setTokenError('An activation token is required to register a new organization.');
       }
       setChecking(false);
     };
-    checkUser();
+
+    initOnboarding();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [token]);
+
+  const handleCreateAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    setAuthError(null);
+
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: adminEmail.trim(),
+        password: adminPassword,
+        options: {
+          data: {
+            full_name: adminName.trim(),
+          },
+        },
+      });
+
+      if (error) throw error;
+      if (!data.user) throw new Error('Account registration failed');
+
+      setUserId(data.user.id);
+      setNeedAccount(false);
+      setStep(1);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to create Super Admin account';
+      setAuthError(msg);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
 
   const toggleDay = (day: string) => {
     if (workDays.includes(day)) {
@@ -210,7 +295,49 @@ export default function OnboardingPage() {
 
       const primaryBranch = branches[0];
 
-      if (existingTenantId) {
+      if (token) {
+        // First-time setup with valid activation token
+        const { data: claimData, error: claimErr } = await supabase.rpc('claim_activation_token', {
+          p_token: token,
+          p_user_id: userId,
+          p_company_name: companyName.trim(),
+        });
+
+        if (claimErr) throw claimErr;
+        if (!claimData || !claimData.success) {
+          throw new Error(claimData?.error || 'Failed to claim activation token');
+        }
+
+        const newTenantId = claimData.tenant_id;
+
+        const { error: settingsErr } = await supabase.from('tenant_settings').upsert({
+          tenant_id: newTenantId,
+          industry,
+          branches,
+          enable_advances: enableAdvances,
+          enable_commissions: enableCommissions,
+          enable_insurances: enableInsurances,
+          enable_shifts: enableShifts,
+          work_start_time: workStartTime,
+          work_end_time: workEndTime,
+          work_days: workDays,
+          grace_period_mins: Number(gracePeriodMins),
+          lateness_mode: latenessMode,
+          minute_deduction_rate: Number(minuteDeductionRate),
+          max_advance_percentage: Number(maxAdvancePercentage),
+          advance_eligibility_day: Number(advanceEligibilityDay),
+          lateness_policy,
+          geofencing_lat: primaryBranch ? Number(primaryBranch.lat) : null,
+          geofencing_lng: primaryBranch ? Number(primaryBranch.lng) : null,
+          geofencing_radius: primaryBranch ? Number(primaryBranch.radius) : 150,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'tenant_id' });
+
+        if (settingsErr) throw settingsErr;
+
+        router.push('/dashboard/admin');
+        router.refresh();
+      } else if (existingTenantId) {
         // Re-run Wizard: Update existing tenant and settings
         await supabase
           .from('tenants')
@@ -247,48 +374,7 @@ export default function OnboardingPage() {
         router.push('/dashboard/admin');
         router.refresh();
       } else {
-        // Initial First-Time Setup
-        const { data: tenant, error: tenantErr } = await supabase
-          .from('tenants')
-          .insert({ name: companyName.trim() })
-          .select()
-          .single();
-
-        if (tenantErr) throw tenantErr;
-
-        const { error: settingsErr } = await supabase.from('tenant_settings').insert({
-          tenant_id: tenant.id,
-          industry,
-          branches,
-          enable_advances: enableAdvances,
-          enable_commissions: enableCommissions,
-          enable_insurances: enableInsurances,
-          enable_shifts: enableShifts,
-          work_start_time: workStartTime,
-          work_end_time: workEndTime,
-          work_days: workDays,
-          grace_period_mins: Number(gracePeriodMins),
-          lateness_mode: latenessMode,
-          minute_deduction_rate: Number(minuteDeductionRate),
-          max_advance_percentage: Number(maxAdvancePercentage),
-          advance_eligibility_day: Number(advanceEligibilityDay),
-          lateness_policy,
-          geofencing_lat: primaryBranch ? Number(primaryBranch.lat) : null,
-          geofencing_lng: primaryBranch ? Number(primaryBranch.lng) : null,
-          geofencing_radius: primaryBranch ? Number(primaryBranch.radius) : 150,
-        });
-
-        if (settingsErr) throw settingsErr;
-
-        const { error: userErr } = await supabase
-          .from('users')
-          .update({ tenant_id: tenant.id, role: 'super_admin' })
-          .eq('id', userId);
-
-        if (userErr) throw userErr;
-
-        router.push('/dashboard/employee');
-        router.refresh();
+        throw new Error('Missing activation token or company tenant ID');
       }
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : 'Setup wizard failed';
@@ -298,11 +384,135 @@ export default function OnboardingPage() {
     }
   };
 
+
   if (checking) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-500 dark:text-slate-400 text-xs">
         <RefreshCw className="w-5 h-5 animate-spin text-emerald-500 mr-2" />
         Checking profile onboarding status...
+      </div>
+    );
+  }
+
+  if (tokenValid === false) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-950 dark:text-slate-100 flex flex-col justify-center items-center p-4">
+        <div className="w-full max-w-md cleariq-card p-8 text-center space-y-6">
+          <div className="w-16 h-16 mx-auto rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500">
+            <AlertCircle className="w-8 h-8" />
+          </div>
+          <div>
+            <h2 className="text-xl font-extrabold text-slate-950 dark:text-white">Invalid Activation Link</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+              {tokenError ||
+                'This activation link is invalid, expired, or has already been used. Please contact HumAi Support or your account representative to request a new onboarding invitation.'}
+            </p>
+          </div>
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => router.push('/login')}
+              className="w-full px-6 py-2.5 rounded-xl gradient-btn text-xs font-bold text-white shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
+            >
+              Return to Sign In
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (needAccount) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-950 dark:text-slate-100 flex flex-col justify-center items-center p-4">
+        <div className="w-full max-w-md cleariq-card p-8 space-y-6">
+          <div className="text-center space-y-2">
+            <div className="flex justify-center mb-4">
+              <HumAiLogo variant="horizontal" size="md" showTagline />
+            </div>
+            <h2 className="text-xl font-extrabold text-slate-950 dark:text-white flex items-center justify-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-emerald-500" />
+              Create Super Admin Account
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Welcome to <span className="font-bold text-slate-900 dark:text-white">{companyName || 'HumAi'}</span>. Set up your master Super Admin credentials to begin.
+            </p>
+          </div>
+
+          {authError && (
+            <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-xl text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{authError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleCreateAccount} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                Full Name *
+              </label>
+              <div className="relative">
+                <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Mostafa Ashmawy"
+                  value={adminName}
+                  onChange={(e) => setAdminName(e.target.value)}
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                Work Email *
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="email"
+                  required
+                  placeholder="admin@company.com"
+                  value={adminEmail}
+                  onChange={(e) => setAdminEmail(e.target.value)}
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                Master Password *
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="password"
+                  required
+                  minLength={6}
+                  placeholder="Minimum 6 characters"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={authLoading}
+              className="w-full mt-2 py-3 rounded-xl gradient-btn text-xs font-bold text-white shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {authLoading ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <ArrowRight className="w-4 h-4" />
+              )}
+              Create Super Admin & Continue
+            </button>
+          </form>
+        </div>
       </div>
     );
   }
@@ -810,5 +1020,20 @@ export default function OnboardingPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-500 dark:text-slate-400 text-xs">
+          <RefreshCw className="w-5 h-5 animate-spin text-emerald-500 mr-2" />
+          Loading workspace setup...
+        </div>
+      }
+    >
+      <OnboardingContent />
+    </Suspense>
   );
 }

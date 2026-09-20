@@ -49,6 +49,7 @@ export default function EmployeeManagement({
   const [shifts, setShifts] = useState<ShiftRecord[]>(initialShifts);
   const [auditLogs, setAuditLogs] = useState<SystemAuditLogRecord[]>(initialAuditLogs);
   const [kpiUnits, setKpiUnits] = useState<{ id: string; name: string }[]>([]);
+  const [currentUserRole, setCurrentUserRole] = useState<UserRole | null>(null);
 
   // TABS: registry (Employee Database), departments, kpis, audit
   const [activeTab, setActiveTab] = useState<'registry' | 'departments' | 'kpis' | 'audit'>('registry');
@@ -141,6 +142,14 @@ export default function EmployeeManagement({
     fetchKpiUnits();
     fetchDepartments();
     fetchShifts();
+    const fetchCurrentUserRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase.from('users').select('role').eq('id', user.id).single();
+        if (data) setCurrentUserRole(data.role as UserRole);
+      }
+    };
+    fetchCurrentUserRole();
     if (activeTab === 'audit') {
       fetchAuditLogs();
     }
@@ -222,6 +231,27 @@ export default function EmployeeManagement({
     e.preventDefault();
     if (!selectedUser) return;
 
+    // Check if promoting to super_admin
+    const isPromotingToSuperAdmin = editForm.role === 'super_admin' && selectedUser.role !== 'super_admin';
+    if (isPromotingToSuperAdmin) {
+      if (currentUserRole !== 'super_admin') {
+        setMsg({
+          text: isRtl
+            ? 'خطأ أمني: فقط المسؤول الرئيسي (Super Admin) يمكنه ترقية مستخدمين آخرين إلى هذا الدور.'
+            : 'Security Error: Only an active Super Admin can promote other users to Super Admin.',
+          error: true,
+        });
+        return;
+      }
+
+      const confirmText = isRtl
+        ? `تحذير أمني: هل أنت متأكد من ترقية "${selectedUser.full_name}" إلى مسؤول رئيسي (Super Admin)؟\nهذا سيمنحه صلاحيات كاملة لإدارة المؤسسة، الاشتراكات، وحسابات المشرفين.`
+        : `Security Confirmation: Are you sure you want to promote "${selectedUser.full_name}" to Super Admin?\nThis will grant them full administrative access over company settings, billing, and user management.`;
+      if (!window.confirm(confirmText)) {
+        return;
+      }
+    }
+
     setLoading(true);
     setMsg(null);
 
@@ -271,6 +301,22 @@ export default function EmployeeManagement({
       // Log action to system audit trail
       const { data: { user: currentAuth } } = await supabase.auth.getUser();
       if (currentAuth && selectedUser.tenant_id) {
+        if (isPromotingToSuperAdmin) {
+          await logAuditAction(supabase, {
+            tenant_id: selectedUser.tenant_id,
+            actor_id: currentAuth.id,
+            action_type: 'PROMOTE_TO_SUPER_ADMIN',
+            entity_name: 'users',
+            entity_id: selectedUser.id,
+            details: {
+              target_user_id: selectedUser.id,
+              target_user_name: editForm.full_name,
+              previous_role: selectedUser.role,
+              new_role: 'super_admin',
+            },
+          });
+        }
+
         await logAuditAction(supabase, {
           tenant_id: selectedUser.tenant_id,
           actor_id: currentAuth.id,
@@ -905,7 +951,9 @@ export default function EmployeeManagement({
                   >
                     <option value="employee">Employee</option>
                     <option value="manager">Manager</option>
-                    <option value="super_admin">Super Admin</option>
+                    {(currentUserRole === 'super_admin' || editForm.role === 'super_admin') && (
+                      <option value="super_admin">Super Admin</option>
+                    )}
                   </select>
                 </div>
 
