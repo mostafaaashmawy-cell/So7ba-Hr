@@ -126,6 +126,7 @@ export interface UserProfile {
   full_name_ar?: string | null;
   full_name_en?: string | null;
   role: UserRole;
+  is_platform_admin?: boolean;
   basic_salary: number;
   kpi_unit: string;
   manager_id: string | null;
@@ -278,6 +279,30 @@ export interface AdvanceRecord {
   user?: UserProfile;
 }
 
+export interface TenantRecord {
+  id: string;
+  name: string;
+  plan: string;
+  subscription_status?: 'active' | 'suspended' | 'expired';
+  subscription_plan?: 'monthly' | 'semi_annual' | 'annual' | 'enterprise' | 'custom';
+  subscription_expires_at?: string;
+  max_employees?: number;
+  contact_email?: string | null;
+  contact_phone?: string | null;
+  created_at?: string;
+  user_count?: number;
+  super_admin?: UserProfile | null;
+}
+
+export interface PlatformMetrics {
+  total_tenants: number;
+  total_users: number;
+  pending_invitations: number;
+  total_annual: number;
+  total_monthly: number;
+  total_revenue: number;
+}
+
 export interface TenantInvitationRecord {
   id: string;
   token: string;
@@ -290,5 +315,9 @@ export interface TenantInvitationRecord {
   expires_at: string;
   created_at?: string;
   created_by?: string | null;
+  plan_type?: 'monthly' | 'semi_annual' | 'annual' | 'enterprise' | 'custom' | string;
+  amount_paid?: number;
+  payment_method?: 'offline' | 'stripe' | 'paymob' | 'fawry' | 'cash' | 'bank_transfer' | string;
+  notes?: string | null;
 }
 

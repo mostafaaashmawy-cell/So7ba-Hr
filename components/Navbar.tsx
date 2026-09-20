@@ -221,6 +221,17 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
                   {t('superAdmin')}
                 </Link>
               )}
+
+              {(user?.is_platform_admin || isSuperAdmin) && (
+                <Link
+                  href="/platform-admin"
+                  className="px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 bg-emerald-500/5 flex items-center gap-1"
+                  title="Platform Owner Super Console"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span className="hidden lg:inline">Platform</span>
+                </Link>
+              )}
             </nav>
           )}
 

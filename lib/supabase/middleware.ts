@@ -46,13 +46,14 @@ export async function updateSession(request: NextRequest) {
     (route) => request.nextUrl.pathname === route || request.nextUrl.pathname.startsWith(`${route}/`)
   );
   const isAuthPage = request.nextUrl.pathname.startsWith('/login');
+  const isOnboardingPage = request.nextUrl.pathname.startsWith('/onboarding');
   const isPublicAsset = 
     request.nextUrl.pathname === '/sw.js' || 
     request.nextUrl.pathname === '/manifest.json' ||
     request.nextUrl.pathname.startsWith('/icons/') ||
     request.nextUrl.pathname.startsWith('/images/');
 
-  if (!user && !isAuthPage && !isPublicAsset && !isMarketingPage) {
+  if (!user && !isAuthPage && !isPublicAsset && !isMarketingPage && !isOnboardingPage) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
