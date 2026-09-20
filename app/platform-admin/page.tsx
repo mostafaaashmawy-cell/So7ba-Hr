@@ -304,12 +304,12 @@ export default function PlatformAdminPage() {
           <p className="text-xs text-slate-500 dark:text-slate-400">
             This console is strictly reserved for the HumAi Platform Owner. Your account does not have platform administrative privileges.
           </p>
-          <div className="pt-2">
+          <div className="pt-2 flex gap-3 justify-center">
             <Link
-              href="/dashboard/admin"
+              href="/login"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-btn text-xs font-bold text-white shadow-lg shadow-emerald-500/20"
             >
-              <ArrowLeft className="w-4 h-4" /> Return to Organization Dashboard
+              <ArrowLeft className="w-4 h-4" /> Back to Login
             </Link>
           </div>
         </div>
