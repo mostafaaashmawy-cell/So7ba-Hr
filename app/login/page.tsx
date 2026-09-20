@@ -33,27 +33,26 @@ function LoginFormContent() {
 
       if (data.user) {
         // Use SECURITY DEFINER RPC to safely get profile regardless of tenant_id
-        const { data: profiles } = await supabase.rpc('get_my_profile');
+        const { data: profiles, error: rpcError } = await supabase.rpc('get_my_profile');
+        if (rpcError) console.error('get_my_profile RPC error:', rpcError);
         const profile = profiles && profiles.length > 0 ? profiles[0] : null;
 
-        // 1. If explicit redirect query param was passed (e.g. /platform-admin)
+        // Determine destination
+        let destination = '/dashboard/employee'; // safe default
+
         if (redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('//')) {
-          router.push(redirectParam);
+          destination = redirectParam;
         } else if (profile?.is_platform_admin && !profile?.tenant_id) {
-          // 2. True Platform Owner (no tenant) → Platform Console
-          router.push('/platform-admin');
+          destination = '/platform-admin';
         } else if (!profile?.tenant_id) {
-          // 3. User with no tenant → onboarding
-          router.push('/onboarding');
+          destination = '/onboarding';
         } else if (profile?.role === 'super_admin') {
-          // 4. Client Super Admin → Organization Admin Dashboard
-          router.push('/dashboard/admin');
+          destination = '/dashboard/admin';
         } else if (profile?.role === 'manager') {
-          router.push('/dashboard/manager');
-        } else {
-          router.push('/dashboard/employee');
+          destination = '/dashboard/manager';
         }
-        router.refresh();
+
+        router.push(destination);
       }
     } catch (err: unknown) {
       console.error('Auth error details:', err);
