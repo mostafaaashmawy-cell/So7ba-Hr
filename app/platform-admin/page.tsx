@@ -28,7 +28,7 @@ import {
 import HumAiLogo from '@/components/common/HumAiLogo';
 import { TenantRecord, TenantInvitationRecord, PlatformMetrics, UserProfile } from '@/lib/types/database';
 
-const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_URL || 'https://humai-hr.com';
+const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_URL || 'https://app.humai-hr.com';
 
 export default function PlatformAdminPage() {
   const router = useRouter();
@@ -606,7 +606,7 @@ export default function PlatformAdminPage() {
                 Activation Links & Invitations ({invitations.length})
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                All issued onboarding links using the official <span className="font-bold text-emerald-600 dark:text-emerald-400">humai-hr.com</span> domain.
+                All issued onboarding links using the official <span className="font-bold text-emerald-600 dark:text-emerald-400">app.humai-hr.com</span> domain.
               </p>
             </div>
 
