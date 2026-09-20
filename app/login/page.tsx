@@ -25,7 +25,7 @@ function LoginFormContent() {
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
+        email: email.trim().toLowerCase(),
         password,
       });
 
@@ -52,7 +52,7 @@ function LoginFormContent() {
           destination = '/dashboard/manager';
         }
 
-        router.push(destination);
+        window.location.href = destination;
       }
     } catch (err: unknown) {
       console.error('Auth error details:', err);
