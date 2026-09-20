@@ -83,14 +83,13 @@ export default function PlatformAdminPage() {
         return;
       }
 
-      const { data: profile } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+      // Use SECURITY DEFINER RPC to bypass RLS (platform admin has no tenant_id
+      // which can cause the normal RLS self-select to fail in some policy combinations)
+      const { data: profiles } = await supabase.rpc('get_my_profile');
+      const profile = profiles && profiles.length > 0 ? profiles[0] : null;
 
-      // Authorized if user has is_platform_admin = true OR role = 'super_admin'
-      if (profile && (profile.is_platform_admin === true || profile.role === 'super_admin')) {
+      // Authorized ONLY if user has is_platform_admin = true
+      if (profile && profile.is_platform_admin === true) {
         setIsAuthorized(true);
         setCurrentAdmin(profile as UserProfile);
         loadPlatformData();

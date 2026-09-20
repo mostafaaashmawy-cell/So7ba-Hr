@@ -32,11 +32,9 @@ function LoginFormContent() {
       if (error) throw error;
 
       if (data.user) {
-        const { data: profile } = await supabase
-          .from('users')
-          .select('role, tenant_id, is_platform_admin')
-          .eq('id', data.user.id)
-          .single();
+        // Use SECURITY DEFINER RPC to safely get profile regardless of tenant_id
+        const { data: profiles } = await supabase.rpc('get_my_profile');
+        const profile = profiles && profiles.length > 0 ? profiles[0] : null;
 
         // 1. If explicit redirect query param was passed (e.g. /platform-admin)
         if (redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('//')) {
