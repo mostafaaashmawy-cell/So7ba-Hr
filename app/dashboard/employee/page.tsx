@@ -34,7 +34,12 @@ export default async function EmployeeDashboardPage() {
     .eq('id', authUser.id)
     .single();
 
-  if (userProfile && !userProfile.tenant_id) {
+  // If profile not found (RLS blocked or orphaned auth user), send back to login
+  if (!userProfile) {
+    redirect('/login');
+  }
+
+  if (!userProfile.tenant_id) {
     redirect('/onboarding');
   }
 

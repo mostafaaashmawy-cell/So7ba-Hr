@@ -32,7 +32,11 @@ export default async function ManagerDashboardPage() {
     .eq('id', authUser.id)
     .single();
 
-  if (userProfile && !userProfile.tenant_id) {
+  if (!userProfile) {
+    redirect('/login');
+  }
+
+  if (!userProfile.tenant_id) {
     redirect('/onboarding');
   }
 
