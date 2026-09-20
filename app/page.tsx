@@ -23,8 +23,8 @@ export default async function RootPage() {
     redirect('/login');
   }
 
-  // Platform owner goes to platform console
-  if (profile.is_platform_admin) {
+  // Platform owner goes to platform console (must have no tenant — true platform owner)
+  if (profile.is_platform_admin && !profile.tenant_id) {
     redirect('/platform-admin');
   }
 

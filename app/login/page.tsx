@@ -39,14 +39,14 @@ function LoginFormContent() {
         // 1. If explicit redirect query param was passed (e.g. /platform-admin)
         if (redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('//')) {
           router.push(redirectParam);
-        } else if (profile?.is_platform_admin) {
-          // 2. Platform Admin defaults to Platform Console
+        } else if (profile?.is_platform_admin && !profile?.tenant_id) {
+          // 2. True Platform Owner (no tenant) → Platform Console
           router.push('/platform-admin');
         } else if (!profile?.tenant_id) {
-          // 3. User with no tenant -> onboarding
+          // 3. User with no tenant → onboarding
           router.push('/onboarding');
         } else if (profile?.role === 'super_admin') {
-          // 4. Client Super Admin -> Organization Admin Dashboard
+          // 4. Client Super Admin → Organization Admin Dashboard
           router.push('/dashboard/admin');
         } else if (profile?.role === 'manager') {
           router.push('/dashboard/manager');
