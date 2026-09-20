@@ -1,19 +1,22 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Lock, Mail, ArrowRight, AlertCircle, ShieldCheck } from 'lucide-react';
+import { Lock, Mail, ArrowRight, AlertCircle, ShieldCheck, RefreshCw } from 'lucide-react';
 import HumAiLogo from '@/components/common/HumAiLogo';
 
-export default function LoginPage() {
+function LoginFormContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
+
+  const redirectParam = searchParams.get('redirect');
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,14 +34,21 @@ export default function LoginPage() {
       if (data.user) {
         const { data: profile } = await supabase
           .from('users')
-          .select('role, tenant_id')
+          .select('role, tenant_id, is_platform_admin')
           .eq('id', data.user.id)
           .single();
 
-        if (!profile?.tenant_id) {
-          // If user has no tenant, redirect to onboarding to check activation
+        // 1. If explicit redirect query param was passed (e.g. /platform-admin)
+        if (redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('//')) {
+          router.push(redirectParam);
+        } else if (profile?.is_platform_admin) {
+          // 2. Platform Admin defaults to Platform Console
+          router.push('/platform-admin');
+        } else if (!profile?.tenant_id) {
+          // 3. User with no tenant -> onboarding
           router.push('/onboarding');
         } else if (profile?.role === 'super_admin') {
+          // 4. Client Super Admin -> Organization Admin Dashboard
           router.push('/dashboard/admin');
         } else if (profile?.role === 'manager') {
           router.push('/dashboard/manager');
@@ -153,6 +163,21 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 text-slate-500 text-xs">
+          <RefreshCw className="w-5 h-5 animate-spin text-emerald-500 mr-2" />
+          Loading authentication...
+        </div>
+      }
+    >
+      <LoginFormContent />
+    </Suspense>
   );
 }
 
