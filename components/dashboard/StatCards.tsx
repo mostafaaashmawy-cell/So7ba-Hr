@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { ArrowUpRight } from 'lucide-react';
+import { useLanguage } from '@/lib/context/LanguageContext';
 
 interface StatCardsProps {
   totalEmployees: number;
@@ -18,6 +19,8 @@ export default function StatCards({
   avgPerformance,
   totalPayrollEgp = 128000,
 }: StatCardsProps) {
+  const { isRtl } = useLanguage();
+
   // SVG Circular Radial Progress Gauge Component
   const RadialGauge = ({ percentage, color }: { percentage: number; color: string }) => {
     const radius = 22;
@@ -64,14 +67,18 @@ export default function StatCards({
       {/* CARD 1: Total Employees */}
       <div className="cleariq-card p-5 cleariq-card-hover flex items-center justify-between">
         <div className="space-y-2">
-          <span className="text-xs text-slate-600 dark:text-slate-300 font-semibold block">Total Employees</span>
+          <span className="text-xs text-slate-600 dark:text-slate-300 font-semibold block">
+            {isRtl ? 'إجمالي الموظفين' : 'Total Employees'}
+          </span>
           <div className="text-2xl sm:text-3xl text-slate-950 dark:text-white font-extrabold tracking-tight font-sans">
             {totalEmployees.toLocaleString()}
           </div>
           <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
             <ArrowUpRight className="w-3.5 h-3.5" />
-            <span>+12% increase</span>
-            <span className="text-slate-400 font-normal ml-1">Last month</span>
+            <span>{isRtl ? '+12% نمو' : '+12% increase'}</span>
+            <span className="text-slate-400 font-normal ml-1">
+              {isRtl ? 'الشهر الماضي' : 'Last month'}
+            </span>
           </div>
         </div>
         <RadialGauge percentage={85} color="#10b981" />
@@ -80,14 +87,18 @@ export default function StatCards({
       {/* CARD 2: Active on Duty Today */}
       <div className="cleariq-card p-5 cleariq-card-hover flex items-center justify-between">
         <div className="space-y-2">
-          <span className="text-xs text-slate-600 dark:text-slate-300 font-semibold block">Active On Duty Today</span>
+          <span className="text-xs text-slate-600 dark:text-slate-300 font-semibold block">
+            {isRtl ? 'الحاضرون بالعمل اليوم' : 'Active On Duty Today'}
+          </span>
           <div className="text-2xl sm:text-3xl text-slate-950 dark:text-white font-extrabold tracking-tight font-sans">
             {activeToday.toLocaleString()}
           </div>
           <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
             <ArrowUpRight className="w-3.5 h-3.5" />
-            <span>{attendanceRate}% present</span>
-            <span className="text-slate-400 font-normal ml-1">Today</span>
+            <span>{attendanceRate}% {isRtl ? 'حضور' : 'present'}</span>
+            <span className="text-slate-400 font-normal ml-1">
+              {isRtl ? 'اليوم' : 'Today'}
+            </span>
           </div>
         </div>
         <RadialGauge percentage={attendanceRate || 75} color="#059669" />
@@ -96,15 +107,19 @@ export default function StatCards({
       {/* CARD 3: Performance Index */}
       <div className="cleariq-card p-5 cleariq-card-hover flex items-center justify-between">
         <div className="space-y-2">
-          <span className="text-xs text-slate-600 dark:text-slate-300 font-semibold block">Avg Performance Score</span>
+          <span className="text-xs text-slate-600 dark:text-slate-300 font-semibold block">
+            {isRtl ? 'متوسط تقييم الأداء' : 'Avg Performance Score'}
+          </span>
           <div className="text-2xl sm:text-3xl text-slate-950 dark:text-white font-extrabold tracking-tight font-sans flex items-baseline gap-1">
             {avgPerformance > 0 ? avgPerformance.toFixed(1) : '4.2'}
             <span className="text-sm font-semibold text-slate-400">/ 5.0</span>
           </div>
           <div className="flex items-center gap-1 text-[11px] font-bold text-teal-600 dark:text-teal-400">
             <ArrowUpRight className="w-3.5 h-3.5" />
-            <span>{totalLeavesMonth} on leave</span>
-            <span className="text-slate-400 font-normal ml-1">Records</span>
+            <span>{totalLeavesMonth} {isRtl ? 'في إجازة' : 'on leave'}</span>
+            <span className="text-slate-400 font-normal ml-1">
+              {isRtl ? 'طلبات' : 'Records'}
+            </span>
           </div>
         </div>
         <RadialGauge percentage={performanceRate || 84} color="#0d9488" />
@@ -113,15 +128,19 @@ export default function StatCards({
       {/* CARD 4: Total Monthly Payroll */}
       <div className="cleariq-card p-5 cleariq-card-hover flex items-center justify-between">
         <div className="space-y-2">
-          <span className="text-xs text-slate-600 dark:text-slate-300 font-semibold block">Estimated Payroll</span>
+          <span className="text-xs text-slate-600 dark:text-slate-300 font-semibold block">
+            {isRtl ? 'إجمالي الرواتب التقديري' : 'Estimated Payroll'}
+          </span>
           <div className="text-2xl sm:text-3xl text-slate-950 dark:text-white font-extrabold tracking-tight font-sans">
             {totalPayrollEgp.toLocaleString()}
             <span className="text-xs font-bold text-slate-400 ml-1">EGP</span>
           </div>
           <div className="flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
             <ArrowUpRight className="w-3.5 h-3.5" />
-            <span>On schedule</span>
-            <span className="text-slate-400 font-normal ml-1">This month</span>
+            <span>{isRtl ? 'مجدول للصرف' : 'On schedule'}</span>
+            <span className="text-slate-400 font-normal ml-1">
+              {isRtl ? 'هذا الشهر' : 'This month'}
+            </span>
           </div>
         </div>
         <RadialGauge percentage={92} color="#f59e0b" />

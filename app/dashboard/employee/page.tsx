@@ -155,6 +155,11 @@ export default async function EmployeeDashboardPage() {
             initialRecords={(leavesHistory as LeavePermissionRecord[]) || []}
             holidayWorkCount={holidayWorkCount}
             annualLeaveAllowance={user?.annual_leave_allowance ?? 21}
+            userRole={user?.role || 'employee'}
+            managerId={user?.manager_id || null}
+            tenantId={user?.tenant_id}
+            userName={user?.full_name || user?.full_name_ar || user?.full_name_en}
+            leaveApprovalMode={tenantSettings?.leave_approval_mode || 'auto_approve'}
           />
         </div>
 

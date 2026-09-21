@@ -11,7 +11,7 @@ import {
   LeavePermissionRecord,
   KpiEntryRecord,
 } from '@/lib/types/database';
-import StatCards from '@/components/dashboard/StatCards';
+import TeamRequestsApprovalCenter from '@/components/manager/TeamRequestsApprovalCenter';
 import HomeTaskAnalytics from '@/components/dashboard/HomeTaskAnalytics';
 
 export default async function ManagerDashboardPage() {
@@ -103,23 +103,12 @@ export default async function ManagerDashboardPage() {
       (a) => a.date === todayStr || a.check_in_time?.startsWith(todayStr)
     ).length || 0;
   const totalLeaves = leaveRecords?.length || 0;
-  const totalPayrollEstimate =
-    teamMembers?.reduce((sum, u) => sum + Number(u.basic_salary ?? 0), 0) || 0;
 
   return (
     <div className="min-h-screen bg-(--bg) text-slate-900 dark:text-slate-100 flex flex-col font-sans pb-16 md:pb-8">
       <Navbar user={manager} activeRoleView="manager" />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-8 space-y-8">
-        {/* Stat Cards for Team */}
-        <StatCards
-          totalEmployees={totalTeam}
-          activeToday={activeToday}
-          totalLeavesMonth={totalLeaves}
-          avgPerformance={avgPerformance}
-          totalPayrollEgp={totalPayrollEstimate}
-        />
-
         {/* MANAGER COMMAND CENTER */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Link
@@ -180,12 +169,22 @@ export default async function ManagerDashboardPage() {
         {/* Monthly Task Completion & Target Progress Analytics */}
         <HomeTaskAnalytics />
 
+        {/* Team Requests Approval Center (Leaves & Permissions) */}
+        <TeamRequestsApprovalCenter
+          initialRequests={(leaveRecords as LeavePermissionRecord[]) || []}
+          teamMembers={(teamMembers as UserProfile[]) || []}
+          currentUserId={authUser.id}
+          currentUserRole={manager.role === 'super_admin' ? 'super_admin' : 'manager'}
+          tenantId={manager.tenant_id}
+        />
+
         {/* Team Overview Dashboard */}
         <TeamOverviewTable
           teamMembers={(teamMembers as UserProfile[]) || []}
           attendanceRecords={(attendanceRecords as AttendanceRecord[]) || []}
           leaveRecords={(leaveRecords as LeavePermissionRecord[]) || []}
           kpiRecords={(kpiRecords as KpiEntryRecord[]) || []}
+          isSuperAdmin={manager?.role === 'super_admin'}
         />
 
         {/* Holiday Work Compensations Form */}

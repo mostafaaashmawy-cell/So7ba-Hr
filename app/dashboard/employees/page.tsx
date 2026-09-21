@@ -37,6 +37,7 @@ import {
   Eye,
   UserCheck,
   Send,
+  Zap,
 } from 'lucide-react';
 import { useLanguage } from '@/lib/context/LanguageContext';
 import { exportToCSV } from '@/lib/utils/csvExport';
@@ -54,6 +55,7 @@ const PAYOUT_METHODS: { value: PayoutMethod; labelEn: string; labelAr: string; i
   { value: 'bank_transfer', labelEn: 'Bank Transfer (تحويل بنكي)', labelAr: 'تحويل بنكي', icon: 'bank' },
   { value: 'instapay', labelEn: 'InstaPay (إنستاباي)', labelAr: 'إنستاباي', icon: 'instapay' },
   { value: 'e_wallet', labelEn: 'E-Wallet (محفظة إلكترونية)', labelAr: 'محفظة إلكترونية', icon: 'wallet' },
+  { value: 'fawry', labelEn: 'Fawry (فوري)', labelAr: 'فوري', icon: 'fawry' },
   { value: 'cash', labelEn: 'Cash (نقدي)', labelAr: 'نقدي', icon: 'cash' },
 ];
 
@@ -104,6 +106,7 @@ interface EditFormState {
   iban: string;
   wallet_phone_number: string;
   instapay_handle: string;
+  fawry_mobile_number: string;
 
   // Documents
   national_id_front_url: string | null;
@@ -156,6 +159,7 @@ const emptyForm: EditFormState = {
   iban: '',
   wallet_phone_number: '',
   instapay_handle: '',
+  fawry_mobile_number: '',
 
   national_id_front_url: null,
   national_id_back_url: null,
@@ -336,6 +340,7 @@ export default function EmployeeDirectoryPage() {
       iban: u.iban || '',
       wallet_phone_number: u.wallet_phone_number || '',
       instapay_handle: u.instapay_handle || '',
+      fawry_mobile_number: u.fawry_mobile_number || '',
 
       national_id_front_url: u.national_id_front_url || null,
       national_id_back_url: u.national_id_back_url || null,
@@ -408,6 +413,7 @@ export default function EmployeeDirectoryPage() {
         iban: formData.iban.trim() || null,
         wallet_phone_number: formData.wallet_phone_number.trim() || null,
         instapay_handle: formData.instapay_handle.trim() || null,
+        fawry_mobile_number: formData.fawry_mobile_number.trim() || null,
 
         national_id_front_url: formData.national_id_front_url,
         national_id_back_url: formData.national_id_back_url,
@@ -542,7 +548,7 @@ export default function EmployeeDirectoryPage() {
       Mobile: u.mobile || '',
       Department: u.department?.name || 'Unassigned',
       'Job Title': u.job_title || '',
-      'Basic Salary (EGP)': u.basic_salary,
+      'Basic Salary (EGP)': isSuperAdmin ? u.basic_salary : '***',
       'Payout Method': u.payout_method || 'cash',
       'Bank / IBAN / Wallet':
         u.payout_method === 'bank_transfer'
@@ -551,6 +557,8 @@ export default function EmployeeDirectoryPage() {
           ? u.instapay_handle || ''
           : u.payout_method === 'e_wallet'
           ? u.wallet_phone_number || ''
+          : u.payout_method === 'fawry'
+          ? u.fawry_mobile_number || ''
           : 'Cash',
       'Shift Assigned': u.shift?.name || 'Default',
       'Remote Status': u.is_remote ? 'Remote' : 'Onsite',
@@ -833,9 +841,15 @@ export default function EmployeeDirectoryPage() {
                       {/* Payout Channel */}
                       <td className="py-3 px-4">
                         <div className="flex flex-col gap-0.5">
-                          <span className="font-bold text-emerald-600 dark:text-emerald-400 font-sans">
-                            {Number(u.basic_salary ?? 0).toLocaleString()} EGP
-                          </span>
+                          {isSuperAdmin ? (
+                            <span className="font-bold text-emerald-600 dark:text-emerald-400 font-sans">
+                              {Number(u.basic_salary ?? 0).toLocaleString()} EGP
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold text-slate-400 font-mono">
+                              *** EGP
+                            </span>
+                          )}
                           <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-600 dark:text-slate-400 capitalize">
                             {u.payout_method === 'bank_transfer' && (
                               <CreditCard className="w-3 h-3 text-blue-500" />
@@ -846,7 +860,14 @@ export default function EmployeeDirectoryPage() {
                             {u.payout_method === 'e_wallet' && (
                               <Wallet className="w-3 h-3 text-purple-500" />
                             )}
-                            {u.payout_method || 'cash'}
+                            {u.payout_method === 'fawry' && (
+                              <Zap className="w-3 h-3 text-amber-500" />
+                            )}
+                            {u.payout_method === 'fawry'
+                              ? u.fawry_mobile_number
+                                ? `Fawry (${u.fawry_mobile_number})`
+                                : 'Fawry'
+                              : u.payout_method || 'cash'}
                           </span>
                         </div>
                       </td>
@@ -1005,18 +1026,20 @@ export default function EmployeeDirectoryPage() {
                   {isRtl ? 'الوظيفة ومواعيد العمل' : '2. Job & Work Shift'}
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => setActiveModalTab('financials')}
-                  className={`py-3 px-3.5 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 ${
-                    activeModalTab === 'financials'
-                      ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400'
-                      : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                  }`}
-                >
-                  <DollarSign className="w-4 h-4" />
-                  {isRtl ? 'الراتب وقنوات الصرف' : '3. Financials & Payout'}
-                </button>
+                {isSuperAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveModalTab('financials')}
+                    className={`py-3 px-3.5 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 ${
+                      activeModalTab === 'financials'
+                        ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400'
+                        : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    <DollarSign className="w-4 h-4" />
+                    {isRtl ? 'الراتب وقنوات الصرف' : '3. Financials & Payout'}
+                  </button>
+                )}
 
                 <button
                   type="button"
@@ -1422,16 +1445,8 @@ export default function EmployeeDirectoryPage() {
                 )}
 
                 {/* ─── TAB 3: FINANCIALS & PAYOUT ───────────────────────── */}
-                {activeModalTab === 'financials' && (
+                {activeModalTab === 'financials' && isSuperAdmin && (
                   <div className="space-y-4 animate-in">
-                    {!canEditFinancials && (
-                      <div className="p-3 bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 rounded-xl text-xs font-bold border border-amber-200 dark:border-amber-800">
-                        {isRtl
-                          ? 'تنبيه: تعديل الرواتب وقنوات الصرف متاح للمشرف العام فقط.'
-                          : 'Notice: Financial modifications restricted to Super Admin.'}
-                      </div>
-                    )}
-
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
                         <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">
@@ -1538,7 +1553,7 @@ export default function EmployeeDirectoryPage() {
                         <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-2">
                           {isRtl ? 'اختر وسيلة الصرف المعتمدة:' : 'Select Payout Channel:'}
                         </label>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
                           {PAYOUT_METHODS.map((method) => {
                             const isSelected = formData.payout_method === method.value;
                             return (
@@ -1556,6 +1571,7 @@ export default function EmployeeDirectoryPage() {
                                 {method.value === 'bank_transfer' && <CreditCard className="w-4 h-4" />}
                                 {method.value === 'instapay' && <Send className="w-4 h-4" />}
                                 {method.value === 'e_wallet' && <Wallet className="w-4 h-4" />}
+                                {method.value === 'fawry' && <Zap className="w-4 h-4" />}
                                 {method.value === 'cash' && <DollarSign className="w-4 h-4" />}
                                 <span>{isRtl ? method.labelAr : method.labelEn}</span>
                               </button>
@@ -1637,6 +1653,24 @@ export default function EmployeeDirectoryPage() {
                             value={formData.wallet_phone_number}
                             onChange={(e) =>
                               setFormData({ ...formData, wallet_phone_number: e.target.value })
+                            }
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-950 dark:text-white font-mono"
+                          />
+                        </div>
+                      )}
+
+                      {/* Conditional Fields: Fawry */}
+                      {formData.payout_method === 'fawry' && (
+                        <div className="pt-2">
+                          <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">
+                            {isRtl ? 'رقم الهاتف المسجل في فوري (Mobile Number):' : 'Fawry Registered Mobile Number:'}
+                          </label>
+                          <input
+                            type="tel"
+                            placeholder="010XXXXXXXX / 011... / 012... / 015..."
+                            value={formData.fawry_mobile_number}
+                            onChange={(e) =>
+                              setFormData({ ...formData, fawry_mobile_number: e.target.value })
                             }
                             className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-950 dark:text-white font-mono"
                           />

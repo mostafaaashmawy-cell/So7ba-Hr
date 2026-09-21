@@ -7,6 +7,7 @@ export interface BranchLocation {
   lat: number;
   lng: number;
   radius: number; // in meters
+  map_url?: string;
 }
 
 export interface ShiftRecord {
@@ -95,6 +96,7 @@ export interface TenantSettings {
   geofencing_lat?: number | null;
   geofencing_lng?: number | null;
   geofencing_radius?: number;
+  leave_approval_mode?: 'auto_approve' | 'hierarchical';
 }
 
 export type AdjustmentType = 'bonus' | 'penalty' | 'deduction' | 'holiday_comp' | 'other';
@@ -117,7 +119,7 @@ export interface FinancialAdjustmentRecord {
   reviewer?: UserProfile;
 }
 
-export type PayoutMethod = 'bank_transfer' | 'instapay' | 'e_wallet' | 'cash';
+export type PayoutMethod = 'bank_transfer' | 'instapay' | 'e_wallet' | 'cash' | 'fawry';
 export type MilitaryStatus = 'completed' | 'exempted' | 'postponed' | 'not_applicable';
 
 export interface UserProfile {
@@ -130,6 +132,7 @@ export interface UserProfile {
   basic_salary: number;
   kpi_unit: string;
   manager_id: string | null;
+  fawry_mobile_number?: string | null;
   created_at?: string;
   updated_at?: string;
 
@@ -219,6 +222,9 @@ export interface LeavePermissionRecord {
   status: string;
   timeframe?: string | null;
   excuse_time?: string | null;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  rejection_reason?: string | null;
   created_at?: string;
   user?: UserProfile;
 }
@@ -283,6 +289,7 @@ export interface TenantRecord {
   id: string;
   name: string;
   plan: string;
+  logo_url?: string | null;
   subscription_status?: 'active' | 'suspended' | 'expired';
   subscription_plan?: 'monthly' | 'semi_annual' | 'annual' | 'enterprise' | 'custom';
   subscription_expires_at?: string;

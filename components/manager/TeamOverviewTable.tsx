@@ -12,6 +12,7 @@ interface TeamOverviewProps {
   attendanceRecords: AttendanceRecord[];
   leaveRecords: LeavePermissionRecord[];
   kpiRecords: KpiEntryRecord[];
+  isSuperAdmin?: boolean;
 }
 
 export default function TeamOverviewTable({
@@ -19,6 +20,7 @@ export default function TeamOverviewTable({
   attendanceRecords,
   leaveRecords,
   kpiRecords,
+  isSuperAdmin = false,
 }: TeamOverviewProps) {
   const { t, isRtl } = useLanguage();
   const [activeTab, setActiveTab] = useState<'attendance' | 'leaves' | 'kpis' | 'report'>('attendance');
@@ -619,12 +621,14 @@ export default function TeamOverviewTable({
                     {selectedEmpProfile?.role || 'N/A'}
                   </span>
                 </div>
-                <div>
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block">{isRtl ? 'الراتب الأساسي:' : 'Basic Salary:'}</span>
-                  <span className="text-sm font-bold text-emerald-400 print:text-black font-sans">
-                    {Number(selectedEmpProfile?.basic_salary || 0).toLocaleString()} EGP
-                  </span>
-                </div>
+                {isSuperAdmin && (
+                  <div>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block">{isRtl ? 'الراتب الأساسي:' : 'Basic Salary:'}</span>
+                    <span className="text-sm font-bold text-emerald-400 print:text-black font-sans">
+                      {Number(selectedEmpProfile?.basic_salary || 0).toLocaleString()} EGP
+                    </span>
+                  </div>
+                )}
                 <div>
                   <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block">{isRtl ? 'معيار القياس الافتراضي:' : 'Default KPI Metric:'}</span>
                   <span className="text-sm font-semibold text-purple-300 print:text-black capitalize">

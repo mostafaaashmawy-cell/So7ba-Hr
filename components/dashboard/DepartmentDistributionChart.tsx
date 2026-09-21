@@ -1,12 +1,30 @@
 'use client';
 
 import React from 'react';
+import { useLanguage } from '@/lib/context/LanguageContext';
 
 export default function DepartmentDistributionChart() {
+  const { isRtl } = useLanguage();
+
   const departments = [
-    { name: 'Operations & HR', count: 55, color: '#10b981', bg: 'bg-emerald-500' },
-    { name: 'Sales & BD', count: 28, color: '#1f2937', bg: 'bg-slate-800 dark:bg-slate-400' },
-    { name: 'Development / IT', count: 17, color: '#0d9488', bg: 'bg-teal-600' },
+    {
+      name: isRtl ? 'العمليات والموارد البشرية' : 'Operations & HR',
+      count: 55,
+      color: '#10b981',
+      bg: 'bg-emerald-500',
+    },
+    {
+      name: isRtl ? 'المبيعات وتطوير الأعمال' : 'Sales & BD',
+      count: 28,
+      color: '#1f2937',
+      bg: 'bg-slate-800 dark:bg-slate-400',
+    },
+    {
+      name: isRtl ? 'التطوير وتكنولوجيا المعلومات' : 'Development / IT',
+      count: 17,
+      color: '#0d9488',
+      bg: 'bg-teal-600',
+    },
   ];
 
   return (
@@ -14,8 +32,14 @@ export default function DepartmentDistributionChart() {
       {/* 1. Department Breakdown (Overlapping Bubbles Visual from Cleariq) */}
       <div className="cleariq-card p-6 cleariq-card-hover flex flex-col justify-between space-y-6">
         <div>
-          <h3 className="text-base font-bold text-slate-950 dark:text-white">Department Distribution</h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Staff breakdown across major operational units</p>
+          <h3 className="text-base font-bold text-slate-950 dark:text-white">
+            {isRtl ? 'توزيع الأقسام والوحدات' : 'Department Distribution'}
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            {isRtl
+              ? 'توزيع الكثافة العددية للموظفين عبر الوحدات التشغيلية الرئيسية'
+              : 'Staff breakdown across major operational units'}
+          </p>
         </div>
 
         <div className="relative h-44 flex items-center justify-center">
@@ -23,20 +47,24 @@ export default function DepartmentDistributionChart() {
           <div className="w-28 h-28 rounded-full bg-gradient-to-tr from-emerald-600 to-emerald-500 text-white flex flex-col items-center justify-center shadow-lg shadow-emerald-500/25 z-20">
             <span className="text-2xl font-extrabold font-sans">55%</span>
             <span className="text-[10px] font-semibold text-emerald-100 uppercase tracking-wider">
-              Operations
+              {isRtl ? 'العمليات' : 'Operations'}
             </span>
           </div>
 
           {/* Secondary Bubble (Sales / 28) */}
           <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-slate-800 to-slate-600 text-white flex flex-col items-center justify-center shadow-md shadow-slate-800/20 absolute right-8 sm:right-14 top-4 z-10">
             <span className="text-lg font-bold font-sans">28%</span>
-            <span className="text-[9px] font-medium text-slate-200 uppercase">Sales</span>
+            <span className="text-[9px] font-medium text-slate-200 uppercase">
+              {isRtl ? 'المبيعات' : 'Sales'}
+            </span>
           </div>
 
           {/* Tertiary Bubble (Tech / 17) */}
           <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-teal-700 to-teal-500 text-white flex flex-col items-center justify-center shadow-md shadow-teal-500/20 absolute left-8 sm:left-14 bottom-2 z-10">
             <span className="text-sm font-bold font-sans">17%</span>
-            <span className="text-[8px] font-medium text-teal-100 uppercase">IT & Dev</span>
+            <span className="text-[8px] font-medium text-teal-100 uppercase">
+              {isRtl ? 'التقنية' : 'IT & Dev'}
+            </span>
           </div>
         </div>
 
@@ -53,8 +81,12 @@ export default function DepartmentDistributionChart() {
       {/* 2. Employee Structure (Circular Gauge 100% Ring from Cleariq) */}
       <div className="cleariq-card p-6 cleariq-card-hover flex flex-col justify-between space-y-6">
         <div>
-          <h3 className="text-base font-bold text-slate-950 dark:text-white">Employee Structure</h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Contract and retention allocation</p>
+          <h3 className="text-base font-bold text-slate-950 dark:text-white">
+            {isRtl ? 'هيكل ونوع العقود' : 'Employee Structure'}
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            {isRtl ? 'توزيع العقود الكاملة والجزئية ومعدل الاستقرار' : 'Contract and retention allocation'}
+          </p>
         </div>
 
         <div className="relative h-44 flex items-center justify-center">
@@ -97,18 +129,24 @@ export default function DepartmentDistributionChart() {
           </svg>
           <div className="absolute text-center">
             <span className="text-2xl font-extrabold text-slate-950 dark:text-white font-sans block">100%</span>
-            <span className="text-[10px] text-slate-400 font-semibold uppercase">Total Staff</span>
+            <span className="text-[10px] text-slate-400 font-semibold uppercase">
+              {isRtl ? 'إجمالي الفريق' : 'Total Staff'}
+            </span>
           </div>
         </div>
 
         <div className="flex items-center justify-around border-t border-slate-100 dark:border-slate-800 pt-3">
           <div className="flex items-center gap-1.5 text-xs">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-            <span className="text-slate-600 dark:text-slate-400 font-medium">Full-Time (75%)</span>
+            <span className="text-slate-600 dark:text-slate-400 font-medium">
+              {isRtl ? 'دوام كامل (75%)' : 'Full-Time (75%)'}
+            </span>
           </div>
           <div className="flex items-center gap-1.5 text-xs">
             <span className="w-2.5 h-2.5 rounded-full bg-slate-500" />
-            <span className="text-slate-600 dark:text-slate-400 font-medium">Part-Time (25%)</span>
+            <span className="text-slate-600 dark:text-slate-400 font-medium">
+              {isRtl ? 'دوام جزئي (25%)' : 'Part-Time (25%)'}
+            </span>
           </div>
         </div>
       </div>

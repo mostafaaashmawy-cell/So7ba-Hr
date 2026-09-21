@@ -184,7 +184,9 @@ export default function PayrollPage() {
         type: adjType,
         status: finalStatus,
         amount: Number(adjAmount ?? 0),
+        date: `${selectedMonth}-01`,
         month: `${selectedMonth}-01`,
+        notes: adjNotes.trim() || null,
         description: adjNotes.trim() || null,
       });
 

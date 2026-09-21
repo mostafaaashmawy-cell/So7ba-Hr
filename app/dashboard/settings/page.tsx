@@ -26,6 +26,7 @@ import {
   Sliders,
   ArrowLeftRight,
   TrendingUp,
+  Building2,
 } from 'lucide-react';
 import { useLanguage } from '@/lib/context/LanguageContext';
 import { logAuditAction } from '@/lib/utils/auditLogger';
@@ -41,6 +42,47 @@ const DAYS_OF_WEEK = [
   { key: 'Saturday', label: 'Saturday / السبت' },
 ];
 
+function parseGoogleMapsUrl(input: string): { lat: number; lng: number } | null {
+  if (!input) return null;
+  const trimmed = input.trim();
+
+  // 1. Direct coordinates: "30.0444, 31.2357" or "30.0444 31.2357"
+  const directMatch = trimmed.match(/^([-+]?\d{1,3}\.\d+)[,\s]+([-+]?\d{1,3}\.\d+)$/);
+  if (directMatch) {
+    const lat = parseFloat(directMatch[1]);
+    const lng = parseFloat(directMatch[2]);
+    if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+      return { lat, lng };
+    }
+  }
+
+  // 2. URL containing @lat,lng e.g. https://www.google.com/maps/@30.0444,31.2357,17z
+  const atMatch = trimmed.match(/@([-+]?\d{1,3}\.\d+),([-+]?\d{1,3}\.\d+)/);
+  if (atMatch) {
+    const lat = parseFloat(atMatch[1]);
+    const lng = parseFloat(atMatch[2]);
+    if (!isNaN(lat) && !isNaN(lng)) return { lat, lng };
+  }
+
+  // 3. URL containing q=lat,lng or ll=lat,lng or destination=lat,lng
+  const queryMatch = trimmed.match(/[?&](?:q|ll|destination|query)=([-+]?\d{1,3}\.\d+)[,%2C\s]+([-+]?\d{1,3}\.\d+)/i);
+  if (queryMatch) {
+    const lat = parseFloat(queryMatch[1]);
+    const lng = parseFloat(queryMatch[2]);
+    if (!isNaN(lat) && !isNaN(lng)) return { lat, lng };
+  }
+
+  // 4. URL containing /place/lat,lng or search/lat,lng
+  const placeMatch = trimmed.match(/\/(?:place|search)\/([-+]?\d{1,3}\.\d+)[,%2C\s]+([-+]?\d{1,3}\.\d+)/i);
+  if (placeMatch) {
+    const lat = parseFloat(placeMatch[1]);
+    const lng = parseFloat(placeMatch[2]);
+    if (!isNaN(lat) && !isNaN(lng)) return { lat, lng };
+  }
+
+  return null;
+}
+
 export default function SettingsHubPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -53,8 +95,15 @@ export default function SettingsHubPage() {
 
   // Settings State
   const [activeTab, setActiveTab] = useState<
-    'schedule' | 'shifts' | 'overtime' | 'geofence' | 'lateness' | 'advances' | 'toggles'
+    'schedule' | 'shifts' | 'overtime' | 'geofence' | 'lateness' | 'advances' | 'toggles' | 'branding'
   >('schedule');
+
+  // Leave Approval Mode ('auto_approve' | 'hierarchical')
+  const [leaveApprovalMode, setLeaveApprovalMode] = useState<'auto_approve' | 'hierarchical'>('auto_approve');
+
+  // Company Logo
+  const [companyLogoUrl, setCompanyLogoUrl] = useState<string>('');
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   // Company Industry
   const [industry, setIndustry] = useState('Organization');
@@ -189,6 +238,8 @@ export default function SettingsHubPage() {
           if (s.overtime_calculation_mode) setOvertimeMode(s.overtime_calculation_mode);
           if (s.overtime_fixed_rate !== undefined) setOvertimeFixedRate(s.overtime_fixed_rate);
 
+          if (s.leave_approval_mode) setLeaveApprovalMode(s.leave_approval_mode as 'auto_approve' | 'hierarchical');
+
           if (s.lateness_policy?.thresholds) {
             s.lateness_policy.thresholds.forEach((t) => {
               if (t.mins === 15) setLate15(t.deduction);
@@ -196,6 +247,17 @@ export default function SettingsHubPage() {
               if (t.mins === 60) setLate60(t.deduction);
             });
           }
+        }
+
+        // Fetch Tenant Branding & Logo
+        const { data: tenantData } = await supabase
+          .from('tenants')
+          .select('logo_url')
+          .eq('id', profile.tenant_id)
+          .maybeSingle();
+
+        if (tenantData?.logo_url) {
+          setCompanyLogoUrl(tenantData.logo_url);
         }
 
         // Fetch Shifts
@@ -384,6 +446,7 @@ export default function SettingsHubPage() {
       overtime_rate_multiplier: Number(overtimeMultiplier || 1.5),
       overtime_calculation_mode: overtimeMode || 'multiplier',
       overtime_fixed_rate: Number(overtimeFixedRate || 50),
+      leave_approval_mode: leaveApprovalMode || 'auto_approve',
       geofencing_lat: primaryBranch ? Number(primaryBranch.lat) : null,
       geofencing_lng: primaryBranch ? Number(primaryBranch.lng) : null,
       geofencing_radius: primaryBranch ? Number(primaryBranch.radius || 200) : 200,
@@ -403,6 +466,12 @@ export default function SettingsHubPage() {
         .upsert(payload, { onConflict: 'tenant_id' });
 
       if (error) throw error;
+
+      // Update tenant logo_url
+      await supabase
+        .from('tenants')
+        .update({ logo_url: companyLogoUrl.trim() || null })
+        .eq('id', currentUser.tenant_id);
 
       // Log to audit trail
       await logAuditAction(supabase, {
@@ -573,6 +642,18 @@ export default function SettingsHubPage() {
             >
               <Settings className="w-4 h-4" /> {isRtl ? 'تفعيل وحدات النظام' : 'Feature Toggles'}
             </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('branding')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                activeTab === 'branding'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+              }`}
+            >
+              <Building2 className="w-4 h-4" /> {isRtl ? 'هوية وشعار الشركة' : 'Company Branding'}
+            </button>
           </div>
 
           {/* TAB 1: SCHEDULE */}
@@ -637,6 +718,77 @@ export default function SettingsHubPage() {
                       </button>
                     );
                   })}
+                </div>
+              </div>
+
+              {/* Leave & Permission Approval Policy */}
+              <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-slate-200 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    {isRtl ? 'سياسة اعتماد الإجازات والأذونات' : 'Leave & Permission Approval Policy'}
+                  </h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    {isRtl
+                      ? 'حدد طريقة اعتماد طلبات الإجازات والأذونات المقدمة من الموظفين والمدراء'
+                      : 'Define how employee and manager leave/permission requests are reviewed and authorized.'}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label
+                    className={`p-4 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
+                      leaveApprovalMode === 'auto_approve'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-950 dark:text-emerald-100'
+                        : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="leaveApprovalMode"
+                      value="auto_approve"
+                      checked={leaveApprovalMode === 'auto_approve'}
+                      onChange={() => setLeaveApprovalMode('auto_approve')}
+                      className="mt-0.5 w-4 h-4 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                    />
+                    <div>
+                      <span className="text-xs font-bold block">
+                        {isRtl ? 'اعتماد تلقائي فوري (Auto-Approve)' : 'Instant Automatic Approval'}
+                      </span>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">
+                        {isRtl
+                          ? 'تُعتمد طلبات الإجازات والأذونات تلقائياً فور تقديمها من الموظف أو المدير دون الحاجة لموافقة يدوية'
+                          : 'Requests are instantly approved and logged automatically upon submission without manual review.'}
+                      </span>
+                    </div>
+                  </label>
+
+                  <label
+                    className={`p-4 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
+                      leaveApprovalMode === 'hierarchical'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-950 dark:text-emerald-100'
+                        : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="leaveApprovalMode"
+                      value="hierarchical"
+                      checked={leaveApprovalMode === 'hierarchical'}
+                      onChange={() => setLeaveApprovalMode('hierarchical')}
+                      className="mt-0.5 w-4 h-4 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                    />
+                    <div>
+                      <span className="text-xs font-bold block">
+                        {isRtl ? 'اعتماد تسلسلي (Hierarchical Approval)' : 'Hierarchical Manager / Admin Approval'}
+                      </span>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">
+                        {isRtl
+                          ? 'طلبات الموظفين يعتمدها مديرهم المباشر فقط، وطلبات المدراء يعتمدها المشرف العام فقط'
+                          : 'Employees are approved by their direct manager; Managers are approved by the Super Admin only.'}
+                      </span>
+                    </div>
+                  </label>
                 </div>
               </div>
             </div>
@@ -1066,54 +1218,72 @@ export default function SettingsHubPage() {
                       )}
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                      <div>
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                      <div className="sm:col-span-4">
                         <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                          Branch Name
+                          {isRtl ? 'اسم الفرع' : 'Branch Name'}
                         </label>
                         <input
                           type="text"
                           value={branch.name}
                           onChange={(e) => updateBranch(idx, 'name', e.target.value)}
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-950 dark:text-white font-sans"
+                          placeholder="e.g. Headquarters / المقر الرئيسي"
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-950 dark:text-white font-sans focus:outline-none focus:border-emerald-500"
                         />
                       </div>
 
-                      <div>
+                      <div className="sm:col-span-6">
                         <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                          Latitude (خط العرض)
+                          {isRtl ? 'رابط موقع خرائط جوجل (Google Maps Link)' : 'Google Maps Location Link'}
                         </label>
                         <input
-                          type="number"
-                          step="0.000001"
-                          value={branch.lat}
-                          onChange={(e) => updateBranch(idx, 'lat', Number(e.target.value))}
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-950 dark:text-white font-sans"
+                          type="text"
+                          value={branch.map_url || (branch.lat && branch.lng ? `${branch.lat}, ${branch.lng}` : '')}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const next = [...branches];
+                            next[idx] = { ...next[idx], map_url: val };
+                            const parsed = parseGoogleMapsUrl(val);
+                            if (parsed) {
+                              next[idx].lat = parsed.lat;
+                              next[idx].lng = parsed.lng;
+                            }
+                            setBranches(next);
+                          }}
+                          placeholder={isRtl ? 'الصق رابط خرائط جوجل من زر مشاركة الموقع...' : 'Paste Google Maps link (e.g. from Share > Copy Link)...'}
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-950 dark:text-white font-sans focus:outline-none focus:border-emerald-500"
                         />
+                        {branch.lat && branch.lng ? (
+                          <div className="mt-1 flex items-center gap-2 text-[10px]">
+                            <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3" />
+                              {isRtl ? 'تم تحديد الإحداثيات:' : 'Coordinates detected:'} {Number(branch.lat).toFixed(5)}, {Number(branch.lng).toFixed(5)}
+                            </span>
+                            <a
+                              href={`https://www.google.com/maps?q=${branch.lat},${branch.lng}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-emerald-600 hover:underline font-bold"
+                            >
+                              {isRtl ? 'معاينة على الخريطة ↗' : 'View on Map ↗'}
+                            </a>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 block mt-1">
+                            {isRtl ? 'افتح خرائط جوجل، حدد الفرع، واضغط مشاركة ثم نسخ الرابط والصقه هنا' : 'Open Google Maps, select branch, tap Share > Copy Link and paste here'}
+                          </span>
+                        )}
                       </div>
 
-                      <div>
+                      <div className="sm:col-span-2">
                         <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                          Longitude (خط الطول)
-                        </label>
-                        <input
-                          type="number"
-                          step="0.000001"
-                          value={branch.lng}
-                          onChange={(e) => updateBranch(idx, 'lng', Number(e.target.value))}
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-950 dark:text-white font-sans"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                          Radius (متر)
+                          {isRtl ? 'نصف القطر (متر)' : 'Radius (Meters)'}
                         </label>
                         <input
                           type="number"
                           value={branch.radius}
                           onChange={(e) => updateBranch(idx, 'radius', Number(e.target.value))}
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-950 dark:text-white font-sans"
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-950 dark:text-white font-sans focus:outline-none focus:border-emerald-500"
                         />
                       </div>
                     </div>
@@ -1371,6 +1541,116 @@ export default function SettingsHubPage() {
                     onChange={(e) => setEnableIncomeTax(e.target.checked)}
                     className="w-4 h-4 accent-emerald-500 cursor-pointer"
                   />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 8: COMPANY BRANDING & LOGO */}
+          {activeTab === 'branding' && (
+            <div className="cleariq-card p-6 cleariq-card-hover space-y-6">
+              <div>
+                <h3 className="text-base font-extrabold text-slate-950 dark:text-white flex items-center gap-2">
+                  <Building2 className="w-5 h-5 text-emerald-600" />
+                  {isRtl ? 'هوية وشعار الشركة (Company Branding & Logo)' : 'Company Identity & Logo'}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {isRtl
+                    ? 'تخصيص شعار الشركة الذي يظهر في النظام، كشوف المرتبات، والعقود الرسمية (متاح للمشرف العام فقط)'
+                    : 'Upload your organization logo to appear across the system, payslips, and employment contracts (Super Admin only).'}
+                </p>
+              </div>
+
+              <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 space-y-4">
+                <div className="flex flex-col sm:flex-row items-center gap-6">
+                  {/* Logo Preview */}
+                  <div className="w-32 h-32 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 flex flex-col items-center justify-center p-2 relative overflow-hidden shadow-xs shrink-0">
+                    {companyLogoUrl ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={companyLogoUrl}
+                        alt="Company Logo"
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <div className="text-center p-2">
+                        <Building2 className="w-8 h-8 text-slate-400 mx-auto mb-1" />
+                        <span className="text-[10px] text-slate-400 font-bold block">
+                          {isRtl ? 'لا يوجد شعار' : 'No Logo'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Upload Controls */}
+                  <div className="flex-1 space-y-3 w-full">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        {isRtl ? 'رابط الشعار المباشر (Logo Image URL)' : 'Direct Logo Image URL'}
+                      </label>
+                      <input
+                        type="url"
+                        value={companyLogoUrl}
+                        onChange={(e) => setCompanyLogoUrl(e.target.value)}
+                        placeholder="https://example.com/logo.png"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-950 dark:text-white font-sans focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <label className="gradient-btn px-4 py-2 rounded-xl text-xs font-bold text-white cursor-pointer shadow-xs inline-flex items-center gap-1.5">
+                        <Plus className="w-4 h-4" />
+                        <span>{uploadingLogo ? (isRtl ? 'جاري الرفع...' : 'Uploading...') : (isRtl ? 'رفع ملف شعار جديد' : 'Upload Logo File')}</span>
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                          className="hidden"
+                          disabled={uploadingLogo}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file || !currentUser?.tenant_id) return;
+                            setUploadingLogo(true);
+                            try {
+                              const fileExt = file.name.split('.').pop();
+                              const fileName = `tenant-${currentUser.tenant_id}-${Date.now()}.${fileExt}`;
+                              const { error: uploadErr } = await supabase.storage
+                                .from('employee-documents')
+                                .upload(fileName, file, { upsert: true });
+
+                              if (uploadErr) throw uploadErr;
+
+                              const { data: publicData } = supabase.storage
+                                .from('employee-documents')
+                                .getPublicUrl(fileName);
+
+                              setCompanyLogoUrl(publicData.publicUrl);
+                              setMsg({ text: isRtl ? 'تم رفع الشعار بنجاح! اضغط حفظ التعديلات لتأكيد الحفظ.' : 'Logo uploaded successfully! Click Save to apply.', error: false });
+                            } catch (err: unknown) {
+                              const errTxt = err instanceof Error ? err.message : 'Logo upload failed';
+                              setMsg({ text: errTxt, error: true });
+                            } finally {
+                              setUploadingLogo(false);
+                            }
+                          }}
+                        />
+                      </label>
+
+                      {companyLogoUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setCompanyLogoUrl('')}
+                          className="px-3.5 py-2 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 text-xs font-bold hover:bg-rose-100 transition-colors cursor-pointer"
+                        >
+                          {isRtl ? 'إزالة الشعار' : 'Remove Logo'}
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      {isRtl
+                        ? 'الصيغ المدعومة: PNG, JPG, SVG, WEBP (الحد الأقصى للحجم: 5 ميجابايت). يُفضل استخدام خلفية شفافة.'
+                        : 'Supported formats: PNG, JPG, SVG, WEBP (Max 5MB). Transparent background recommended.'}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

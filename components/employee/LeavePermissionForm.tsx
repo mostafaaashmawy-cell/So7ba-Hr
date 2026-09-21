@@ -12,6 +12,11 @@ interface LeavePermissionProps {
   initialRecords: LeavePermissionRecord[];
   holidayWorkCount: number;
   annualLeaveAllowance?: number;
+  userRole?: string;
+  managerId?: string | null;
+  tenantId?: string | null;
+  userName?: string | null;
+  leaveApprovalMode?: 'auto_approve' | 'hierarchical';
 }
 
 export default function LeavePermissionForm({
@@ -19,6 +24,11 @@ export default function LeavePermissionForm({
   initialRecords,
   holidayWorkCount,
   annualLeaveAllowance = 21,
+  userRole = 'employee',
+  managerId,
+  tenantId,
+  userName,
+  leaveApprovalMode = 'auto_approve',
 }: LeavePermissionProps) {
   const { t, isRtl } = useLanguage();
   const [records, setRecords] = useState<LeavePermissionRecord[]>(initialRecords);
@@ -33,13 +43,18 @@ export default function LeavePermissionForm({
 
   const ANNUAL_LIMIT = annualLeaveAllowance ?? 21;
   const totalAllowance = ANNUAL_LIMIT + holidayWorkCount;
-  const consumedLeaves = records.filter((r) => r.type === 'leave' && r.status === 'active').length;
+  const consumedLeaves = records.filter(
+    (r) => r.type === 'leave' && (r.status === 'active' || r.status === 'approved')
+  ).length;
   const remainingLeaves = Math.max(0, totalAllowance - consumedLeaves);
   
   // Calculate permissions in the current calendar month
   const currentMonthStr = getCairoDate().toISOString().slice(0, 7); // "YYYY-MM"
   const permissionsInCurrentMonth = records.filter(
-    (r) => r.type === 'permission' && r.status === 'active' && r.date.startsWith(currentMonthStr)
+    (r) =>
+      r.type === 'permission' &&
+      (r.status === 'active' || r.status === 'approved') &&
+      r.date.startsWith(currentMonthStr)
   );
   const permissionsCount = permissionsInCurrentMonth.length;
 
@@ -57,7 +72,10 @@ export default function LeavePermissionForm({
     if (type === 'permission') {
       const selectedMonthStr = date.slice(0, 7); // check limit for the requested month
       const countInSelectedMonth = records.filter(
-        (r) => r.type === 'permission' && r.status === 'active' && r.date.startsWith(selectedMonthStr)
+        (r) =>
+          r.type === 'permission' &&
+          (r.status === 'active' || r.status === 'approved') &&
+          r.date.startsWith(selectedMonthStr)
       ).length;
 
       if (countInSelectedMonth >= 4) {
@@ -67,13 +85,17 @@ export default function LeavePermissionForm({
       }
     }
 
+    const isHierarchical = leaveApprovalMode === 'hierarchical';
+    const initialStatus = isHierarchical ? 'pending' : 'active';
+
     const { data, error } = await supabase
       .from('leaves_permissions')
       .insert({
         user_id: userId,
+        tenant_id: tenantId,
         type,
         date,
-        status: 'active',
+        status: initialStatus,
         timeframe: type === 'permission' ? timeframe : null,
         excuse_time: type === 'permission' ? excuseTime : null,
       })
@@ -84,7 +106,58 @@ export default function LeavePermissionForm({
       setMsg({ text: error.message, error: true });
     } else if (data) {
       setRecords([data as LeavePermissionRecord, ...records]);
-      setMsg({ text: t('requestLogged'), error: false });
+
+      // Handle Notifications for Managers / Super Admin
+      try {
+        let recipientId: string | null = null;
+
+        if (userRole === 'employee' && managerId) {
+          recipientId = managerId;
+        } else if (tenantId) {
+          // Employee has no manager or requester is manager/super_admin -> notify Super Admin
+          const { data: superAdmins } = await supabase
+            .from('users')
+            .select('id')
+            .eq('tenant_id', tenantId)
+            .eq('role', 'super_admin')
+            .neq('id', userId)
+            .limit(1);
+
+          recipientId = superAdmins?.[0]?.id || null;
+        }
+
+        if (recipientId && tenantId) {
+          const notifTitle = isHierarchical
+            ? (isRtl ? 'طلب إجازة / إذن بانتظار موافقتك' : 'New Leave / Permission Request Pending Approval')
+            : (isRtl ? 'طلب إجازة / إذن مسجل (معتمد تلقائياً)' : 'New Leave / Permission Request (Auto-Approved)');
+
+          const notifMsg = isHierarchical
+            ? (isRtl
+                ? `قدم ${userName || 'الموظف'} طلب ${type === 'leave' ? 'إجازة' : 'إذن مغادرة'} لتاريخ ${date}. يرجى المراجعة في صفحة الفريق.`
+                : `${userName || 'An employee'} submitted a ${type} request for ${date}. Please review in Team View.`)
+            : (isRtl
+                ? `قام ${userName || 'الموظف'} بتسجيل طلب ${type === 'leave' ? 'إجازة' : 'إذن مغادرة'} لتاريخ ${date}.`
+                : `${userName || 'An employee'} logged a ${type} request for ${date}.`);
+
+          await supabase.from('notifications').insert({
+            tenant_id: tenantId,
+            user_id: recipientId,
+            title: notifTitle,
+            message: notifMsg,
+            type: 'info',
+            is_read: false,
+          });
+        }
+      } catch (notifErr) {
+        console.error('Failed to send leave notification:', notifErr);
+      }
+
+      setMsg({
+        text: isHierarchical
+          ? (isRtl ? 'تم إرسال الطلب بنجاح وهو بانتظار موافقة الإدارة.' : 'Request submitted successfully and is pending approval.')
+          : (isRtl ? 'تم تسجيل واعتماد الطلب بنجاح.' : t('requestLogged')),
+        error: false,
+      });
     }
     setLoading(false);
   };
@@ -283,12 +356,18 @@ export default function LeavePermissionForm({
                       <td className="px-4 py-3">
                         <span
                           className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium border ${
-                            r.status === 'active'
+                            r.status === 'active' || r.status === 'approved'
                               ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20'
+                              : r.status === 'pending'
+                              ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20'
                               : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20'
                           }`}
                         >
-                          {r.status === 'active' ? t('active') : t('cancelled')}
+                          {r.status === 'active' || r.status === 'approved'
+                            ? (isRtl ? 'معتمد' : 'Approved')
+                            : r.status === 'pending'
+                            ? (isRtl ? 'قيد المراجعة' : 'Pending')
+                            : (isRtl ? 'مرفوض' : 'Rejected')}
                         </span>
                       </td>
                     </tr>
