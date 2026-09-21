@@ -88,8 +88,8 @@ export default function PlatformAdminPage() {
       const { data: profiles } = await supabase.rpc('get_my_profile');
       const profile = profiles && profiles.length > 0 ? profiles[0] : null;
 
-      // Authorized ONLY if user has is_platform_admin = true
-      if (profile && profile.is_platform_admin === true) {
+      // Authorized ONLY if user has is_platform_admin = true AND tenant_id is null (Platform Owner)
+      if (profile && profile.is_platform_admin === true && !profile.tenant_id) {
         setIsAuthorized(true);
         setCurrentAdmin(profile as UserProfile);
         loadPlatformData();

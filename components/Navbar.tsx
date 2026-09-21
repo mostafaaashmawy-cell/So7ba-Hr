@@ -222,7 +222,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
                 </Link>
               )}
 
-              {(user?.is_platform_admin || isSuperAdmin) && (
+              {Boolean(user?.is_platform_admin && !user?.tenant_id) && (
                 <Link
                   href="/platform-admin"
                   className="px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 bg-emerald-500/5 flex items-center gap-1"
