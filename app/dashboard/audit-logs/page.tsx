@@ -34,6 +34,7 @@ import {
 import { useLanguage } from '@/lib/context/LanguageContext';
 import { formatDate, formatTime, getCairoDate } from '@/lib/utils/dateUtils';
 import { exportToCSV } from '@/lib/utils/csvExport';
+import { parseAuditChanges, formatAuditSummary } from '@/lib/utils/auditDiffFormatter';
 
 type ActionCategory = 'all' | 'security' | 'financial' | 'operations' | 'settings';
 
@@ -697,17 +698,20 @@ export default function AuditLogsPage() {
 
                       {/* Details / Diff Summary */}
                       <td className="py-3 px-4">
-                        {hasDiff ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
-                            Diff Snapshot Available
+                        <div className="max-w-xs space-y-1">
+                          <span
+                            className="text-xs text-slate-800 dark:text-slate-200 font-semibold block truncate"
+                            title={formatAuditSummary(log, isRtl)}
+                          >
+                            {formatAuditSummary(log, isRtl)}
                           </span>
-                        ) : log.details && Object.keys(log.details).length > 0 ? (
-                          <span className="text-[11px] text-slate-600 dark:text-slate-400 truncate block max-w-[200px] font-mono">
-                            {JSON.stringify(log.details)}
-                          </span>
-                        ) : (
-                          <span className="text-[10px] text-slate-400">No extra parameters</span>
-                        )}
+                          {hasDiff ? (
+                            <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                              <Layers className="w-2.5 h-2.5" />
+                              {isRtl ? 'فروقات مسجلة' : 'Diff Recorded'}
+                            </span>
+                          ) : null}
+                        </div>
                       </td>
 
                       {/* Inspect Action */}
@@ -880,52 +884,88 @@ export default function AuditLogsPage() {
                   </div>
                 )}
 
-                {/* Visual JSON Diff Viewer (Old vs New) */}
-                {(selectedLog.old_values || selectedLog.new_values) && (
-                  <div className="space-y-3">
-                    <h4 className="text-xs font-extrabold text-slate-950 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
-                      <Layers className="w-4 h-4 text-emerald-600" />
-                      {isRtl ? 'مقارنة التغييرات (Visual Diff Snapshot)' : 'Visual Mutation Snapshot (Old vs New)'}
-                    </h4>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {/* Old Values */}
-                      <div className="p-4 bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900 rounded-2xl space-y-2">
-                        <div className="flex items-center justify-between border-b border-rose-200 dark:border-rose-800 pb-1.5">
-                          <span className="text-[10px] font-extrabold text-rose-700 dark:text-rose-400 uppercase">
-                            - {isRtl ? 'القيم السابقة (قبل التعديل)' : 'Before Mutation (Old)'}
-                          </span>
-                        </div>
-                        <pre className="text-[11px] font-mono text-rose-900 dark:text-rose-300 whitespace-pre-wrap overflow-x-auto">
-                          {JSON.stringify(selectedLog.old_values || {}, null, 2)}
-                        </pre>
-                      </div>
-
-                      {/* New Values */}
-                      <div className="p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 rounded-2xl space-y-2">
-                        <div className="flex items-center justify-between border-b border-emerald-200 dark:border-emerald-800 pb-1.5">
-                          <span className="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-400 uppercase">
-                            + {isRtl ? 'القيم الجديدة (بعد التعديل)' : 'After Mutation (New)'}
-                          </span>
-                        </div>
-                        <pre className="text-[11px] font-mono text-emerald-900 dark:text-emerald-300 whitespace-pre-wrap overflow-x-auto">
-                          {JSON.stringify(selectedLog.new_values || {}, null, 2)}
-                        </pre>
+                {/* Structured Changes Comparison */}
+                {(() => {
+                  const changes = parseAuditChanges(
+                    selectedLog.old_values,
+                    selectedLog.new_values,
+                    selectedLog.details,
+                    isRtl
+                  );
+                  if (changes.length === 0) return null;
+                  return (
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-extrabold text-slate-950 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                        <Layers className="w-4 h-4 text-emerald-600" />
+                        {isRtl ? 'ملخص التغييرات المعدلة' : 'Structured Changes & Field Diffs'}
+                      </h4>
+                      <div className="space-y-2">
+                        {changes.map((c, i) => (
+                          <div
+                            key={i}
+                            className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                          >
+                            <div className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                              <span>{c.label}</span>
+                              <span className="text-[10px] text-slate-400 font-mono">({c.key})</span>
+                            </div>
+                            <div className="flex items-center gap-2 font-mono text-xs">
+                              {c.type === 'modified' ? (
+                                <>
+                                  <span className="px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-900 line-through">
+                                    {c.oldVal}
+                                  </span>
+                                  <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                  <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-bold">
+                                    {c.newVal}
+                                  </span>
+                                </>
+                              ) : c.type === 'added' ? (
+                                <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-bold">
+                                  +{c.newVal}
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-900 line-through">
+                                  {c.oldVal}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
-                {/* Additional Details Payload */}
-                {selectedLog.details && Object.keys(selectedLog.details).length > 0 && (
-                  <div className="space-y-2">
-                    <h4 className="text-xs font-extrabold text-slate-950 dark:text-white uppercase tracking-wider">
-                      {isRtl ? 'حمولة البيانات الإضافية (Details JSON)' : 'Event Payload Details'}
-                    </h4>
-                    <pre className="p-4 bg-slate-900 text-emerald-400 rounded-2xl font-mono text-[11px] overflow-x-auto leading-relaxed">
-                      {JSON.stringify(selectedLog.details, null, 2)}
-                    </pre>
-                  </div>
+                {/* Developer Raw JSON Inspection (Collapsible) */}
+                {(selectedLog.old_values || selectedLog.new_values || selectedLog.details) && (
+                  <details className="group border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+                    <summary className="px-4 py-2.5 bg-slate-50 dark:bg-slate-800/60 font-bold text-slate-700 dark:text-slate-300 text-xs cursor-pointer select-none flex items-center justify-between">
+                      <span>{isRtl ? 'عرض بيانات JSON الخام للمطورين' : 'View Developer Raw JSON Payloads'}</span>
+                      <span className="text-[10px] text-slate-400 group-open:rotate-180 transition-transform">▼</span>
+                    </summary>
+                    <div className="p-4 space-y-3 bg-slate-900 text-emerald-400 font-mono text-[11px] overflow-x-auto">
+                      {selectedLog.old_values && (
+                        <div>
+                          <div className="text-rose-400 font-bold mb-1">// Old Values:</div>
+                          <pre>{JSON.stringify(selectedLog.old_values, null, 2)}</pre>
+                        </div>
+                      )}
+                      {selectedLog.new_values && (
+                        <div>
+                          <div className="text-emerald-400 font-bold mb-1">// New Values:</div>
+                          <pre>{JSON.stringify(selectedLog.new_values, null, 2)}</pre>
+                        </div>
+                      )}
+                      {selectedLog.details && (
+                        <div>
+                          <div className="text-amber-400 font-bold mb-1">// Additional Details:</div>
+                          <pre>{JSON.stringify(selectedLog.details, null, 2)}</pre>
+                        </div>
+                      )}
+                    </div>
+                  </details>
                 )}
               </div>
 

@@ -17,10 +17,10 @@ interface WorkforceStatusDonutProps {
 }
 
 const DEFAULT_DATA: WorkforceStatusData = {
-  present: 42,
-  remote: 18,
-  onLeave: 6,
-  absent: 4,
+  present: 0,
+  remote: 0,
+  onLeave: 0,
+  absent: 0,
 };
 
 export default function WorkforceStatusDonut({ data = DEFAULT_DATA }: WorkforceStatusDonutProps) {

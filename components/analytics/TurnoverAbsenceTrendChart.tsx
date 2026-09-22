@@ -23,20 +23,7 @@ interface TurnoverAbsenceTrendChartProps {
   data?: MonthlyTrendData[];
 }
 
-const DEFAULT_DATA: MonthlyTrendData[] = [
-  { month: 'Jan', absenteeismRate: 3.8, turnoverRate: 1.2 },
-  { month: 'Feb', absenteeismRate: 4.2, turnoverRate: 1.4 },
-  { month: 'Mar', absenteeismRate: 3.5, turnoverRate: 0.9 },
-  { month: 'Apr', absenteeismRate: 5.1, turnoverRate: 2.1 },
-  { month: 'May', absenteeismRate: 4.0, turnoverRate: 1.5 },
-  { month: 'Jun', absenteeismRate: 3.2, turnoverRate: 1.1 },
-  { month: 'Jul', absenteeismRate: 4.8, turnoverRate: 1.8 },
-  { month: 'Aug', absenteeismRate: 5.4, turnoverRate: 2.3 },
-  { month: 'Sep', absenteeismRate: 3.9, turnoverRate: 1.2 },
-  { month: 'Oct', absenteeismRate: 3.6, turnoverRate: 1.0 },
-  { month: 'Nov', absenteeismRate: 3.1, turnoverRate: 0.8 },
-  { month: 'Dec', absenteeismRate: 4.4, turnoverRate: 1.6 },
-];
+const DEFAULT_DATA: MonthlyTrendData[] = [];
 
 export default function TurnoverAbsenceTrendChart({
   data = DEFAULT_DATA,
@@ -44,10 +31,14 @@ export default function TurnoverAbsenceTrendChart({
   const { isRtl } = useLanguage();
 
   const avgAbsence = (
-    data.reduce((acc, curr) => acc + curr.absenteeismRate, 0) / data.length
+    data.length > 0
+      ? data.reduce((acc, curr) => acc + curr.absenteeismRate, 0) / data.length
+      : 0
   ).toFixed(1);
   const avgTurnover = (
-    data.reduce((acc, curr) => acc + curr.turnoverRate, 0) / data.length
+    data.length > 0
+      ? data.reduce((acc, curr) => acc + curr.turnoverRate, 0) / data.length
+      : 0
   ).toFixed(1);
 
   return (
@@ -91,10 +82,18 @@ export default function TurnoverAbsenceTrendChart({
         </div>
       </div>
 
-      {/* Multi-Line Chart */}
-      <div className="h-64 w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
+      {/* Multi-Line Chart or Empty State */}
+      {data.length === 0 ? (
+        <div className="h-64 w-full flex flex-col items-center justify-center text-center p-4">
+          <TrendingUp className="w-10 h-10 text-slate-300 dark:text-slate-600 mb-2" />
+          <span className="text-xs font-bold text-slate-500">
+            {isRtl ? 'لا توجد بيانات غياب وتدفق كافية حتى الآن' : 'No turnover or absence trend data recorded yet.'}
+          </span>
+        </div>
+      ) : (
+        <div className="h-64 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1E293B" />
             <XAxis
               dataKey="month"
@@ -156,6 +155,7 @@ export default function TurnoverAbsenceTrendChart({
           </LineChart>
         </ResponsiveContainer>
       </div>
+      )}
 
       {/* Legend */}
       <div className="flex items-center justify-center gap-6 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs font-bold">

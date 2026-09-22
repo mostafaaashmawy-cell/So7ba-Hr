@@ -88,6 +88,7 @@ export default function SalesCommissionsPage() {
         if (all) {
           setTeamMembers(all as UserProfile[]);
         }
+        query = query.eq('tenant_id', profile.tenant_id);
       } else {
         // Employee: strictly personal sales
         query = query.eq('user_id', authUser.id);
@@ -137,7 +138,7 @@ export default function SalesCommissionsPage() {
         error: false,
       });
       setSalesAmount('');
-      loadData();
+      await loadData();
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : 'Submission failed';
       setMsg({ text: errMsg, error: true });

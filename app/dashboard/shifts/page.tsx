@@ -44,6 +44,13 @@ export default function ShiftsManagementPage() {
   const [splitEnd2, setSplitEnd2] = useState('21:00');
   const [breakMins, setBreakMins] = useState<number>(0);
   const [rosterType, setRosterType] = useState<'fixed' | 'rotational_2week'>('fixed');
+  const [shiftWorkDays, setShiftWorkDays] = useState<string[]>([
+    'Sunday',
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+  ]);
 
   const [saving, setSaving] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
@@ -129,6 +136,7 @@ export default function ShiftsManagementPage() {
           split_end_time_2: isSplit ? splitEnd2 : null,
           break_minutes: Number(breakMins || 0),
           roster_type: rosterType,
+          work_days: shiftWorkDays,
         })
         .select()
         .single();
@@ -607,6 +615,46 @@ export default function ShiftsManagementPage() {
                       </div>
                     </div>
                   )}
+                </div>
+
+                {/* Working Days Selector */}
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-900 dark:text-slate-200">
+                    {isRtl ? 'أيام العمل لهذه الوردية' : 'Shift Working Days'}
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { en: 'Sunday', ar: 'الأحد' },
+                      { en: 'Monday', ar: 'الاثنين' },
+                      { en: 'Tuesday', ar: 'الثلاثاء' },
+                      { en: 'Wednesday', ar: 'الأربعاء' },
+                      { en: 'Thursday', ar: 'الخميس' },
+                      { en: 'Friday', ar: 'الجمعة' },
+                      { en: 'Saturday', ar: 'السبت' },
+                    ].map((day) => {
+                      const isSelected = shiftWorkDays.includes(day.en);
+                      return (
+                        <button
+                          key={day.en}
+                          type="button"
+                          onClick={() => {
+                            if (shiftWorkDays.includes(day.en)) {
+                              setShiftWorkDays(shiftWorkDays.filter((d) => d !== day.en));
+                            } else {
+                              setShiftWorkDays([...shiftWorkDays, day.en]);
+                            }
+                          }}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                            isSelected
+                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                              : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-400'
+                          }`}
+                        >
+                          {isRtl ? day.ar : day.en.slice(0, 3)}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">

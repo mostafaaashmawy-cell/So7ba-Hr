@@ -24,13 +24,7 @@ interface DepartmentLatenessBarChartProps {
   data?: DepartmentLatenessItem[];
 }
 
-const DEFAULT_DATA: DepartmentLatenessItem[] = [
-  { department: 'Operations', latenessMinutes: 340, delayedIncidents: 22 },
-  { department: 'Sales & BD', latenessMinutes: 215, delayedIncidents: 16 },
-  { department: 'Marketing', latenessMinutes: 140, delayedIncidents: 9 },
-  { department: 'Engineering', latenessMinutes: 75, delayedIncidents: 5 },
-  { department: 'HR & Admin', latenessMinutes: 25, delayedIncidents: 2 },
-];
+const DEFAULT_DATA: DepartmentLatenessItem[] = [];
 
 export default function DepartmentLatenessBarChart({
   data = DEFAULT_DATA,
@@ -74,13 +68,21 @@ export default function DepartmentLatenessBarChart({
         </div>
       </div>
 
-      {/* Recharts Bar Chart */}
-      <div className="h-64 w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={sortedData}
-            margin={{ top: 10, right: 10, left: -20, bottom: 25 }}
-          >
+      {/* Recharts Bar Chart or Empty State */}
+      {sortedData.length === 0 ? (
+        <div className="h-64 w-full flex flex-col items-center justify-center text-center p-4">
+          <Clock className="w-10 h-10 text-slate-300 dark:text-slate-600 mb-2" />
+          <span className="text-xs font-bold text-slate-500">
+            {isRtl ? 'لا توجد تأخيرات مسجلة حتى الآن' : 'No employee delays recorded yet.'}
+          </span>
+        </div>
+      ) : (
+        <div className="h-64 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={sortedData}
+              margin={{ top: 10, right: 10, left: -20, bottom: 25 }}
+            >
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1E293B" />
             <XAxis
               dataKey="department"
@@ -125,6 +127,7 @@ export default function DepartmentLatenessBarChart({
           </BarChart>
         </ResponsiveContainer>
       </div>
+      )}
 
       {/* Compliance Threshold Tags */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-400">

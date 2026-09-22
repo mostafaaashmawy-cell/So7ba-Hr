@@ -101,6 +101,41 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
     if (!error) setNotifications([]);
   };
 
+  const handleNotificationClick = async (n: DBNotification) => {
+    try {
+      await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', n.id);
+      setNotifications((prev) => prev.filter((item) => item.id !== n.id));
+    } catch (err) {
+      console.error('Failed to mark notification read:', err);
+    }
+
+    setShowNotifDropdown(false);
+
+    const text = `${n.title} ${n.message} ${n.type || ''}`.toLowerCase();
+    if (text.includes('leave') || text.includes('permission') || text.includes('إجازة') || text.includes('إذن') || text.includes('طلب')) {
+      if (user?.role === 'super_admin' || user?.role === 'manager') {
+        router.push('/dashboard/manager');
+      } else {
+        router.push('/dashboard/employee#leaves-section');
+      }
+    } else if (text.includes('advance') || text.includes('salary') || text.includes('payroll') || text.includes('سلفة') || text.includes('راتب')) {
+      if (user?.role === 'super_admin') {
+        router.push('/dashboard/payroll');
+      } else {
+        router.push('/dashboard/payslips');
+      }
+    } else if (text.includes('target') || text.includes('kpi') || text.includes('هدف') || text.includes('مستهدف')) {
+      router.push('/dashboard/targets');
+    } else if (text.includes('sale') || text.includes('مبيع') || text.includes('عمول')) {
+      router.push('/dashboard/sales');
+    } else if (text.includes('eval') || text.includes('تقييم')) {
+      router.push('/dashboard/evaluations');
+    }
+  };
+
   const getRoleBadge = (role?: string) => {
     switch (role) {
       case 'super_admin':
@@ -286,7 +321,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
 
                 {showNotifDropdown && (
                   <div
-                    className="absolute mt-2 w-80 sm:w-96 rounded-2xl border shadow-xl z-50 p-4 space-y-3 animate-in"
+                    className="fixed sm:absolute inset-x-3 sm:inset-x-auto top-16 sm:top-full sm:mt-2 w-auto sm:w-96 rounded-2xl border shadow-2xl z-50 p-4 space-y-3 animate-in max-h-[80vh] flex flex-col"
                     style={{
                       right: isRtl ? 'auto' : 0,
                       left: isRtl ? 0 : 'auto',
@@ -305,31 +340,40 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
                       </div>
                       {notifications.length > 0 && (
                         <button type="button" onClick={markAllAsRead}
-                          className="text-[10px] text-emerald-600 hover:underline font-bold">
+                          className="text-[10px] text-emerald-600 hover:underline font-bold cursor-pointer">
                           {isRtl ? 'تعيين الكل كمقروء' : 'Mark all read'}
                         </button>
                       )}
                     </div>
 
-                    <div className="space-y-2 max-h-72 overflow-y-auto">
+                    <div className="space-y-2 overflow-y-auto flex-1 pr-0.5">
                       {notifications.map((n) => (
-                        <div key={n.id}
-                          className="p-2.5 rounded-xl border space-y-1"
-                          style={{ backgroundColor: 'var(--bg-card-hover)', borderColor: 'var(--border)' }}>
+                        <button
+                          key={n.id}
+                          type="button"
+                          onClick={() => handleNotificationClick(n)}
+                          className="w-full text-start p-3 rounded-xl border space-y-1 transition-all hover:border-emerald-500/60 hover:bg-emerald-50/20 dark:hover:bg-emerald-950/20 cursor-pointer group"
+                          style={{ backgroundColor: 'var(--bg-card-hover)', borderColor: 'var(--border)' }}
+                        >
                           <div className="text-xs font-bold flex items-center justify-between"
                             style={{ color: 'var(--text-primary)' }}>
-                            <span>{n.title}</span>
-                            <span className="text-[9px] font-sans" style={{ color: 'var(--text-muted)' }}>
-                              {new Date(n.created_at).toLocaleDateString()}
-                            </span>
+                            <span className="group-hover:text-emerald-600 transition-colors font-extrabold">{n.title}</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[9px] font-sans" style={{ color: 'var(--text-muted)' }}>
+                                {new Date(n.created_at).toLocaleDateString()}
+                              </span>
+                              <span className="text-xs text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                                {isRtl ? '←' : '→'}
+                              </span>
+                            </div>
                           </div>
                           <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                             {n.message}
                           </p>
-                        </div>
+                        </button>
                       ))}
                       {notifications.length === 0 && (
-                        <div className="text-center py-6 text-xs" style={{ color: 'var(--text-muted)' }}>
+                        <div className="text-center py-8 text-xs" style={{ color: 'var(--text-muted)' }}>
                           {isRtl ? 'لا توجد إشعارات جديدة' : 'No new notifications'}
                         </div>
                       )}

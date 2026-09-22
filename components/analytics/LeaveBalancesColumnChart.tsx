@@ -24,13 +24,7 @@ interface LeaveBalancesColumnChartProps {
   data?: DepartmentLeaveBalanceItem[];
 }
 
-const DEFAULT_DATA: DepartmentLeaveBalanceItem[] = [
-  { department: 'Operations', unusedDays: 142, consumedDays: 58, totalAccrued: 200 },
-  { department: 'Sales & BD', unusedDays: 98, consumedDays: 62, totalAccrued: 160 },
-  { department: 'Engineering', unusedDays: 84, consumedDays: 36, totalAccrued: 120 },
-  { department: 'Marketing', unusedDays: 45, consumedDays: 35, totalAccrued: 80 },
-  { department: 'HR & Legal', unusedDays: 28, consumedDays: 22, totalAccrued: 50 },
-];
+const DEFAULT_DATA: DepartmentLeaveBalanceItem[] = [];
 
 export default function LeaveBalancesColumnChart({
   data = DEFAULT_DATA,
@@ -66,59 +60,68 @@ export default function LeaveBalancesColumnChart({
         </div>
       </div>
 
-      {/* Column Chart */}
-      <div className="h-64 w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={data}
-            margin={{ top: 10, right: 10, left: -20, bottom: 25 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1E293B" />
-            <XAxis
-              dataKey="department"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 11, fill: '#94A3B8', fontWeight: 600 }}
-              interval={0}
-              angle={-15}
-              textAnchor="end"
-            />
-            <YAxis
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 11, fill: '#94A3B8', fontFamily: 'sans-serif' }}
-            />
-            <Tooltip
-              cursor={{ fill: 'rgba(148, 163, 184, 0.08)', radius: 8 }}
-              content={({ active, payload }) => {
-                if (active && payload && payload.length) {
-                  const item = payload[0].payload as DepartmentLeaveBalanceItem;
-                  return (
-                    <div className="bg-slate-900 dark:bg-slate-800 text-white p-3.5 rounded-xl shadow-xl border border-slate-700 text-xs font-sans space-y-1.5">
-                      <p className="font-extrabold text-sm text-purple-400">{item.department}</p>
-                      <div className="flex justify-between gap-4 text-slate-300">
-                        <span>Unused (Remaining):</span>
-                        <span className="font-bold text-amber-400">{item.unusedDays} days</span>
+      {/* Column Chart or Empty State */}
+      {data.length === 0 ? (
+        <div className="h-64 w-full flex flex-col items-center justify-center text-center p-4">
+          <Calendar className="w-10 h-10 text-slate-300 dark:text-slate-600 mb-2" />
+          <span className="text-xs font-bold text-slate-500">
+            {isRtl ? 'لا توجد بيانات إجازات مسجلة بعد' : 'No department leave balances recorded yet.'}
+          </span>
+        </div>
+      ) : (
+        <div className="h-64 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={data}
+              margin={{ top: 10, right: 10, left: -20, bottom: 25 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1E293B" />
+              <XAxis
+                dataKey="department"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 11, fill: '#94A3B8', fontWeight: 600 }}
+                interval={0}
+                angle={-15}
+                textAnchor="end"
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 11, fill: '#94A3B8', fontFamily: 'sans-serif' }}
+              />
+              <Tooltip
+                cursor={{ fill: 'rgba(148, 163, 184, 0.08)', radius: 8 }}
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    const item = payload[0].payload as DepartmentLeaveBalanceItem;
+                    return (
+                      <div className="bg-slate-900 dark:bg-slate-800 text-white p-3.5 rounded-xl shadow-xl border border-slate-700 text-xs font-sans space-y-1.5">
+                        <p className="font-extrabold text-sm text-purple-400">{item.department}</p>
+                        <div className="flex justify-between gap-4 text-slate-300">
+                          <span>Unused (Remaining):</span>
+                          <span className="font-bold text-amber-400">{item.unusedDays} days</span>
+                        </div>
+                        <div className="flex justify-between gap-4 text-slate-300">
+                          <span>Consumed (Taken):</span>
+                          <span className="font-bold text-slate-200">{item.consumedDays} days</span>
+                        </div>
+                        <div className="flex justify-between gap-4 pt-1 border-t border-slate-700 text-white font-extrabold">
+                          <span>Total Entitled:</span>
+                          <span>{item.totalAccrued} days</span>
+                        </div>
                       </div>
-                      <div className="flex justify-between gap-4 text-slate-300">
-                        <span>Consumed (Taken):</span>
-                        <span className="font-bold text-slate-200">{item.consumedDays} days</span>
-                      </div>
-                      <div className="flex justify-between gap-4 pt-1 border-t border-slate-700 text-white font-extrabold">
-                        <span>Total Entitled:</span>
-                        <span>{item.totalAccrued} days</span>
-                      </div>
-                    </div>
-                  );
-                }
-                return null;
-              }}
-            />
-            <Bar dataKey="unusedDays" name="Unused Balance" fill="#8B5CF6" radius={[6, 6, 0, 0]} maxBarSize={32} />
-            <Bar dataKey="consumedDays" name="Consumed Days" fill="#CBD5E1" radius={[6, 6, 0, 0]} maxBarSize={32} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Bar dataKey="unusedDays" name="Unused Balance" fill="#8B5CF6" radius={[6, 6, 0, 0]} maxBarSize={32} />
+              <Bar dataKey="consumedDays" name="Consumed Days" fill="#CBD5E1" radius={[6, 6, 0, 0]} maxBarSize={32} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       {/* Legend & Summary */}
       <div className="flex items-center justify-center gap-6 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs font-bold">

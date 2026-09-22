@@ -10,27 +10,45 @@ interface WelcomeHeaderProps {
 }
 
 export default function WelcomeHeader({ fullName, kpiUnit }: WelcomeHeaderProps) {
-  const { t } = useLanguage();
+  const { t, isRtl } = useLanguage();
+
+  const getMetricUnitLabel = (unit: string) => {
+    if (!isRtl) return unit || 'tasks';
+    switch (unit?.toLowerCase()) {
+      case 'tasks':
+        return 'مهام';
+      case 'calls':
+        return 'مكالمات';
+      case 'deals':
+        return 'صفقات';
+      case 'visits':
+        return 'زيارات';
+      case 'hours':
+        return 'ساعات';
+      default:
+        return unit || 'مهام';
+    }
+  };
 
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 cleariq-card p-6 cleariq-card-hover">
       <div>
         <div className="flex items-center gap-2 mb-1">
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-blue-700 border border-emerald-200">
-            Employee Workspace
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+            {isRtl ? 'مساحة عمل الموظف' : 'Employee Workspace'}
           </span>
         </div>
         <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 font-sans">
           {t('welcome')},{' '}
-          <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">{fullName || 'Employee'}</span>
+          <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">{fullName || (isRtl ? 'الموظف' : 'Employee')}</span>
         </h1>
         <p className="text-xs text-slate-400 mt-1 font-sans">{t('portal')}</p>
       </div>
 
-      <div className="flex items-center gap-2.5 bg-slate-50 px-4 py-2.5 rounded-2xl border border-slate-200 text-xs font-sans">
+      <div className="flex items-center gap-2.5 bg-slate-50 dark:bg-slate-800/60 px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs font-sans">
         <Target className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
         <span className="text-slate-500 dark:text-slate-400 font-medium">{t('assignedMetric')}:</span>
-        <span className="font-bold text-slate-900 dark:text-slate-100 capitalize font-sans">{kpiUnit || 'tasks'}</span>
+        <span className="font-bold text-slate-900 dark:text-slate-100 capitalize font-sans">{getMetricUnitLabel(kpiUnit)}</span>
       </div>
     </div>
   );

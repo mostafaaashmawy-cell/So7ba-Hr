@@ -5,14 +5,14 @@ import { useLanguage } from '@/lib/context/LanguageContext';
 import { ShieldCheck } from 'lucide-react';
 
 export default function AdminWelcomeHeader() {
-  const { t } = useLanguage();
+  const { t, isRtl } = useLanguage();
 
   return (
     <div className="cleariq-card p-6 cleariq-card-hover flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
       <div>
         <div className="flex items-center gap-2 mb-1">
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-blue-700 border border-emerald-200">
-            Executive Command Center
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+            {isRtl ? 'مركز القيادة والتحكم الإداري' : 'Executive Command Center'}
           </span>
         </div>
         <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 font-sans">

@@ -150,13 +150,17 @@ export default function SettingsHubPage() {
     { id: '1', name: 'Main Branch', lat: 30.0444, lng: 31.2357, radius: 150 },
   ]);
 
-  // Lateness Engine
+  // Lateness Engine: Tiered Deduction Full Control
   const [gracePeriodMins, setGracePeriodMins] = useState<number>(15);
   const [latenessMode, setLatenessMode] = useState<'tiered' | 'percentage_per_minute'>('tiered');
-  const [late15, setLate15] = useState<number>(0.25);
-  const [late30, setLate30] = useState<number>(0.5);
-  const [late60, setLate60] = useState<number>(1.0);
+  const [lateTier1Mins, setLateTier1Mins] = useState<number>(15);
+  const [lateTier1Deduction, setLateTier1Deduction] = useState<number>(0.25);
+  const [lateTier2Mins, setLateTier2Mins] = useState<number>(30);
+  const [lateTier2Deduction, setLateTier2Deduction] = useState<number>(0.5);
+  const [lateTier3Mins, setLateTier3Mins] = useState<number>(60);
+  const [lateTier3Deduction, setLateTier3Deduction] = useState<number>(1.0);
   const [minuteDeductionRate, setMinuteDeductionRate] = useState<number>(0.005);
+  const [resolvingMapIndex, setResolvingMapIndex] = useState<number | null>(null);
 
   // Salary Advance
   const [maxAdvancePercentage, setMaxAdvancePercentage] = useState<number>(50);
@@ -240,12 +244,20 @@ export default function SettingsHubPage() {
 
           if (s.leave_approval_mode) setLeaveApprovalMode(s.leave_approval_mode as 'auto_approve' | 'hierarchical');
 
-          if (s.lateness_policy?.thresholds) {
-            s.lateness_policy.thresholds.forEach((t) => {
-              if (t.mins === 15) setLate15(t.deduction);
-              if (t.mins === 30) setLate30(t.deduction);
-              if (t.mins === 60) setLate60(t.deduction);
-            });
+          if (s.lateness_policy?.thresholds && s.lateness_policy.thresholds.length > 0) {
+            const list = s.lateness_policy.thresholds;
+            if (list[0]) {
+              setLateTier1Mins(list[0].mins || 15);
+              setLateTier1Deduction(list[0].deduction ?? 0.25);
+            }
+            if (list[1]) {
+              setLateTier2Mins(list[1].mins || 30);
+              setLateTier2Deduction(list[1].deduction ?? 0.5);
+            }
+            if (list[2]) {
+              setLateTier3Mins(list[2].mins || 60);
+              setLateTier3Deduction(list[2].deduction ?? 1.0);
+            }
           }
         }
 
@@ -290,6 +302,62 @@ export default function SettingsHubPage() {
       setWorkDays(workDays.filter((d) => d !== day));
     } else {
       setWorkDays([...workDays, day]);
+    }
+  };
+
+  const toggleShiftWorkDay = (day: string) => {
+    if (newShiftWorkDays.includes(day)) {
+      setNewShiftWorkDays(newShiftWorkDays.filter((d) => d !== day));
+    } else {
+      setNewShiftWorkDays([...newShiftWorkDays, day]);
+    }
+  };
+
+  const handleResolveMapsUrl = async (idx: number, url: string) => {
+    const trimmed = url.trim();
+    const next = [...branches];
+    next[idx] = { ...next[idx], map_url: trimmed };
+    setBranches(next);
+
+    if (!trimmed) return;
+
+    // Check synchronous regex first
+    const direct = parseGoogleMapsUrl(trimmed);
+    if (direct) {
+      const updated = [...branches];
+      updated[idx] = { ...updated[idx], map_url: trimmed, lat: direct.lat, lng: direct.lng };
+      setBranches(updated);
+      return;
+    }
+
+    if (!trimmed.startsWith('http')) return;
+
+    setResolvingMapIndex(idx);
+    try {
+      const res = await fetch('/api/resolve-maps-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: trimmed }),
+      });
+      const data = await res.json();
+      if (data.success && data.lat && data.lng) {
+        setBranches((prev) => {
+          const list = [...prev];
+          if (list[idx]) {
+            list[idx] = {
+              ...list[idx],
+              map_url: trimmed,
+              lat: data.lat,
+              lng: data.lng,
+            };
+          }
+          return list;
+        });
+      }
+    } catch (e) {
+      console.error('Failed to resolve maps link:', e);
+    } finally {
+      setResolvingMapIndex(null);
     }
   };
 
@@ -452,11 +520,16 @@ export default function SettingsHubPage() {
       geofencing_radius: primaryBranch ? Number(primaryBranch.radius || 200) : 200,
       lateness_policy: {
         thresholds: [
-          { mins: 15, deduction: Number(late15 || 0.25) },
-          { mins: 30, deduction: Number(late30 || 0.5) },
-          { mins: 60, deduction: Number(late60 || 1.0) },
+          { mins: Number(lateTier1Mins || 15), deduction: Number(lateTier1Deduction ?? 0.25) },
+          { mins: Number(lateTier2Mins || 30), deduction: Number(lateTier2Deduction ?? 0.5) },
+          { mins: Number(lateTier3Mins || 60), deduction: Number(lateTier3Deduction ?? 1.0) },
         ],
       },
+      late_thresholds: [
+        { mins: Number(lateTier1Mins || 15), deduction: Number(lateTier1Deduction ?? 0.25) },
+        { mins: Number(lateTier2Mins || 30), deduction: Number(lateTier2Deduction ?? 0.5) },
+        { mins: Number(lateTier3Mins || 60), deduction: Number(lateTier3Deduction ?? 1.0) },
+      ],
       updated_at: new Date().toISOString(),
     };
 
@@ -894,6 +967,40 @@ export default function SettingsHubPage() {
                     </div>
                   </div>
 
+                  {/* Shift Working Days Selector */}
+                  <div className="pt-2 border-t border-slate-200 dark:border-slate-700 space-y-1.5">
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                      {isRtl ? 'أيام العمل لهذه الوردية' : 'Shift Working Days'}
+                    </label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        { en: 'Sunday', ar: 'الأحد' },
+                        { en: 'Monday', ar: 'الاثنين' },
+                        { en: 'Tuesday', ar: 'الثلاثاء' },
+                        { en: 'Wednesday', ar: 'الأربعاء' },
+                        { en: 'Thursday', ar: 'الخميس' },
+                        { en: 'Friday', ar: 'الجمعة' },
+                        { en: 'Saturday', ar: 'السبت' },
+                      ].map((day) => {
+                        const isSelected = newShiftWorkDays.includes(day.en);
+                        return (
+                          <button
+                            key={day.en}
+                            type="button"
+                            onClick={() => toggleShiftWorkDay(day.en)}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                                : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-400'
+                            }`}
+                          >
+                            {isRtl ? day.ar : day.en.slice(0, 3)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   {/* Split Shift Toggle & Session 2 */}
                   <div className="pt-2 border-t border-slate-200 dark:border-slate-700 space-y-2">
                     <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-800 dark:text-slate-200">
@@ -1238,22 +1345,17 @@ export default function SettingsHubPage() {
                         </label>
                         <input
                           type="text"
-                          value={branch.map_url || (branch.lat && branch.lng ? `${branch.lat}, ${branch.lng}` : '')}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            const next = [...branches];
-                            next[idx] = { ...next[idx], map_url: val };
-                            const parsed = parseGoogleMapsUrl(val);
-                            if (parsed) {
-                              next[idx].lat = parsed.lat;
-                              next[idx].lng = parsed.lng;
-                            }
-                            setBranches(next);
-                          }}
-                          placeholder={isRtl ? 'الصق رابط خرائط جوجل من زر مشاركة الموقع...' : 'Paste Google Maps link (e.g. from Share > Copy Link)...'}
+                          value={branch.map_url || ''}
+                          onChange={(e) => handleResolveMapsUrl(idx, e.target.value)}
+                          placeholder={isRtl ? 'الصق رابط خرائط جوجل من زر المشاركة...' : 'Paste Google Maps link (e.g. from Share > Copy Link)...'}
                           className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-950 dark:text-white font-sans focus:outline-none focus:border-emerald-500"
                         />
-                        {branch.lat && branch.lng ? (
+                        {resolvingMapIndex === idx ? (
+                          <div className="mt-1 flex items-center gap-1.5 text-[10px] text-amber-600 dark:text-amber-400 font-bold animate-pulse">
+                            <RefreshCw className="w-3 h-3 animate-spin" />
+                            <span>{isRtl ? 'جاري تحديد إحداثيات الموقع بدقة من جوجل...' : 'Resolving accurate coordinates from Google Maps link...'}</span>
+                          </div>
+                        ) : branch.lat && branch.lng ? (
                           <div className="mt-1 flex items-center gap-2 text-[10px]">
                             <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
                               <CheckCircle2 className="w-3 h-3" />
@@ -1335,44 +1437,112 @@ export default function SettingsHubPage() {
               </div>
 
               {latenessMode === 'tiered' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3 border-t border-slate-100 dark:border-slate-800">
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                      15 Mins Late (Deduction Days)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.05"
-                      value={late15}
-                      onChange={(e) => setLate15(Number(e.target.value))}
-                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-950 dark:text-white font-sans"
-                    />
+                <div className="space-y-4 pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      {isRtl ? 'التحكم الكامل في شرائح الخصم الثلاث (وقت التأخير والخصم بالأيام)' : 'Custom Tiered Deduction Rules (Full Control: Minutes & Days)'}
+                    </span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                      {isRtl ? 'تحكم في زمن كل شريحة بالدقائق وقيمة الخصم المقابلة بالأيام' : 'Customize threshold minutes and exact day deductions per slot'}
+                    </span>
                   </div>
 
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                      30 Mins Late (Deduction Days)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.05"
-                      value={late30}
-                      onChange={(e) => setLate30(Number(e.target.value))}
-                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-950 dark:text-white font-sans"
-                    />
-                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Slot 1 */}
+                    <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2.5">
+                      <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 block">
+                        {isRtl ? 'الشريحة الأولى (Slot 1)' : 'Tier 1 (First Slot)'}
+                      </span>
+                      <div className="space-y-1">
+                        <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                          {isRtl ? 'تأخير حتى (دقيقة)' : 'Late threshold (Mins)'}
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={lateTier1Mins}
+                          onChange={(e) => setLateTier1Mins(Number(e.target.value))}
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-950 dark:text-white font-sans"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                          {isRtl ? 'قيمة الخصم (أيام)' : 'Deduction (Days)'}
+                        </label>
+                        <input
+                          type="number"
+                          step="0.05"
+                          min="0"
+                          value={lateTier1Deduction}
+                          onChange={(e) => setLateTier1Deduction(Number(e.target.value))}
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-950 dark:text-white font-sans"
+                        />
+                      </div>
+                    </div>
 
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                      60 Mins Late (Deduction Days)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.05"
-                      value={late60}
-                      onChange={(e) => setLate60(Number(e.target.value))}
-                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-950 dark:text-white font-sans"
-                    />
+                    {/* Slot 2 */}
+                    <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2.5">
+                      <span className="text-xs font-extrabold text-teal-600 dark:text-teal-400 block">
+                        {isRtl ? 'الشريحة الثانية (Slot 2)' : 'Tier 2 (Second Slot)'}
+                      </span>
+                      <div className="space-y-1">
+                        <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                          {isRtl ? 'تأخير حتى (دقيقة)' : 'Late threshold (Mins)'}
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={lateTier2Mins}
+                          onChange={(e) => setLateTier2Mins(Number(e.target.value))}
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-950 dark:text-white font-sans"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                          {isRtl ? 'قيمة الخصم (أيام)' : 'Deduction (Days)'}
+                        </label>
+                        <input
+                          type="number"
+                          step="0.05"
+                          min="0"
+                          value={lateTier2Deduction}
+                          onChange={(e) => setLateTier2Deduction(Number(e.target.value))}
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-950 dark:text-white font-sans"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Slot 3 */}
+                    <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2.5">
+                      <span className="text-xs font-extrabold text-amber-600 dark:text-amber-400 block">
+                        {isRtl ? 'الشريحة الثالثة (Slot 3)' : 'Tier 3 (Third Slot)'}
+                      </span>
+                      <div className="space-y-1">
+                        <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                          {isRtl ? 'تأخير حتى (دقيقة)' : 'Late threshold (Mins)'}
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={lateTier3Mins}
+                          onChange={(e) => setLateTier3Mins(Number(e.target.value))}
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-950 dark:text-white font-sans"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                          {isRtl ? 'قيمة الخصم (أيام)' : 'Deduction (Days)'}
+                        </label>
+                        <input
+                          type="number"
+                          step="0.05"
+                          min="0"
+                          value={lateTier3Deduction}
+                          onChange={(e) => setLateTier3Deduction(Number(e.target.value))}
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-950 dark:text-white font-sans"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               ) : (

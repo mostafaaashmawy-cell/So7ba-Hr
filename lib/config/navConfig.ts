@@ -258,21 +258,19 @@ export interface MobileNavItem {
 
 export const MOBILE_NAV_BY_ROLE: Record<string, MobileNavItem[]> = {
   employee: [
-    { id: 'home', titleEn: 'Home', titleAr: 'الرئيسية', href: '/dashboard/employee', icon: UserCheck },
+    { id: 'workspace', titleEn: 'My Workspace', titleAr: 'مساحتي', href: '/dashboard/employee', icon: UserCheck },
     { id: 'checkin', titleEn: 'Check-In', titleAr: 'الحضور', href: '/dashboard/employee#checkin-section', icon: Clock },
     { id: 'leaves', titleEn: 'Leaves', titleAr: 'الإجازات', href: '/dashboard/employee#leaves-section', icon: Calendar },
-    { id: 'payslip', titleEn: 'Payslip', titleAr: 'الراتب', href: '/dashboard/payslips', icon: Receipt },
+    { id: 'payslip', titleEn: 'Payslips', titleAr: 'الراتب', href: '/dashboard/payslips', icon: Receipt },
   ],
   manager: [
-    { id: 'home', titleEn: 'Home', titleAr: 'الرئيسية', href: '/dashboard/manager', icon: Users },
-    { id: 'team', titleEn: 'Team', titleAr: 'الفريق', href: '/dashboard/employees', icon: Building2 },
+    { id: 'workspace', titleEn: 'My Workspace', titleAr: 'مساحتي', href: '/dashboard/employee', icon: UserCheck },
+    { id: 'team', titleEn: 'Team View', titleAr: 'فريق العمل', href: '/dashboard/manager', icon: Users },
     { id: 'approvals', titleEn: 'Approvals', titleAr: 'الاعتمادات', href: '/dashboard/leaves', icon: CheckSquare },
-    { id: 'reviews', titleEn: 'Reviews', titleAr: 'التقييمات', href: '/dashboard/evaluations', icon: Star },
   ],
   super_admin: [
-    { id: 'overview', titleEn: 'Overview', titleAr: 'الرئيسية', href: '/dashboard/admin', icon: LayoutDashboard },
-    { id: 'people', titleEn: 'People', titleAr: 'الموظفين', href: '/dashboard/employees', icon: Users },
-    { id: 'payroll', titleEn: 'Payroll', titleAr: 'الرواتب', href: '/dashboard/payroll', icon: DollarSign },
-    { id: 'settings', titleEn: 'Settings', titleAr: 'الإعدادات', href: '/dashboard/settings', icon: Sliders },
+    { id: 'workspace', titleEn: 'My Workspace', titleAr: 'مساحتي', href: '/dashboard/employee', icon: UserCheck },
+    { id: 'team', titleEn: 'Team View', titleAr: 'فريق العمل', href: '/dashboard/manager', icon: Users },
+    { id: 'admin', titleEn: 'Super Admin', titleAr: 'لوحة الإدارة', href: '/dashboard/admin', icon: ShieldCheck },
   ],
 };

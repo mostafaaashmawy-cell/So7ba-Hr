@@ -24,13 +24,7 @@ interface DepartmentTurnoverRateChartProps {
   data?: DepartmentTurnoverItem[];
 }
 
-const DEFAULT_DATA: DepartmentTurnoverItem[] = [
-  { department: 'Customer Success', turnoverRate: 7.2, resignations: 4 },
-  { department: 'Sales & BD', turnoverRate: 5.4, resignations: 3 },
-  { department: 'Operations', turnoverRate: 3.8, resignations: 3 },
-  { department: 'Marketing', turnoverRate: 2.5, resignations: 1 },
-  { department: 'Engineering', turnoverRate: 1.2, resignations: 1 },
-];
+const DEFAULT_DATA: DepartmentTurnoverItem[] = [];
 
 export default function DepartmentTurnoverRateChart({
   data = DEFAULT_DATA,
@@ -71,14 +65,22 @@ export default function DepartmentTurnoverRateChart({
         </span>
       </div>
 
-      {/* Horizontal Bar Chart */}
-      <div className="h-64 w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            layout="vertical"
-            data={sortedData}
-            margin={{ top: 10, right: 25, left: 20, bottom: 5 }}
-          >
+      {/* Horizontal Bar Chart or Empty State */}
+      {sortedData.length === 0 ? (
+        <div className="h-64 w-full flex flex-col items-center justify-center text-center p-4">
+          <UserMinus className="w-10 h-10 text-slate-300 dark:text-slate-600 mb-2" />
+          <span className="text-xs font-bold text-slate-500">
+            {isRtl ? 'لا توجد استقالات أو تسرب وظيفي مسجل حتى الآن' : 'No departmental turnover recorded yet.'}
+          </span>
+        </div>
+      ) : (
+        <div className="h-64 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              layout="vertical"
+              data={sortedData}
+              margin={{ top: 10, right: 25, left: 20, bottom: 5 }}
+            >
             <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#1E293B" />
             <XAxis
               type="number"
@@ -123,6 +125,7 @@ export default function DepartmentTurnoverRateChart({
           </BarChart>
         </ResponsiveContainer>
       </div>
+      )}
 
       {/* Legend & Benchmarks */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-400">

@@ -13,6 +13,7 @@ import {
 } from '@/lib/types/database';
 import TeamRequestsApprovalCenter from '@/components/manager/TeamRequestsApprovalCenter';
 import HomeTaskAnalytics from '@/components/dashboard/HomeTaskAnalytics';
+import ManagerActionCards from '@/components/manager/ManagerActionCards';
 
 export default async function ManagerDashboardPage() {
   const supabase = await createClient();
@@ -45,6 +46,15 @@ export default async function ManagerDashboardPage() {
   if (manager?.role !== 'manager' && manager?.role !== 'super_admin') {
     redirect('/dashboard/employee');
   }
+
+  // Fetch Tenant Settings to check approval workflow
+  const { data: tenantSettings } = await supabase
+    .from('tenant_settings')
+    .select('leave_approval_mode')
+    .eq('tenant_id', manager.tenant_id)
+    .maybeSingle();
+
+  const isHierarchicalApproval = tenantSettings?.leave_approval_mode === 'hierarchical';
 
   // Fetch Team Members assigned to manager
   const teamQuery = supabase.from('users').select('*');
@@ -109,74 +119,22 @@ export default async function ManagerDashboardPage() {
       <Navbar user={manager} activeRoleView="manager" />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-8 space-y-8">
-        {/* MANAGER COMMAND CENTER */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Link
-            href="/dashboard/evaluations"
-            className="cleariq-card p-5 cleariq-card-hover flex items-center justify-between group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
-                <span className="text-xl">⭐</span>
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Monthly Evaluations</h3>
-                <p className="text-[11px] text-slate-400">Rate and review team performance</p>
-              </div>
-            </div>
-            <span className="text-xs font-bold text-emerald-600 group-hover:translate-x-1 transition-transform">
-              →
-            </span>
-          </Link>
-
-          <Link
-            href="/dashboard/sales"
-            className="cleariq-card p-5 cleariq-card-hover flex items-center justify-between group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-400">
-                <span className="text-xl">📈</span>
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Sales Logging</h3>
-                <p className="text-[11px] text-slate-400">Approve client sales & commissions</p>
-              </div>
-            </div>
-            <span className="text-xs font-bold text-emerald-600 group-hover:translate-x-1 transition-transform">
-              →
-            </span>
-          </Link>
-
-          <Link
-            href="/dashboard/targets"
-            className="cleariq-card p-5 cleariq-card-hover flex items-center justify-between group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
-                <span className="text-xl">🎯</span>
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Targets Board</h3>
-                <p className="text-[11px] text-slate-400">Set and validate goals achievements</p>
-              </div>
-            </div>
-            <span className="text-xs font-bold text-emerald-600 group-hover:translate-x-1 transition-transform">
-              →
-            </span>
-          </Link>
-        </div>
+        {/* MANAGER COMMAND CENTER (Localized) */}
+        <ManagerActionCards />
 
         {/* Monthly Task Completion & Target Progress Analytics */}
         <HomeTaskAnalytics />
 
-        {/* Team Requests Approval Center (Leaves & Permissions) */}
-        <TeamRequestsApprovalCenter
-          initialRequests={(leaveRecords as LeavePermissionRecord[]) || []}
-          teamMembers={(teamMembers as UserProfile[]) || []}
-          currentUserId={authUser.id}
-          currentUserRole={manager.role === 'super_admin' ? 'super_admin' : 'manager'}
-          tenantId={manager.tenant_id}
-        />
+        {/* Team Requests Approval Center (Leaves & Permissions) - Strictly visible when Hierarchical Mode is active */}
+        {isHierarchicalApproval && (
+          <TeamRequestsApprovalCenter
+            initialRequests={(leaveRecords as LeavePermissionRecord[]) || []}
+            teamMembers={(teamMembers as UserProfile[]) || []}
+            currentUserId={authUser.id}
+            currentUserRole={manager.role === 'super_admin' ? 'super_admin' : 'manager'}
+            tenantId={manager.tenant_id}
+          />
+        )}
 
         {/* Team Overview Dashboard */}
         <TeamOverviewTable

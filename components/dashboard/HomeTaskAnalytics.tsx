@@ -19,8 +19,10 @@ interface EmployeeProgress {
 interface RawTargetRecord {
   id: string;
   user_id: string;
-  target_quantity: number;
-  kpi_unit: string | null;
+  target_quantity?: number;
+  target_value?: number;
+  kpi_unit?: string | null;
+  unit?: string | null;
   user?: {
     full_name?: string;
     department?: { name?: string };
@@ -84,9 +86,10 @@ export default function HomeTaskAnalytics() {
         const typedKpis = (kpis as unknown as KpiEntryItem[]) || [];
 
         const list: EmployeeProgress[] = (targets as unknown as RawTargetRecord[]).slice(0, 8).map((t) => {
-          const userKpis = typedKpis.filter((k) => k.user_id === t.user_id && (!t.kpi_unit || k.unit === t.kpi_unit));
+          const targetUnit = t.unit || t.kpi_unit || '';
+          const userKpis = typedKpis.filter((k) => k.user_id === t.user_id && (!targetUnit || k.unit === targetUnit));
           const completed = userKpis.reduce((sum, k) => sum + Number(k.amount || 0), 0);
-          const targetQty = Number(t.target_quantity) || 1;
+          const targetQty = Number(t.target_value ?? t.target_quantity) || 1;
           const rate = Math.min(100, Math.round((completed / targetQty) * 100));
 
           return {
@@ -95,7 +98,7 @@ export default function HomeTaskAnalytics() {
             department: t.user?.department?.name || 'Operations',
             tasksCompleted: completed,
             tasksTarget: targetQty,
-            unit: t.kpi_unit || 'tasks',
+            unit: targetUnit || 'tasks',
             completionRate: rate,
           };
         });

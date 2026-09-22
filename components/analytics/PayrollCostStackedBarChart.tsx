@@ -25,13 +25,7 @@ interface PayrollCostStackedBarChartProps {
   data?: DepartmentPayrollCostItem[];
 }
 
-const DEFAULT_DATA: DepartmentPayrollCostItem[] = [
-  { department: 'Operations', basicSalaries: 180000, commissionsBonuses: 35000, insurancesOvertime: 22000 },
-  { department: 'Sales & BD', basicSalaries: 140000, commissionsBonuses: 85000, insurancesOvertime: 15000 },
-  { department: 'Engineering', basicSalaries: 220000, commissionsBonuses: 25000, insurancesOvertime: 18000 },
-  { department: 'Marketing', basicSalaries: 95000, commissionsBonuses: 20000, insurancesOvertime: 12000 },
-  { department: 'HR & Legal', basicSalaries: 65000, commissionsBonuses: 10000, insurancesOvertime: 8000 },
-];
+const DEFAULT_DATA: DepartmentPayrollCostItem[] = [];
 
 export default function PayrollCostStackedBarChart({
   data = DEFAULT_DATA,
@@ -75,13 +69,21 @@ export default function PayrollCostStackedBarChart({
         </div>
       </div>
 
-      {/* Stacked Bar Chart */}
-      <div className="h-72 w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={enrichedData}
-            margin={{ top: 10, right: 10, left: -10, bottom: 25 }}
-          >
+      {/* Stacked Bar Chart or Empty State */}
+      {enrichedData.length === 0 ? (
+        <div className="h-72 w-full flex flex-col items-center justify-center text-center p-4">
+          <DollarSign className="w-10 h-10 text-slate-300 dark:text-slate-600 mb-2" />
+          <span className="text-xs font-bold text-slate-500">
+            {isRtl ? 'لا توجد بيانات تكاليف رواتب مسجلة حتى الآن' : 'No payroll cost breakdown recorded yet.'}
+          </span>
+        </div>
+      ) : (
+        <div className="h-72 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={enrichedData}
+              margin={{ top: 10, right: 10, left: -10, bottom: 25 }}
+            >
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1E293B" />
             <XAxis
               dataKey="department"
@@ -147,6 +149,7 @@ export default function PayrollCostStackedBarChart({
           </BarChart>
         </ResponsiveContainer>
       </div>
+      )}
 
       {/* Legend */}
       <div className="flex flex-wrap items-center justify-center gap-6 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs font-bold">

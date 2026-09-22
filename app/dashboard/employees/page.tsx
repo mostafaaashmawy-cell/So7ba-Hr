@@ -28,6 +28,7 @@ import {
   Phone,
   CreditCard,
   Wallet,
+  Calendar,
   CheckCircle2,
   AlertCircle,
   X,
@@ -179,6 +180,8 @@ export default function EmployeeDirectoryPage() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [departments, setDepartments] = useState<DepartmentRecord[]>([]);
   const [shifts, setShifts] = useState<ShiftRecord[]>([]);
+  const [todayPresentCount, setTodayPresentCount] = useState<number>(0);
+  const [todayLeaveCount, setTodayLeaveCount] = useState<number>(0);
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -243,6 +246,31 @@ export default function EmployeeDirectoryPage() {
         .eq('tenant_id', profile.tenant_id)
         .order('start_time');
       if (shiftList) setShifts(shiftList as ShiftRecord[]);
+
+      // Fetch today's operational stats
+      const todayStr = new Date().toISOString().split('T')[0];
+      const { data: attToday } = await supabase
+        .from('attendance')
+        .select('user_id')
+        .eq('tenant_id', profile.tenant_id)
+        .or(`date.eq.${todayStr},check_in_time.gte.${todayStr}T00:00:00`);
+
+      if (attToday) {
+        const uniquePresent = new Set(attToday.map((a) => a.user_id));
+        setTodayPresentCount(uniquePresent.size);
+      }
+
+      const { data: leavesToday } = await supabase
+        .from('leaves_permissions')
+        .select('id')
+        .eq('tenant_id', profile.tenant_id)
+        .in('status', ['approved', 'active'])
+        .lte('start_date', todayStr)
+        .gte('end_date', todayStr);
+
+      if (leavesToday) {
+        setTodayLeaveCount(leavesToday.length);
+      }
     }
     setLoading(false);
   };
@@ -621,7 +649,9 @@ export default function EmployeeDirectoryPage() {
         </div>
 
         {/* Quick Stats Metric Ribbon */}
+        {/* Quick Stats Metric Ribbon: Key Operational HR Indicators */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+          {/* Card 1: Total Headcount */}
           <div className="cleariq-card p-4 cleariq-card-hover flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center shrink-0">
               <Users className="w-5 h-5" />
@@ -633,51 +663,64 @@ export default function EmployeeDirectoryPage() {
               <span className="text-lg font-black text-slate-950 dark:text-white font-sans">
                 {users.length}
               </span>
+              <span className="text-[10px] text-slate-400 block">
+                {isRtl ? 'مسجلين بالنظام' : 'Registered staff'}
+              </span>
             </div>
           </div>
 
+          {/* Card 2: Active on Duty Today */}
           <div className="cleariq-card p-4 cleariq-card-hover flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200 dark:border-blue-800 flex items-center justify-center shrink-0">
-              <CreditCard className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 dark:bg-teal-950/40 dark:text-teal-400 border border-teal-200 dark:border-teal-800 flex items-center justify-center shrink-0">
+              <UserCheck className="w-5 h-5" />
             </div>
             <div>
               <span className="text-[10px] font-bold text-slate-500 block uppercase">
-                {isRtl ? 'تحويل بنكي / إنستاباي' : 'Bank & InstaPay'}
+                {isRtl ? 'الحاضرون اليوم' : 'Active On Duty'}
               </span>
               <span className="text-lg font-black text-slate-950 dark:text-white font-sans">
-                {
-                  users.filter(
-                    (u) => u.payout_method === 'bank_transfer' || u.payout_method === 'instapay'
-                  ).length
-                }
+                {todayPresentCount}
+              </span>
+              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold block">
+                {users.length > 0 ? Math.round((todayPresentCount / users.length) * 100) : 0}% {isRtl ? 'نسبة الحضور' : 'attendance'}
               </span>
             </div>
           </div>
 
+          {/* Card 3: On Leave / Excused */}
           <div className="cleariq-card p-4 cleariq-card-hover flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400 border border-purple-200 dark:border-purple-800 flex items-center justify-center shrink-0">
-              <Wallet className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center shrink-0">
+              <Calendar className="w-5 h-5" />
             </div>
             <div>
               <span className="text-[10px] font-bold text-slate-500 block uppercase">
-                {isRtl ? 'محافظ إلكترونية' : 'E-Wallets'}
+                {isRtl ? 'في إجازة / تصريح' : 'On Leave / Excused'}
               </span>
               <span className="text-lg font-black text-slate-950 dark:text-white font-sans">
-                {users.filter((u) => u.payout_method === 'e_wallet').length}
+                {todayLeaveCount}
+              </span>
+              <span className="text-[10px] text-slate-400 block">
+                {isRtl ? 'إجازات معتمدة سارية' : 'Approved today'}
               </span>
             </div>
           </div>
 
+          {/* Card 4: Incomplete Employee Document Vaults */}
           <div className="cleariq-card p-4 cleariq-card-hover flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800 flex items-center justify-center shrink-0">
               <FileText className="w-5 h-5" />
             </div>
             <div>
               <span className="text-[10px] font-bold text-slate-500 block uppercase">
-                {isRtl ? 'مستندات مكتملة (6/6)' : 'Complete Vaults'}
+                {isRtl ? 'ملفات غير مكتملة' : 'Incomplete Vaults'}
               </span>
               <span className="text-lg font-black text-slate-950 dark:text-white font-sans">
-                {users.filter((u) => countDocs(u) === 6).length}
+                {users.filter((u) => countDocs(u) < 6).length}
+              </span>
+              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold block">
+                {users.filter((u) => countDocs(u) < 6).length > 0
+                  ? (isRtl ? 'يحتاج استكمال مستندات' : 'Requires documents')
+                  : (isRtl ? 'جميع الملفات مكتملة' : 'All files complete')}
               </span>
             </div>
           </div>

@@ -206,7 +206,24 @@ export default function PayrollPage() {
       setAdjAmount('');
       setAdjNotes('');
 
-      loadData();
+      if (currentUser?.tenant_id) {
+        logAuditAction(supabase, {
+          tenant_id: currentUser.tenant_id,
+          actor_id: currentUser.id,
+          action_type: adjType === 'bonus' ? 'ADD_BONUS_ADJUSTMENT' : 'ADD_PENALTY_ADJUSTMENT',
+          entity_name: 'financial_adjustments',
+          details: {
+            user_id: adjEmployee,
+            type: adjType,
+            amount: Number(adjAmount ?? 0),
+            month: selectedMonth,
+            notes: adjNotes.trim(),
+            status: finalStatus,
+          },
+        });
+      }
+
+      await loadData();
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : 'Action failed';
       setMsg({ text: errMsg, error: true });
@@ -237,6 +254,7 @@ export default function PayrollPage() {
           details: { status: newStatus },
         });
       }
+      await loadData();
     } catch (e: unknown) {
       const errMsg = e instanceof Error ? e.message : 'Action failed';
       setMsg({ text: errMsg, error: true });
@@ -268,6 +286,7 @@ export default function PayrollPage() {
           details: { status: newStatus },
         });
       }
+      await loadData();
     } catch (e: unknown) {
       const errMsg = e instanceof Error ? e.message : 'Action failed';
       setMsg({ text: errMsg, error: true });
@@ -952,7 +971,12 @@ export default function PayrollPage() {
                   <h4 className="text-xs font-bold text-slate-900 dark:text-slate-300 uppercase tracking-wider">
                     {isRtl ? 'التعديلات المالية (مكافآت وجزاءات)' : 'Adjustments (Bonuses & Penalties)'}
                   </h4>
-                  {adjustments.map((a) => (
+                  {adjustments.length === 0 ? (
+                    <div className="py-6 text-center text-xs text-slate-400 font-medium">
+                      {isRtl ? 'لا توجد تعديلات مالية مسجلة بعد' : 'No financial adjustments logged yet.'}
+                    </div>
+                  ) : (
+                    adjustments.map((a) => (
                     <div
                       key={a.id}
                       className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-between text-xs font-sans"
@@ -1017,7 +1041,8 @@ export default function PayrollPage() {
                         )}
                       </div>
                     </div>
-                  ))}
+                  ))
+                  )}
 
                   {enableAdvances && (
                     <>

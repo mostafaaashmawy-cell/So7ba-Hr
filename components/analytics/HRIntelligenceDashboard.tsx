@@ -14,16 +14,20 @@ import TurnoverAbsenceTrendChart, { MonthlyTrendData } from './TurnoverAbsenceTr
 import DepartmentTurnoverRateChart, { DepartmentTurnoverItem } from './DepartmentTurnoverRateChart';
 import PayrollCostStackedBarChart, { DepartmentPayrollCostItem } from './PayrollCostStackedBarChart';
 
+import { calculateShiftLatenessMinutes } from '@/lib/utils/dateUtils';
+
 interface HRIntelligenceDashboardProps {
   users?: UserProfile[];
   departments?: DepartmentRecord[];
   todayAttendance?: AttendanceRecord[];
+  allAttendance?: AttendanceRecord[];
   leaves?: LeavePermissionRecord[];
 }
 
 export default function HRIntelligenceDashboard({
   users = [],
   todayAttendance = [],
+  allAttendance = [],
   leaves = [],
 }: HRIntelligenceDashboardProps) {
   const { isRtl } = useLanguage();
@@ -31,12 +35,21 @@ export default function HRIntelligenceDashboard({
     'all' | 'workforce' | 'compliance' | 'retention' | 'financial'
   >('all');
 
-  // 1. Calculate Real Workforce Status from Users & Attendance
-  const totalEmployees = users.length || 68;
-  const presentCount = todayAttendance.filter((a) => !a.check_out_time || a.check_in_time).length || 42;
-  const remoteCount = users.filter((u) => u.is_remote).length || 18;
-  const onLeaveCount = leaves.filter((l) => l.status === 'approved').length || 6;
-  const absentCount = Math.max(0, totalEmployees - (presentCount + remoteCount + onLeaveCount)) || 2;
+  // 1. Calculate Real Workforce Status from Users, Today Attendance & Leaves
+  const totalEmployees = users.length;
+  const presentCount = todayAttendance.filter(
+    (a) => a.check_in_time && !users.find((u) => u.id === a.user_id)?.is_remote
+  ).length;
+  const remoteCount = users.filter((u) => u.is_remote).length;
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const onLeaveCount = leaves.filter(
+    (l) => l.status === 'approved' && l.type === 'leave' && l.date === todayStr
+  ).length;
+  const absentCount =
+    totalEmployees > 0
+      ? Math.max(0, totalEmployees - (presentCount + remoteCount + onLeaveCount))
+      : 0;
 
   const workforceData: WorkforceStatusData = {
     present: presentCount,
@@ -45,75 +58,180 @@ export default function HRIntelligenceDashboard({
     absent: absentCount,
   };
 
-  // 2. Calculate Headcount by Department
+  // 2. Calculate Headcount by Department (100% Real DB)
   const headcountMap: { [key: string]: number } = {};
   users.forEach((u) => {
-    const deptName = u.department?.name || 'Operations';
+    const deptName = u.department?.name || (isRtl ? 'عام' : 'General');
     headcountMap[deptName] = (headcountMap[deptName] || 0) + 1;
   });
 
-  const departmentHeadcount: DepartmentHeadcountItem[] =
-    Object.keys(headcountMap).length > 0
-      ? Object.keys(headcountMap).map((k) => ({ name: k, count: headcountMap[k] }))
-      : [
-          { name: 'Operations & Logistics', count: 32 },
-          { name: 'Sales & Business Dev', count: 24 },
-          { name: 'Engineering & IT', count: 18 },
-          { name: 'Marketing & Media', count: 12 },
-          { name: 'Human Resources', count: 8 },
-        ];
+  const departmentHeadcount: DepartmentHeadcountItem[] = Object.entries(headcountMap).map(
+    ([name, count]) => ({
+      name,
+      count,
+    })
+  );
 
-  // 3. Department Lateness Data
-  const latenessData: DepartmentLatenessItem[] = [
-    { department: 'Operations', latenessMinutes: 285, delayedIncidents: 19 },
-    { department: 'Sales & BD', latenessMinutes: 190, delayedIncidents: 14 },
-    { department: 'Marketing', latenessMinutes: 125, delayedIncidents: 8 },
-    { department: 'Engineering', latenessMinutes: 65, delayedIncidents: 4 },
-    { department: 'HR & Admin', latenessMinutes: 20, delayedIncidents: 1 },
-  ];
+  // 3. Department Lateness Data (100% Real DB from allAttendance)
+  const latenessMap: Record<string, { latenessMinutes: number; delayedIncidents: number }> = {};
+  allAttendance.forEach((att) => {
+    const lateMins = calculateShiftLatenessMinutes(att.check_in_time);
+    const user = users.find((u) => u.id === att.user_id);
+    const deptName =
+      att.user?.department?.name || user?.department?.name || (isRtl ? 'عام' : 'General');
+    if (!latenessMap[deptName]) {
+      latenessMap[deptName] = { latenessMinutes: 0, delayedIncidents: 0 };
+    }
+    if (lateMins > 0) {
+      latenessMap[deptName].latenessMinutes += lateMins;
+      latenessMap[deptName].delayedIncidents += 1;
+    }
+  });
 
-  // 4. Leave Balances Data
-  const leaveBalancesData: DepartmentLeaveBalanceItem[] = [
-    { department: 'Operations', unusedDays: 142, consumedDays: 58, totalAccrued: 200 },
-    { department: 'Sales & BD', unusedDays: 98, consumedDays: 62, totalAccrued: 160 },
-    { department: 'Engineering', unusedDays: 84, consumedDays: 36, totalAccrued: 120 },
-    { department: 'Marketing', unusedDays: 45, consumedDays: 35, totalAccrued: 80 },
-    { department: 'HR & Legal', unusedDays: 28, consumedDays: 22, totalAccrued: 50 },
-  ];
+  const latenessData: DepartmentLatenessItem[] = Object.entries(latenessMap)
+    .filter(([_, stats]) => stats.latenessMinutes > 0 || stats.delayedIncidents > 0)
+    .map(([dept, stats]) => ({
+      department: dept,
+      latenessMinutes: stats.latenessMinutes,
+      delayedIncidents: stats.delayedIncidents,
+    }));
 
-  // 5. 12-Month Turnover & Absence Data
-  const turnoverAbsenceTrend: MonthlyTrendData[] = [
-    { month: 'Jan', absenteeismRate: 3.8, turnoverRate: 1.2 },
-    { month: 'Feb', absenteeismRate: 4.2, turnoverRate: 1.4 },
-    { month: 'Mar', absenteeismRate: 3.5, turnoverRate: 0.9 },
-    { month: 'Apr', absenteeismRate: 5.1, turnoverRate: 2.1 },
-    { month: 'May', absenteeismRate: 4.0, turnoverRate: 1.5 },
-    { month: 'Jun', absenteeismRate: 3.2, turnoverRate: 1.1 },
-    { month: 'Jul', absenteeismRate: 4.8, turnoverRate: 1.8 },
-    { month: 'Aug', absenteeismRate: 5.4, turnoverRate: 2.3 },
-    { month: 'Sep', absenteeismRate: 3.9, turnoverRate: 1.2 },
-    { month: 'Oct', absenteeismRate: 3.6, turnoverRate: 1.0 },
-    { month: 'Nov', absenteeismRate: 3.1, turnoverRate: 0.8 },
-    { month: 'Dec', absenteeismRate: 4.4, turnoverRate: 1.6 },
-  ];
+  // 4. Leave Balances Data (100% Real DB from users & approved leaves)
+  const deptLeavesMap: Record<
+    string,
+    { unusedDays: number; consumedDays: number; totalAccrued: number }
+  > = {};
+  users.forEach((u) => {
+    const deptName = u.department?.name || (isRtl ? 'عام' : 'General');
+    if (!deptLeavesMap[deptName]) {
+      deptLeavesMap[deptName] = { unusedDays: 0, consumedDays: 0, totalAccrued: 0 };
+    }
+    const allowance = Number(u.annual_leave_allowance || 21);
+    deptLeavesMap[deptName].totalAccrued += allowance;
+  });
 
-  // 6. Departmental Turnover Data
-  const departmentalTurnover: DepartmentTurnoverItem[] = [
-    { department: 'Customer Success', turnoverRate: 7.2, resignations: 4 },
-    { department: 'Sales & BD', turnoverRate: 5.4, resignations: 3 },
-    { department: 'Operations', turnoverRate: 3.8, resignations: 3 },
-    { department: 'Marketing', turnoverRate: 2.5, resignations: 1 },
-    { department: 'Engineering', turnoverRate: 1.2, resignations: 1 },
-  ];
+  leaves.forEach((l) => {
+    if (l.status === 'approved' && l.type === 'leave') {
+      const user = users.find((u) => u.id === l.user_id);
+      const deptName = user?.department?.name || (isRtl ? 'عام' : 'General');
+      if (deptLeavesMap[deptName]) {
+        deptLeavesMap[deptName].consumedDays += 1;
+      }
+    }
+  });
 
-  // 7. Payroll & Benefits Cost Data
-  const payrollCostData: DepartmentPayrollCostItem[] = [
-    { department: 'Operations', basicSalaries: 180000, commissionsBonuses: 35000, insurancesOvertime: 22000 },
-    { department: 'Sales & BD', basicSalaries: 140000, commissionsBonuses: 85000, insurancesOvertime: 15000 },
-    { department: 'Engineering', basicSalaries: 220000, commissionsBonuses: 25000, insurancesOvertime: 18000 },
-    { department: 'Marketing', basicSalaries: 95000, commissionsBonuses: 20000, insurancesOvertime: 12000 },
-    { department: 'HR & Legal', basicSalaries: 65000, commissionsBonuses: 10000, insurancesOvertime: 8000 },
-  ];
+  const leaveBalancesData: DepartmentLeaveBalanceItem[] = Object.entries(deptLeavesMap).map(
+    ([dept, data]) => ({
+      department: dept,
+      unusedDays: Math.max(0, data.totalAccrued - data.consumedDays),
+      consumedDays: data.consumedDays,
+      totalAccrued: data.totalAccrued,
+    })
+  );
+
+  // 5. Monthly Turnover & Absence Trend (100% Real DB for past 6 months)
+  const monthNames = isRtl
+    ? ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
+    : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  const now = new Date();
+  const monthlyTrendMap: Record<string, { monthLabel: string; absences: number; resignations: number }> = {};
+
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const yyyyMm = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    monthlyTrendMap[yyyyMm] = {
+      monthLabel: monthNames[d.getMonth()],
+      absences: 0,
+      resignations: 0,
+    };
+  }
+
+  allAttendance.forEach((att) => {
+    const attDate = att.date || att.check_in_time;
+    if (attDate) {
+      const monthKey = attDate.substring(0, 7);
+      const lateMins = calculateShiftLatenessMinutes(att.check_in_time);
+      if (monthlyTrendMap[monthKey] && lateMins > 60) {
+        monthlyTrendMap[monthKey].absences += 1;
+      }
+    }
+  });
+
+  users.forEach((u) => {
+    const isTerminated = u.contract_end_date && new Date(u.contract_end_date) < now;
+    if (isTerminated && u.contract_end_date) {
+      const monthKey = u.contract_end_date.substring(0, 7);
+      if (monthlyTrendMap[monthKey]) {
+        monthlyTrendMap[monthKey].resignations += 1;
+      }
+    }
+  });
+
+  const turnoverAbsenceTrend: MonthlyTrendData[] = Object.values(monthlyTrendMap).map((m) => {
+    const totalStaff = users.length || 1;
+    const workDaysApprox = 22;
+    const absenceRate =
+      users.length > 0 ? Number(((m.absences / (totalStaff * workDaysApprox)) * 100).toFixed(1)) : 0;
+    const turnoverRate =
+      users.length > 0 ? Number(((m.resignations / totalStaff) * 100).toFixed(1)) : 0;
+    return {
+      month: m.monthLabel,
+      absenteeismRate: Math.min(100, absenceRate),
+      turnoverRate: Math.min(100, turnoverRate),
+    };
+  });
+
+  // 6. Departmental Turnover Data (100% Real DB)
+  const deptTurnoverMap: Record<string, { total: number; resignations: number }> = {};
+  users.forEach((u) => {
+    const deptName = u.department?.name || (isRtl ? 'عام' : 'General');
+    if (!deptTurnoverMap[deptName]) {
+      deptTurnoverMap[deptName] = { total: 0, resignations: 0 };
+    }
+    deptTurnoverMap[deptName].total += 1;
+    const isTerminated = u.contract_end_date && new Date(u.contract_end_date) < now;
+    if (isTerminated) {
+      deptTurnoverMap[deptName].resignations += 1;
+    }
+  });
+
+  const departmentalTurnover: DepartmentTurnoverItem[] = Object.entries(deptTurnoverMap).map(
+    ([dept, counts]) => ({
+      department: dept,
+      resignations: counts.resignations,
+      turnoverRate:
+        counts.total > 0 ? Number(((counts.resignations / counts.total) * 100).toFixed(1)) : 0,
+    })
+  );
+
+  // 7. Payroll & Benefits Cost Data (100% Real DB from basic salaries & insurance rates)
+  const deptPayrollMap: Record<
+    string,
+    { basicSalaries: number; commissionsBonuses: number; insurancesOvertime: number }
+  > = {};
+
+  users.forEach((u) => {
+    const deptName = u.department?.name || (isRtl ? 'عام' : 'General');
+    if (!deptPayrollMap[deptName]) {
+      deptPayrollMap[deptName] = { basicSalaries: 0, commissionsBonuses: 0, insurancesOvertime: 0 };
+    }
+    const salary = Number(u.basic_salary || 0);
+    deptPayrollMap[deptName].basicSalaries += salary;
+    const insAmt = Number(u.social_insurance || 0);
+    if (insAmt > 0) {
+      deptPayrollMap[deptName].insurancesOvertime += insAmt;
+    }
+  });
+
+  const payrollCostData: DepartmentPayrollCostItem[] = Object.entries(deptPayrollMap).map(
+    ([dept, cost]) => ({
+      department: dept,
+      basicSalaries: cost.basicSalaries,
+      commissionsBonuses: cost.commissionsBonuses,
+      insurancesOvertime: cost.insurancesOvertime,
+    })
+  );
 
   return (
     <div className="space-y-6">

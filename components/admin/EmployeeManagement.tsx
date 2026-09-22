@@ -30,6 +30,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/lib/context/LanguageContext';
 import { exportToCSV } from '@/lib/utils/csvExport';
 import { logAuditAction } from '@/lib/utils/auditLogger';
+import { formatAuditSummary } from '@/lib/utils/auditDiffFormatter';
 
 interface EmployeeManagementProps {
   initialUsers: UserProfile[];
@@ -786,8 +787,8 @@ export default function EmployeeManagement({
                       <td className="py-3.5 px-4 font-semibold text-slate-700 dark:text-slate-300">
                         {log.entity_name} {log.entity_id ? `(#${String(log.entity_id).slice(0, 6)})` : ''}
                       </td>
-                      <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300 font-mono text-[11px] max-w-xs truncate">
-                        {JSON.stringify(log.details || {})}
+                      <td className="py-3.5 px-4 text-slate-800 dark:text-slate-200 text-xs font-medium max-w-xs truncate" title={formatAuditSummary(log, isRtl)}>
+                        {formatAuditSummary(log, isRtl)}
                       </td>
                     </tr>
                   ))

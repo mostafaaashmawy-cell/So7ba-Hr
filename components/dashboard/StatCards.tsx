@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, Users, Banknote } from 'lucide-react';
 import { useLanguage } from '@/lib/context/LanguageContext';
 
 interface StatCardsProps {
@@ -75,13 +75,12 @@ export default function StatCards({
           </div>
           <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
             <ArrowUpRight className="w-3.5 h-3.5" />
-            <span>{isRtl ? '+12% نمو' : '+12% increase'}</span>
-            <span className="text-slate-400 font-normal ml-1">
-              {isRtl ? 'الشهر الماضي' : 'Last month'}
-            </span>
+            <span>{isRtl ? 'قوة العمل الكلية' : 'Active Headcount'}</span>
           </div>
         </div>
-        <RadialGauge percentage={85} color="#10b981" />
+        <div className="w-13 h-13 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center shrink-0">
+          <Users className="w-6 h-6" />
+        </div>
       </div>
 
       {/* CARD 2: Active on Duty Today */}
@@ -93,15 +92,12 @@ export default function StatCards({
           <div className="text-2xl sm:text-3xl text-slate-950 dark:text-white font-extrabold tracking-tight font-sans">
             {activeToday.toLocaleString()}
           </div>
-          <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+          <div className="flex items-center gap-1 text-[11px] font-bold text-teal-600 dark:text-teal-400">
             <ArrowUpRight className="w-3.5 h-3.5" />
-            <span>{attendanceRate}% {isRtl ? 'حضور' : 'present'}</span>
-            <span className="text-slate-400 font-normal ml-1">
-              {isRtl ? 'اليوم' : 'Today'}
-            </span>
+            <span>{attendanceRate}% {isRtl ? 'حضور اليوم' : 'present today'}</span>
           </div>
         </div>
-        <RadialGauge percentage={attendanceRate || 75} color="#059669" />
+        <RadialGauge percentage={attendanceRate} color="#059669" />
       </div>
 
       {/* CARD 3: Performance Index */}
@@ -111,18 +107,15 @@ export default function StatCards({
             {isRtl ? 'متوسط تقييم الأداء' : 'Avg Performance Score'}
           </span>
           <div className="text-2xl sm:text-3xl text-slate-950 dark:text-white font-extrabold tracking-tight font-sans flex items-baseline gap-1">
-            {avgPerformance > 0 ? avgPerformance.toFixed(1) : '4.2'}
+            {avgPerformance > 0 ? avgPerformance.toFixed(1) : '0.0'}
             <span className="text-sm font-semibold text-slate-400">/ 5.0</span>
           </div>
           <div className="flex items-center gap-1 text-[11px] font-bold text-teal-600 dark:text-teal-400">
             <ArrowUpRight className="w-3.5 h-3.5" />
-            <span>{totalLeavesMonth} {isRtl ? 'في إجازة' : 'on leave'}</span>
-            <span className="text-slate-400 font-normal ml-1">
-              {isRtl ? 'طلبات' : 'Records'}
-            </span>
+            <span>{performanceRate}% {isRtl ? 'نسبة الكفاءة' : 'efficiency index'}</span>
           </div>
         </div>
-        <RadialGauge percentage={performanceRate || 84} color="#0d9488" />
+        <RadialGauge percentage={performanceRate} color="#0d9488" />
       </div>
 
       {/* CARD 4: Total Monthly Payroll */}
@@ -137,13 +130,12 @@ export default function StatCards({
           </div>
           <div className="flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
             <ArrowUpRight className="w-3.5 h-3.5" />
-            <span>{isRtl ? 'مجدول للصرف' : 'On schedule'}</span>
-            <span className="text-slate-400 font-normal ml-1">
-              {isRtl ? 'هذا الشهر' : 'This month'}
-            </span>
+            <span>{isRtl ? 'مجدول للصرف' : 'Scheduled this month'}</span>
           </div>
         </div>
-        <RadialGauge percentage={92} color="#f59e0b" />
+        <div className="w-13 h-13 rounded-2xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 flex items-center justify-center shrink-0">
+          <Banknote className="w-6 h-6" />
+        </div>
       </div>
     </div>
   );

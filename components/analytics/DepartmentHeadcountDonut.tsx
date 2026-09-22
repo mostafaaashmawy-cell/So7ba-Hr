@@ -26,13 +26,7 @@ const PALETTE = [
   '#1F2937', // Deep Charcoal
 ];
 
-const DEFAULT_DATA: DepartmentHeadcountItem[] = [
-  { name: 'Operations & Logistics', count: 32 },
-  { name: 'Sales & Business Dev', count: 24 },
-  { name: 'Engineering & Tech', count: 18 },
-  { name: 'Marketing & Media', count: 12 },
-  { name: 'Customer Success & HR', count: 8 },
-];
+const DEFAULT_DATA: DepartmentHeadcountItem[] = [];
 
 export default function DepartmentHeadcountDonut({ data = DEFAULT_DATA }: DepartmentHeadcountDonutProps) {
   const { isRtl } = useLanguage();
@@ -67,10 +61,18 @@ export default function DepartmentHeadcountDonut({ data = DEFAULT_DATA }: Depart
         </span>
       </div>
 
-      {/* Donut Chart */}
-      <div className="relative h-56 w-full flex items-center justify-center">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
+      {/* Donut Chart or Empty State */}
+      {enrichedData.length === 0 ? (
+        <div className="h-56 w-full flex flex-col items-center justify-center text-center p-4">
+          <FolderTree className="w-10 h-10 text-slate-300 dark:text-slate-600 mb-2" />
+          <span className="text-xs font-bold text-slate-500">
+            {isRtl ? 'لا توجد بيانات أقسام مسجلة بعد' : 'No department headcount recorded yet.'}
+          </span>
+        </div>
+      ) : (
+        <div className="relative h-56 w-full flex items-center justify-center">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
             <Pie
               data={enrichedData}
               cx="50%"
@@ -127,15 +129,17 @@ export default function DepartmentHeadcountDonut({ data = DEFAULT_DATA }: Depart
           </span>
         </div>
       </div>
+      )}
 
       {/* Department Breakdown List */}
-      <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800 max-h-36 overflow-y-auto pr-1">
-        {enrichedData.map((dept, idx) => {
-          const pct = totalHeadcount > 0 ? Math.round((dept.count / totalHeadcount) * 100) : 0;
-          return (
-            <div
-              key={dept.name || idx}
-              onMouseEnter={() => setActiveIndex(idx)}
+      {enrichedData.length > 0 && (
+        <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800 max-h-36 overflow-y-auto pr-1">
+          {enrichedData.map((dept, idx) => {
+            const pct = totalHeadcount > 0 ? Math.round((dept.count / totalHeadcount) * 100) : 0;
+            return (
+              <div
+                key={dept.name || idx}
+                onMouseEnter={() => setActiveIndex(idx)}
               onMouseLeave={() => setActiveIndex(null)}
               className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-700 flex items-center justify-between transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
             >
@@ -153,6 +157,7 @@ export default function DepartmentHeadcountDonut({ data = DEFAULT_DATA }: Depart
           );
         })}
       </div>
+      )}
     </div>
   );
 }
