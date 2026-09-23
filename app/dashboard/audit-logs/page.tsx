@@ -948,19 +948,19 @@ export default function AuditLogsPage() {
                     <div className="p-4 space-y-3 bg-slate-900 text-emerald-400 font-mono text-[11px] overflow-x-auto">
                       {selectedLog.old_values && (
                         <div>
-                          <div className="text-rose-400 font-bold mb-1">// Old Values:</div>
+                          <div className="text-rose-400 font-bold mb-1">{"// Old Values:"}</div>
                           <pre>{JSON.stringify(selectedLog.old_values, null, 2)}</pre>
                         </div>
                       )}
                       {selectedLog.new_values && (
                         <div>
-                          <div className="text-emerald-400 font-bold mb-1">// New Values:</div>
+                          <div className="text-emerald-400 font-bold mb-1">{"// New Values:"}</div>
                           <pre>{JSON.stringify(selectedLog.new_values, null, 2)}</pre>
                         </div>
                       )}
                       {selectedLog.details && (
                         <div>
-                          <div className="text-amber-400 font-bold mb-1">// Additional Details:</div>
+                          <div className="text-amber-400 font-bold mb-1">{"// Additional Details:"}</div>
                           <pre>{JSON.stringify(selectedLog.details, null, 2)}</pre>
                         </div>
                       )}
