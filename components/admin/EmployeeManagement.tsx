@@ -133,7 +133,7 @@ export default function EmployeeManagement({
   const fetchAuditLogs = async () => {
     const { data } = await supabase
       .from('system_audit_logs')
-      .select('*, actor:users(full_name)')
+      .select('*, actor:users!actor_id(full_name)')
       .order('created_at', { ascending: false })
       .limit(100);
     if (data) setAuditLogs(data);

@@ -142,22 +142,28 @@ export default function PayrollPage() {
         }
       }
 
-      // Load Adjustments in Tenant
-      const { data: adj } = await supabase
+      // Load Adjustments in Tenant with explicit foreign key
+      const { data: adj, error: adjErr } = await supabase
         .from('financial_adjustments')
-        .select('*, user:users(full_name)')
+        .select('*, user:users!user_id(full_name)')
         .eq('tenant_id', profile.tenant_id)
         .order('created_at', { ascending: false });
 
+      if (adjErr) {
+        console.error('Error fetching adjustments:', adjErr.message);
+      }
       if (adj) setAdjustments(adj as FinancialAdjustment[]);
 
       // Load Advances in Tenant
-      const { data: adv } = await supabase
+      const { data: adv, error: advErr } = await supabase
         .from('advances')
-        .select('*, user:users(full_name)')
+        .select('*, user:users!user_id(full_name)')
         .eq('tenant_id', profile.tenant_id)
         .order('month', { ascending: false });
 
+      if (advErr) {
+        console.error('Error fetching advances:', advErr.message);
+      }
       if (adv) setAdvances(adv as AdvanceRequest[]);
     }
     setLoading(false);

@@ -248,12 +248,15 @@ export default function EmployeeDirectoryPage() {
       if (shiftList) setShifts(shiftList as ShiftRecord[]);
 
       // Fetch today's operational stats
-      const todayStr = new Date().toISOString().split('T')[0];
+      const now = new Date();
+      const localTodayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const utcTodayStr = now.toISOString().split('T')[0];
+
       const { data: attToday } = await supabase
         .from('attendance')
         .select('user_id')
         .eq('tenant_id', profile.tenant_id)
-        .or(`date.eq.${todayStr},check_in_time.gte.${todayStr}T00:00:00`);
+        .or(`date.eq.${localTodayStr},date.eq.${utcTodayStr},check_in_time.gte.${localTodayStr}T00:00:00,check_in_time.gte.${utcTodayStr}T00:00:00`);
 
       if (attToday) {
         const uniquePresent = new Set(attToday.map((a) => a.user_id));

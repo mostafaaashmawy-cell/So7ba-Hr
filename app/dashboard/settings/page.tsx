@@ -552,8 +552,29 @@ export default function SettingsHubPage() {
         actor_id: currentUser.id,
         action_type: 'UPDATE_COMPANY_POLICIES',
         target_entity: 'tenant_settings',
-        details: payload,
+        details: {
+          work_start_time: payload.work_start_time,
+          work_end_time: payload.work_end_time,
+          leave_approval_mode: payload.leave_approval_mode,
+          lateness_mode: payload.lateness_mode,
+          branches_count: branches.length,
+          branches: branches,
+        },
       });
+
+      // Specific audit log for branch geofencing locations
+      if (branches && branches.length > 0) {
+        await logAuditAction(supabase, {
+          tenant_id: currentUser.tenant_id,
+          actor_id: currentUser.id,
+          action_type: 'UPDATE_BRANCH_LOCATIONS',
+          target_entity: 'company_branches',
+          details: {
+            branches,
+            primary_branch: primaryBranch,
+          },
+        });
+      }
 
       setMsg({
         text: isRtl ? 'تم حفظ إعدادات وسياسات الشركة بنجاح!' : 'Company policies and rules saved successfully!',

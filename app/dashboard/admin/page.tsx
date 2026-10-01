@@ -80,19 +80,19 @@ export default async function SuperAdminDashboardPage() {
   // Fetch All Attendance Records
   const { data: allAttendance } = await supabase
     .from('attendance')
-    .select('*, user:users(*)')
+    .select('*, user:users!user_id(*)')
     .order('created_at', { ascending: false });
 
   // Fetch All Leave Records
   const { data: allLeaves } = await supabase
     .from('leaves_permissions')
-    .select('*, user:users(*)')
+    .select('*, user:users!user_id(*)')
     .order('created_at', { ascending: false });
 
   // Fetch All KPI Records
   const { data: allKpis } = await supabase
     .from('kpi_entries')
-    .select('*, user:users(*)')
+    .select('*, user:users!user_id(*)')
     .order('created_at', { ascending: false });
 
   // Fetch Tenant Settings
@@ -112,7 +112,7 @@ export default async function SuperAdminDashboardPage() {
   // Fetch System Audit Logs
   const { data: allAuditLogs } = await supabase
     .from('system_audit_logs')
-    .select('*, actor:users(full_name)')
+    .select('*, actor:users!actor_id(full_name)')
     .eq('tenant_id', admin.tenant_id)
     .order('created_at', { ascending: false })
     .limit(50);

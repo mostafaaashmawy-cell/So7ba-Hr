@@ -64,8 +64,8 @@ export default function SalesCommissionsPage() {
       setCurrentUser(profile as UserProfile);
       setSelectedEmployee(profile.id);
 
-      // Fetch Sales logs
-      let query = supabase.from('sales_logs').select('*, user:users(full_name)');
+      // Fetch Sales logs with explicit foreign key to avoid PostgREST ambiguity
+      let query = supabase.from('sales_logs').select('*, user:users!user_id(full_name)');
 
       if (profile.role === 'manager') {
         // Load direct team members only

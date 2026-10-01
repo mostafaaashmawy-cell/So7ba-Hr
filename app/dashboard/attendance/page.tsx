@@ -69,7 +69,7 @@ export default function AttendanceMonitorPage() {
     // Fetch Attendance
     const { data: attData } = await supabase
       .from('attendance')
-      .select('*, user:users(*, department:departments(*))')
+      .select('*, user:users!user_id(*, department:departments(*))')
       .eq('tenant_id', profile.tenant_id)
       .eq('date', selectedDate)
       .order('check_in_time', { ascending: false });

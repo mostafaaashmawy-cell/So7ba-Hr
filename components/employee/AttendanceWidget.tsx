@@ -18,6 +18,7 @@ import {
 import { formatTime } from '@/lib/utils/dateUtils';
 import { createClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/lib/context/LanguageContext';
+import { logAuditAction } from '@/lib/utils/auditLogger';
 
 interface AttendanceWidgetProps {
   userId: string;
@@ -172,10 +173,13 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
     const todayStr = new Date().toISOString().split('T')[0];
     const nowIso = new Date().toISOString();
 
+    const tenantId = userProfile?.tenant_id || tenantSettings?.tenant_id;
+
     const { data, error } = await supabase
       .from('attendance')
       .insert({
         user_id: userId,
+        tenant_id: tenantId,
         check_in_time: nowIso,
         lat: currentLat || 0,
         lng: currentLng || 0,
@@ -188,6 +192,20 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
       setErrorMsg(error.message);
     } else if (data) {
       setSessions([data as AttendanceRecord, ...sessions]);
+      if (tenantId) {
+        logAuditAction(supabase, {
+          tenant_id: tenantId,
+          actor_id: userId,
+          action_type: 'ATTENDANCE_CHECK_IN',
+          target_entity: 'attendance',
+          target_id: data.id,
+          details: {
+            check_in_time: nowIso,
+            lat: currentLat,
+            lng: currentLng,
+          },
+        });
+      }
     }
     setLoading(false);
   };
@@ -200,6 +218,7 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
     setErrorMsg(null);
 
     const nowIso = new Date().toISOString();
+    const tenantId = userProfile?.tenant_id || tenantSettings?.tenant_id || latestSession.tenant_id;
 
     const { data, error } = await supabase
       .from('attendance')
@@ -214,6 +233,18 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
       setErrorMsg(error.message);
     } else if (data) {
       setSessions(sessions.map((s) => (s.id === latestSession.id ? (data as AttendanceRecord) : s)));
+      if (tenantId) {
+        logAuditAction(supabase, {
+          tenant_id: tenantId,
+          actor_id: userId,
+          action_type: 'ATTENDANCE_CHECK_OUT',
+          target_entity: 'attendance',
+          target_id: latestSession.id,
+          details: {
+            check_out_time: nowIso,
+          },
+        });
+      }
     }
     setLoading(false);
   };

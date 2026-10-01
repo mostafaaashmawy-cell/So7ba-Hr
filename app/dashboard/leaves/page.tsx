@@ -53,10 +53,10 @@ export default function LeaveApprovalsPage() {
     if (!profile) return;
     setCurrentUser(profile as UserProfile);
 
-    // Fetch leaves for tenant
+    // Fetch leaves for tenant with explicit foreign key
     const { data: leavesData } = await supabase
       .from('leaves_permissions')
-      .select('*, user:users(*, department:departments(*))')
+      .select('*, user:users!user_id(*, department:departments(*))')
       .eq('tenant_id', profile.tenant_id)
       .order('created_at', { ascending: false });
 

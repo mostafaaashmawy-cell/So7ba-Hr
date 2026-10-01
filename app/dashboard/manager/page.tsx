@@ -68,21 +68,21 @@ export default async function ManagerDashboardPage() {
   // Fetch Attendance Records
   const { data: attendanceRecords } = await supabase
     .from('attendance')
-    .select('*, user:users(*)')
+    .select('*, user:users!user_id(*)')
     .in('user_id', teamIds.length > 0 ? teamIds : ['00000000-0000-0000-0000-000000000000'])
     .order('created_at', { ascending: false });
 
   // Fetch Leave Records
   const { data: leaveRecords } = await supabase
     .from('leaves_permissions')
-    .select('*, user:users(*)')
+    .select('*, user:users!user_id(*)')
     .in('user_id', teamIds.length > 0 ? teamIds : ['00000000-0000-0000-0000-000000000000'])
     .order('created_at', { ascending: false });
 
   // Fetch KPI Records
   const { data: kpiRecords } = await supabase
     .from('kpi_entries')
-    .select('*, user:users(*)')
+    .select('*, user:users!user_id(*)')
     .in('user_id', teamIds.length > 0 ? teamIds : ['00000000-0000-0000-0000-000000000000'])
     .order('created_at', { ascending: false });
 

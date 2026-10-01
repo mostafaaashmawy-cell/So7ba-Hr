@@ -16,6 +16,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { useLanguage } from '@/lib/context/LanguageContext';
+import { logAuditAction } from '@/lib/utils/auditLogger';
 
 interface EmployeeTarget {
   id: string;
@@ -118,10 +119,10 @@ export default function TargetsTasksPage() {
         }
       }
 
-      // 4. Fetch Targets
+      // 4. Fetch Targets with explicit foreign key to avoid PostgREST ambiguity
       let targetQuery = supabase
         .from('employee_targets')
-        .select('*, user:users(full_name)');
+        .select('*, user:users!user_id(full_name)');
 
       if (profile.role === 'manager') {
         const teamIds = team ? team.map((m) => m.id) : [];
@@ -132,11 +133,17 @@ export default function TargetsTasksPage() {
         }
       } else if (profile.role === 'employee') {
         targetQuery = targetQuery.eq('user_id', authUser.id);
+      } else {
+        targetQuery = targetQuery.eq('tenant_id', profile.tenant_id);
       }
 
-      const { data: targetList } = await targetQuery.order('start_date', {
+      const { data: targetList, error: targetErr } = await targetQuery.order('start_date', {
         ascending: false,
       });
+
+      if (targetErr) {
+        console.error('Error fetching targets:', targetErr.message);
+      }
 
       if (targetList) {
         const parsedTargets = targetList as EmployeeTarget[];
@@ -179,17 +186,39 @@ export default function TargetsTasksPage() {
     const finalEndDate = targetType === 'daily' ? singleDayDate : endDate;
 
     try {
-      const { error } = await supabase.from('employee_targets').insert({
-        tenant_id: currentUser.tenant_id,
-        user_id: selectedEmployee,
-        unit: targetUnit,
-        target_value: Number(targetVal),
-        target_type: targetType,
-        start_date: finalStartDate,
-        end_date: finalEndDate,
-      });
+      const { data: insertedTarget, error } = await supabase
+        .from('employee_targets')
+        .insert({
+          tenant_id: currentUser.tenant_id,
+          user_id: selectedEmployee,
+          unit: targetUnit,
+          target_value: Number(targetVal),
+          target_type: targetType,
+          start_date: finalStartDate,
+          end_date: finalEndDate,
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+
+      if (currentUser?.tenant_id) {
+        logAuditAction(supabase, {
+          tenant_id: currentUser.tenant_id,
+          actor_id: currentUser.id,
+          action_type: 'ASSIGN_OPERATIONAL_TARGET',
+          target_entity: 'employee_targets',
+          target_id: insertedTarget?.id,
+          details: {
+            user_id: selectedEmployee,
+            unit: targetUnit,
+            target_value: Number(targetVal),
+            target_type: targetType,
+            start_date: finalStartDate,
+            end_date: finalEndDate,
+          },
+        });
+      }
 
       setMsg({
         text: isRtl ? 'تم تحديد الهدف بنجاح!' : 'Operational target assigned successfully!',
@@ -210,6 +239,16 @@ export default function TargetsTasksPage() {
     try {
       const { error } = await supabase.from('employee_targets').delete().eq('id', targetId);
       if (error) throw error;
+
+      if (currentUser?.tenant_id) {
+        logAuditAction(supabase, {
+          tenant_id: currentUser.tenant_id,
+          actor_id: currentUser.id,
+          action_type: 'DELETE_OPERATIONAL_TARGET',
+          target_entity: 'employee_targets',
+          target_id: targetId,
+        });
+      }
       setTargets(targets.filter((t) => t.id !== targetId));
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : 'Delete failed';

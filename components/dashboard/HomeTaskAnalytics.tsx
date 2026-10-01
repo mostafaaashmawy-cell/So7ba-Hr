@@ -64,10 +64,10 @@ export default function HomeTaskAnalytics() {
           return;
         }
 
-        // Fetch targets in this tenant
+        // Fetch targets in this tenant with explicit foreign key to avoid PostgREST ambiguity
         const { data: targets } = await supabase
           .from('employee_targets')
-          .select('*, user:users(id, full_name, department_id, department:departments(name))')
+          .select('*, user:users!user_id(id, full_name, department_id, department:departments(name))')
           .eq('tenant_id', profile.tenant_id)
           .order('created_at', { ascending: false });
 

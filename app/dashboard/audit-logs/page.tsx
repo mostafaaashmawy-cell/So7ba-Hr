@@ -92,7 +92,7 @@ export default function AuditLogsPage() {
       // Fetch audit logs with actor profile
       const { data: logRecords } = await supabase
         .from('system_audit_logs')
-        .select('*, actor:users(id, full_name, role)')
+        .select('*, actor:users!actor_id(id, full_name, role)')
         .eq('tenant_id', profile.tenant_id)
         .order('created_at', { ascending: false })
         .limit(500);
