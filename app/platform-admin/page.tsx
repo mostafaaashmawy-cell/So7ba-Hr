@@ -28,11 +28,20 @@ import {
 import HumAiLogo from '@/components/common/HumAiLogo';
 import { TenantRecord, TenantInvitationRecord, PlatformMetrics, UserProfile } from '@/lib/types/database';
 
-const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_URL || 'https://app.humai-hr.com';
+const DEFAULT_APP_DOMAIN = process.env.NEXT_PUBLIC_APP_URL || 'https://system.humai-hr.com';
 
 export default function PlatformAdminPage() {
   const router = useRouter();
   const supabase = createClient();
+
+  // Dynamic origin detection for activation links
+  const [appDomain, setAppDomain] = useState(DEFAULT_APP_DOMAIN);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.origin) {
+      setAppDomain(window.location.origin);
+    }
+  }, []);
 
   // Authentication & Authorization
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -238,7 +247,7 @@ export default function PlatformAdminPage() {
       }
 
       // Professional Domain URL
-      const finalLink = `${APP_DOMAIN}/onboarding?token=${tokenValue}`;
+      const finalLink = `${appDomain}/onboarding?token=${tokenValue}`;
       setGeneratedLink(finalLink);
       loadPlatformData();
     } catch (err: unknown) {
@@ -605,7 +614,7 @@ export default function PlatformAdminPage() {
                 Activation Links & Invitations ({invitations.length})
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                All issued onboarding links using the official <span className="font-bold text-emerald-600 dark:text-emerald-400">app.humai-hr.com</span> domain.
+                All issued onboarding links using the platform domain (<span className="font-bold text-emerald-600 dark:text-emerald-400">{appDomain.replace(/^https?:\/\//, '')}</span>).
               </p>
             </div>
 
@@ -642,7 +651,7 @@ export default function PlatformAdminPage() {
                   </tr>
                 ) : (
                   filteredInvitations.map((inv) => {
-                    const fullLink = `${APP_DOMAIN}/onboarding?token=${inv.token}`;
+                    const fullLink = `${appDomain}/onboarding?token=${inv.token}`;
                     const isExpired = new Date(inv.expires_at) < new Date();
                     return (
                       <tr
@@ -923,7 +932,7 @@ export default function PlatformAdminPage() {
                 </div>
 
                 <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-[11px] text-slate-500 dark:text-slate-400">
-                  Link will be generated with professional domain: <span className="font-bold text-slate-900 dark:text-slate-100">{APP_DOMAIN}/onboarding?token=...</span>
+                  Link will be generated with active domain: <span className="font-bold text-slate-900 dark:text-slate-100">{appDomain}/onboarding?token=...</span>
                 </div>
 
                 <div className="flex items-center justify-end gap-3 pt-2">
