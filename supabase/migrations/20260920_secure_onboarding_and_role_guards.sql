@@ -134,7 +134,7 @@ BEGIN
     v_final_company_name := COALESCE(nullif(trim(p_company_name), ''), v_invitation.company_name);
 
     -- 1. Create the new Tenant
-    INSERT INTO public.tenants (name, plan)
+    INSERT INTO public.tenants (name, subscription_plan)
     VALUES (v_final_company_name, 'enterprise')
     RETURNING id INTO v_tenant_id;
 
@@ -159,6 +159,37 @@ BEGIN
         used_by = p_user_id,
         used_at = now()
     WHERE id = v_invitation.id;
+
+    -- 4. Seed initial tenant_settings
+    INSERT INTO public.tenant_settings (
+        tenant_id,
+        industry,
+        work_start_time,
+        work_end_time,
+        enable_advances,
+        enable_commissions,
+        enable_insurances,
+        enable_shifts,
+        enable_holiday_work_comp,
+        enable_income_tax,
+        enable_overtime,
+        leave_approval_mode
+    )
+    VALUES (
+        v_tenant_id,
+        'Organization',
+        '09:00',
+        '17:00',
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        true,
+        'auto_approve'
+    )
+    ON CONFLICT (tenant_id) DO NOTHING;
 
     RETURN jsonb_build_object(
         'success', true,
