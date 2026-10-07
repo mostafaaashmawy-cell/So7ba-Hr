@@ -244,76 +244,101 @@ export default function EmployeeDirectoryPage() {
   const canEditFinancials = isSuperAdmin;
 
   const loadData = async () => {
-    setLoading(true);
-    const {
-      data: { user: authUser },
-    } = await supabase.auth.getUser();
+    try {
+      setLoading(true);
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
 
-    if (!authUser) return;
+      if (!authUser) return;
 
-    const { data: profile } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', authUser.id)
-      .single();
-
-    if (profile) {
-      setCurrentUser(profile as UserProfile);
-
-      // Fetch all employees in tenant
-      const { data: userList } = await supabase
+      const { data: profile, error: profileErr } = await supabase
         .from('users')
-        .select('*, department:departments(name), shift:shifts(name, start_time, end_time)')
-        .eq('tenant_id', profile.tenant_id)
-        .order('full_name', { ascending: true });
-
-      if (userList) setUsers(userList as UserProfile[]);
-
-      // Fetch departments
-      const { data: depts } = await supabase
-        .from('departments')
         .select('*')
-        .eq('tenant_id', profile.tenant_id)
-        .order('name');
-      if (depts) setDepartments(depts as DepartmentRecord[]);
+        .eq('id', authUser.id)
+        .maybeSingle();
 
-      // Fetch shifts
-      const { data: shiftList } = await supabase
-        .from('shifts')
-        .select('*')
-        .eq('tenant_id', profile.tenant_id)
-        .order('start_time');
-      if (shiftList) setShifts(shiftList as ShiftRecord[]);
-
-      // Fetch today's operational stats
-      const now = new Date();
-      const localTodayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      const utcTodayStr = now.toISOString().split('T')[0];
-
-      const { data: attToday } = await supabase
-        .from('attendance')
-        .select('user_id')
-        .eq('tenant_id', profile.tenant_id)
-        .or(`date.eq.${localTodayStr},date.eq.${utcTodayStr},check_in_time.gte.${localTodayStr}T00:00:00,check_in_time.gte.${utcTodayStr}T00:00:00`);
-
-      if (attToday) {
-        const uniquePresent = new Set(attToday.map((a) => a.user_id));
-        setTodayPresentCount(uniquePresent.size);
+      if (profileErr) {
+        console.error('Error fetching user profile:', profileErr);
       }
 
-      const { data: leavesToday } = await supabase
-        .from('leaves_permissions')
-        .select('id')
-        .eq('tenant_id', profile.tenant_id)
-        .in('status', ['approved', 'active'])
-        .lte('start_date', todayStr)
-        .gte('end_date', todayStr);
+      if (profile) {
+        setCurrentUser(profile as UserProfile);
 
-      if (leavesToday) {
-        setTodayLeaveCount(leavesToday.length);
+        // Fetch all employees in tenant
+        const { data: userList, error: userListErr } = await supabase
+          .from('users')
+          .select('*, department:departments(name), shift:shifts(name, start_time, end_time)')
+          .eq('tenant_id', profile.tenant_id)
+          .order('full_name', { ascending: true });
+
+        if (userListErr) {
+          console.error('Error fetching employee list:', userListErr);
+        } else if (userList) {
+          setUsers(userList as UserProfile[]);
+        }
+
+        // Fetch departments
+        const { data: depts, error: deptsErr } = await supabase
+          .from('departments')
+          .select('*')
+          .eq('tenant_id', profile.tenant_id)
+          .order('name');
+        if (deptsErr) {
+          console.error('Error fetching departments:', deptsErr);
+        } else if (depts) {
+          setDepartments(depts as DepartmentRecord[]);
+        }
+
+        // Fetch shifts
+        const { data: shiftList, error: shiftListErr } = await supabase
+          .from('shifts')
+          .select('*')
+          .eq('tenant_id', profile.tenant_id)
+          .order('start_time');
+        if (shiftListErr) {
+          console.error('Error fetching shifts:', shiftListErr);
+        } else if (shiftList) {
+          setShifts(shiftList as ShiftRecord[]);
+        }
+
+        // Fetch today's operational stats
+        const now = new Date();
+        const localTodayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const utcTodayStr = now.toISOString().split('T')[0];
+        const todayStr = localTodayStr;
+
+        const { data: attToday, error: attErr } = await supabase
+          .from('attendance')
+          .select('user_id')
+          .eq('tenant_id', profile.tenant_id)
+          .or(`date.eq.${localTodayStr},date.eq.${utcTodayStr},check_in_time.gte.${localTodayStr}T00:00:00,check_in_time.gte.${utcTodayStr}T00:00:00`);
+
+        if (attErr) {
+          console.error('Error fetching attendance stats:', attErr);
+        } else if (attToday) {
+          const uniquePresent = new Set(attToday.map((a) => a.user_id));
+          setTodayPresentCount(uniquePresent.size);
+        }
+
+        const { data: leavesToday, error: leavesErr } = await supabase
+          .from('leaves_permissions')
+          .select('id')
+          .eq('tenant_id', profile.tenant_id)
+          .in('status', ['approved', 'active'])
+          .eq('date', todayStr);
+
+        if (leavesErr) {
+          console.error('Error fetching leaves stats:', leavesErr);
+        } else if (leavesToday) {
+          setTodayLeaveCount(leavesToday.length);
+        }
       }
+    } catch (err) {
+      console.error('Error loading employee directory:', err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
