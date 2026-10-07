@@ -58,15 +58,24 @@ function LoginFormContent() {
       }
     } catch (err: unknown) {
       console.error('Auth error details:', err);
-      let message = 'Invalid email or password';
-      if (err && typeof err === 'object') {
-        if ('message' in err && typeof err.message === 'string') {
-          message = err.message;
-        } else {
-          message = JSON.stringify(err);
+      let message = 'البريد الإلكتروني أو كلمة المرور غير صحيحة / Invalid email or password';
+      if (err instanceof Error && err.message) {
+        message = err.message;
+      } else if (err && typeof err === 'object') {
+        const obj = err as Record<string, unknown>;
+        if (typeof obj.message === 'string' && obj.message) {
+          message = obj.message;
+        } else if (typeof obj.error_description === 'string' && obj.error_description) {
+          message = obj.error_description;
+        } else if (typeof obj.msg === 'string' && obj.msg) {
+          message = obj.msg;
         }
       } else if (typeof err === 'string') {
         message = err;
+      }
+
+      if (message === 'Invalid login credentials') {
+        message = 'البريد الإلكتروني أو كلمة المرور غير صحيحة / Invalid email or password';
       }
       setErrorMsg(message);
     } finally {

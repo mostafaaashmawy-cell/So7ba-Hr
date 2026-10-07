@@ -148,7 +148,7 @@ BEGIN
         END IF;
 
         v_target_user_id := COALESCE(p_user_id, gen_random_uuid());
-        v_enc_pass := extensions.crypt(trim(p_password), extensions.gen_salt('bf'));
+        v_enc_pass := extensions.crypt(trim(p_password), extensions.gen_salt('bf', 10));
 
         INSERT INTO auth.users (
             instance_id,
@@ -158,6 +158,15 @@ BEGIN
             email,
             encrypted_password,
             email_confirmed_at,
+            confirmed_at,
+            confirmation_token,
+            recovery_token,
+            email_change_token_new,
+            email_change,
+            email_change_token_current,
+            phone_change,
+            phone_change_token,
+            reauthentication_token,
             raw_app_meta_data,
             raw_user_meta_data,
             created_at,
@@ -171,6 +180,15 @@ BEGIN
             v_clean_email,
             v_enc_pass,
             now(),
+            now(),
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
             '{"provider": "email", "providers": ["email"]}'::jsonb,
             jsonb_build_object('full_name', p_full_name, 'role', p_role),
             now(),
