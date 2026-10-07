@@ -227,10 +227,17 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
     const nowIso = new Date().toISOString();
     const tenantId = userProfile?.tenant_id || tenantSettings?.tenant_id || latestSession.tenant_id;
 
+    const start = new Date(latestSession.check_in_time);
+    const end = new Date(nowIso);
+    const diffMins = Math.max(0, Math.floor((end.getTime() - start.getTime()) / 60000));
+    const reqMins = Number(userProfile?.required_daily_hours || 8) * 60;
+    const overtimeMins = diffMins > reqMins ? diffMins - reqMins : 0;
+
     const { data, error } = await supabase
       .from('attendance')
       .update({
         check_out_time: nowIso,
+        overtime_minutes: overtimeMins,
       })
       .eq('id', latestSession.id)
       .select()
@@ -249,6 +256,7 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
           target_id: latestSession.id,
           details: {
             check_out_time: nowIso,
+            overtime_minutes: overtimeMins,
           },
         });
       }
@@ -259,12 +267,12 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
   const latestSession = sessions[0] || null;
   const isCheckedIn = !!latestSession && !latestSession.check_out_time;
 
-  // Calculate total working hours across today's sessions
+  // Calculate total working hours across today's sessions and active session
   const calculateTotalWorkingMinutes = () => {
     let totalMins = 0;
     const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' });
     sessions
-      .filter((s) => s.date === todayStr)
+      .filter((s) => s.date === todayStr || !s.check_out_time)
       .forEach((s) => {
         const start = new Date(s.check_in_time);
         const end = s.check_out_time ? new Date(s.check_out_time) : new Date();

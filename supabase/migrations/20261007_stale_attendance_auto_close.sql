@@ -1,5 +1,5 @@
 -- Migration: 20261007_stale_attendance_auto_close.sql
--- Description: Adds missing checkout support and PostgreSQL function to automatically close stale attendance sessions from prior days with overnight shift support.
+-- Description: Adds missing checkout support and PostgreSQL function to automatically close stale attendance sessions from prior days with overnight shift, remote, and flexible schedules support.
 
 ALTER TABLE public.attendance 
 ADD COLUMN IF NOT EXISTS check_out_note text,
@@ -25,21 +25,21 @@ BEGIN
       a.date,
       a.check_in_time,
       CASE 
-        -- If shift exists with start and end time:
+        -- 1. If assigned shift exists with start and end time:
         WHEN s.end_time IS NOT NULL AND s.start_time IS NOT NULL THEN
           CASE 
-            -- Overnight shift (end_time < start_time): add 1 day to end_time
+            -- Overnight shift (end_time < start_time): ends next day
             WHEN s.end_time::time < s.start_time::time THEN
               (a.check_in_time::date + interval '1 day' + s.end_time::time)
             ELSE
               (a.check_in_time::date + s.end_time::time)
           END
-        -- If tenant setting work_end_time exists:
-        WHEN ts.work_end_time IS NOT NULL THEN
+        -- 2. If daytime work_end_time exists AND it is after check_in_time on that day:
+        WHEN ts.work_end_time IS NOT NULL AND (a.check_in_time::date + ts.work_end_time::time) > a.check_in_time THEN
           (a.check_in_time::date + ts.work_end_time::time)
-        -- Fallback: standard 8-hour shift
+        -- 3. Flexible / Remote / Custom hours (e.g. 6 hours daily, or 8 hours fallback):
         ELSE 
-          a.check_in_time + interval '8 hours'
+          a.check_in_time + (COALESCE(u.required_daily_hours, 8) || ' hours')::interval
       END AS resolved_check_out
     FROM public.attendance a
     LEFT JOIN public.users u ON u.id = a.user_id
@@ -47,7 +47,7 @@ BEGIN
     LEFT JOIN public.tenant_settings ts ON ts.tenant_id = a.tenant_id
     WHERE a.check_out_time IS NULL
       AND (
-        -- Stale if checked in on a prior day AND at least 14 hours have elapsed
+        -- Stale if checked in on a prior date AND at least 14 hours have elapsed
         (a.date < v_cairo_now::date AND a.check_in_time < NOW() - interval '14 hours')
         -- OR unconditionally stale if older than 20 hours
         OR a.check_in_time < NOW() - interval '20 hours'
