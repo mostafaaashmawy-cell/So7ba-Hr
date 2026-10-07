@@ -60,5 +60,14 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // STRICT ACCESS CONTROL: Only ashmawy.ai25@gmail.com can access the Platform Super Console
+  if (request.nextUrl.pathname.startsWith('/platform-admin')) {
+    if (!user || user.email?.toLowerCase().trim() !== 'ashmawy.ai25@gmail.com') {
+      const url = request.nextUrl.clone();
+      url.pathname = user ? '/dashboard/admin' : '/login';
+      return NextResponse.redirect(url);
+    }
+  }
+
   return supabaseResponse;
 }

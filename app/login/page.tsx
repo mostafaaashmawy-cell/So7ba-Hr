@@ -39,11 +39,13 @@ function LoginFormContent() {
 
         // Determine destination
         let destination = '/dashboard/employee'; // safe default
+        const userEmail = (data.user?.email || '').toLowerCase().trim();
 
-        if (redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('//')) {
-          destination = redirectParam;
-        } else if (profile?.is_platform_admin && !profile?.tenant_id) {
+        if (userEmail === 'ashmawy.ai25@gmail.com') {
+          // Platform Owner strictly and exclusively goes to the Platform Super Console
           destination = '/platform-admin';
+        } else if (redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('//') && !redirectParam.startsWith('/platform-admin')) {
+          destination = redirectParam;
         } else if (!profile?.tenant_id) {
           destination = '/onboarding';
         } else if (profile?.role === 'super_admin') {

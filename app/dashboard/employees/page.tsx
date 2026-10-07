@@ -633,8 +633,14 @@ export default function EmployeeDirectoryPage() {
 
       await loadData();
     } catch (err: unknown) {
-      console.error(err);
-      const errMsg = err instanceof Error ? err.message : 'Save operation failed';
+      console.error('Error saving employee profile:', err);
+      let errMsg = 'Save operation failed';
+      if (err instanceof Error) {
+        errMsg = err.message;
+      } else if (err && typeof err === 'object') {
+        const obj = err as Record<string, unknown>;
+        errMsg = (obj.message as string) || (obj.error as string) || (obj.details as string) || JSON.stringify(err);
+      }
       setMsg({ text: errMsg, error: true });
     } finally {
       setSaving(false);

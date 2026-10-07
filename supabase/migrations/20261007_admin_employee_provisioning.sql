@@ -42,7 +42,9 @@ DECLARE
     v_caller_id UUID;
     v_caller_role TEXT;
     v_caller_tenant_id UUID;
+    v_caller_is_platform_admin BOOLEAN;
     v_target_user_id UUID;
+    v_target_tenant_id UUID;
     v_enc_pass TEXT;
     v_clean_email TEXT;
     v_exists_in_auth BOOLEAN;
@@ -52,16 +54,12 @@ BEGIN
         RETURN jsonb_build_object('success', false, 'error', 'Unauthorized: User not authenticated');
     END IF;
 
-    SELECT role::text, tenant_id INTO v_caller_role, v_caller_tenant_id
+    SELECT role::text, tenant_id, is_platform_admin INTO v_caller_role, v_caller_tenant_id, v_caller_is_platform_admin
     FROM public.users
     WHERE id = v_caller_id;
 
-    IF v_caller_role NOT IN ('super_admin') THEN
+    IF v_caller_role NOT IN ('super_admin') AND NOT COALESCE(v_caller_is_platform_admin, false) THEN
         RETURN jsonb_build_object('success', false, 'error', 'Permission denied: Super Admin role required');
-    END IF;
-
-    IF v_caller_tenant_id IS NULL THEN
-        RETURN jsonb_build_object('success', false, 'error', 'Super Admin is not associated with an active organization');
     END IF;
 
     v_clean_email := lower(trim(p_email));
@@ -73,18 +71,27 @@ BEGIN
         RETURN jsonb_build_object('success', false, 'error', 'Password must be at least 6 characters long');
     END IF;
 
-    -- Check if target user already exists
+    -- Determine target user and target tenant
     v_target_user_id := p_user_id;
 
     IF v_target_user_id IS NOT NULL THEN
         SELECT EXISTS (SELECT 1 FROM auth.users WHERE id = v_target_user_id) INTO v_exists_in_auth;
+        SELECT COALESCE(NULLIF(p_profile_data->>'tenant_id', '')::uuid, v_caller_tenant_id, tenant_id)
+        INTO v_target_tenant_id
+        FROM public.users WHERE id = v_target_user_id;
     ELSE
         SELECT id INTO v_target_user_id FROM auth.users WHERE lower(email) = v_clean_email;
         v_exists_in_auth := (v_target_user_id IS NOT NULL);
+        v_target_tenant_id := COALESCE(NULLIF(p_profile_data->>'tenant_id', '')::uuid, v_caller_tenant_id);
     END IF;
 
     IF v_exists_in_auth THEN
-        -- UPDATE existing user credentials
+        -- Check if new email is used by another user
+        IF EXISTS (SELECT 1 FROM auth.users WHERE lower(email) = v_clean_email AND id <> v_target_user_id) THEN
+            RETURN jsonb_build_object('success', false, 'error', 'This email is already in use by another account');
+        END IF;
+
+        -- UPDATE existing user credentials in auth.users
         IF p_password IS NOT NULL AND trim(p_password) <> '' THEN
             v_enc_pass := extensions.crypt(trim(p_password), extensions.gen_salt('bf'));
             UPDATE auth.users
@@ -101,11 +108,34 @@ BEGIN
             WHERE id = v_target_user_id;
         END IF;
 
-        UPDATE auth.identities
-        SET email = v_clean_email,
-            identity_data = jsonb_build_object('sub', v_target_user_id::text, 'email', v_clean_email, 'full_name', p_full_name),
-            updated_at = now()
-        WHERE user_id = v_target_user_id;
+        -- UPDATE or INSERT into auth.identities (NOTE: email column is ALWAYS GENERATED, do not update it directly)
+        IF EXISTS (SELECT 1 FROM auth.identities WHERE user_id = v_target_user_id) THEN
+            UPDATE auth.identities
+            SET identity_data = jsonb_build_object('sub', v_target_user_id::text, 'email', v_clean_email, 'full_name', p_full_name),
+                updated_at = now()
+            WHERE user_id = v_target_user_id;
+        ELSE
+            INSERT INTO auth.identities (
+                id,
+                provider_id,
+                user_id,
+                identity_data,
+                provider,
+                last_sign_in_at,
+                created_at,
+                updated_at
+            )
+            VALUES (
+                gen_random_uuid(),
+                v_target_user_id::text,
+                v_target_user_id,
+                jsonb_build_object('sub', v_target_user_id::text, 'email', v_clean_email, 'full_name', p_full_name),
+                'email',
+                now(),
+                now(),
+                now()
+            );
+        END IF;
 
     ELSE
         -- CREATE new user in auth.users
@@ -214,7 +244,7 @@ BEGIN
     )
     VALUES (
         v_target_user_id,
-        v_caller_tenant_id,
+        v_target_tenant_id,
         p_full_name,
         v_clean_email,
         p_role::user_role,
