@@ -127,6 +127,7 @@ export interface UserProfile {
   full_name: string;
   full_name_ar?: string | null;
   full_name_en?: string | null;
+  email?: string | null;
   role: UserRole;
   is_platform_admin?: boolean;
   basic_salary: number;

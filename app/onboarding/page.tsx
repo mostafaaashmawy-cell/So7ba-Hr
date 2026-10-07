@@ -111,6 +111,8 @@ function OnboardingContent() {
   const [tokenValid, setTokenValid] = useState<boolean | null>(null);
   const [tokenError, setTokenError] = useState<string | null>(null);
   const [needAccount, setNeedAccount] = useState(false);
+  const [activeUserEmail, setActiveUserEmail] = useState<string | null>(null);
+  const [sessionConfirmed, setSessionConfirmed] = useState(false);
   const [adminName, setAdminName] = useState('');
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
@@ -197,9 +199,12 @@ function OnboardingContent() {
 
         if (user) {
           setUserId(user.id);
+          setActiveUserEmail(user.email || null);
+          setSessionConfirmed(false);
           setNeedAccount(false);
         } else {
           setNeedAccount(true);
+          setSessionConfirmed(true);
         }
         setChecking(false);
         return;
@@ -602,6 +607,76 @@ function OnboardingContent() {
               className="w-full px-6 py-2.5 rounded-xl gradient-btn text-xs font-bold text-white shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
             >
               {isRtl ? 'العودة لصفحة تسجيل الدخول' : 'Return to Sign In'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (token && activeUserEmail && !sessionConfirmed) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-950 dark:text-slate-100 flex flex-col justify-center items-center p-4">
+        <div className="w-full max-w-md cleariq-card p-8 space-y-6">
+          <div className="flex justify-between items-center mb-2">
+            <HumAiLogo variant="horizontal" size="sm" showTagline />
+            <button
+              type="button"
+              onClick={() => setLanguage(language === 'ar' ? 'en' : 'ar')}
+              className="px-2.5 py-1 text-xs font-bold rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-emerald-500 transition-colors cursor-pointer"
+            >
+              {language === 'ar' ? 'English' : 'العربية'}
+            </button>
+          </div>
+
+          <div className="text-center space-y-2">
+            <div className="w-12 h-12 mx-auto rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500">
+              <ShieldCheck className="w-6 h-6" />
+            </div>
+            <h2 className="text-lg font-extrabold text-slate-950 dark:text-white">
+              {isRtl ? 'تم اكتشاف جلسة نشطة مسبقاً' : 'Active Account Detected'}
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {isRtl
+                ? 'أنت مسجل الدخول حالياً في هذا المتصفح بحساب:'
+                : 'You are currently signed in on this browser as:'}
+            </p>
+            <div className="p-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400">
+              {activeUserEmail}
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 text-center leading-relaxed">
+              {isRtl
+                ? `هل تريد استخدام هذا الحساب ليكون هو المدير العام (Super Admin) لشركة "${companyName || 'الشركة الجديدة'}"، أم تسجيل الخروج وإنشاء حساب جديد مخصص للشركة؟`
+                : `Would you like to use this account as the Super Admin for "${companyName || 'the new organization'}", or sign out and create a dedicated new account?`}
+            </p>
+          </div>
+
+          <div className="space-y-2 pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                setSessionConfirmed(true);
+                setNeedAccount(false);
+                setStep(1);
+              }}
+              className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-md shadow-emerald-500/20"
+            >
+              {isRtl ? 'المتابعة بهذا الحساب كمدير عام' : 'Continue with This Account'}
+            </button>
+
+            <button
+              type="button"
+              onClick={async () => {
+                await supabase.auth.signOut();
+                setActiveUserEmail(null);
+                setUserId(null);
+                setSessionConfirmed(true);
+                setNeedAccount(true);
+                setStep(0);
+              }}
+              className="w-full py-2.5 px-4 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
+            >
+              {isRtl ? 'تسجيل الخروج وإنشاء حساب جديد (بريد وباسورد جديد)' : 'Sign Out & Create a New Admin Account'}
             </button>
           </div>
         </div>

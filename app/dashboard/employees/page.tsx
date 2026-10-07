@@ -36,9 +36,15 @@ import {
   ChevronRight,
   RefreshCw,
   Eye,
+  EyeOff,
   UserCheck,
   Send,
   Zap,
+  Lock,
+  Mail,
+  Copy,
+  KeyRound,
+  Check,
 } from 'lucide-react';
 import { useLanguage } from '@/lib/context/LanguageContext';
 import { exportToCSV } from '@/lib/utils/csvExport';
@@ -64,6 +70,8 @@ const CONTRACT_TYPES = ['Full-Time', 'Part-Time', 'Contractor', 'Internship', 'R
 
 interface EditFormState {
   id?: string;
+  email: string;
+  password?: string;
   full_name: string;
   full_name_ar: string;
   full_name_en: string;
@@ -119,6 +127,8 @@ interface EditFormState {
 }
 
 const emptyForm: EditFormState = {
+  email: '',
+  password: '',
   full_name: '',
   full_name_ar: '',
   full_name_en: '',
@@ -200,6 +210,34 @@ export default function EmployeeDirectoryPage() {
   const [activeModalTab, setActiveModalTab] = useState<'identity' | 'job' | 'financials' | 'vault'>('identity');
   const [formData, setFormData] = useState<EditFormState>(emptyForm);
   const [msg, setMsg] = useState<{ text: string; error: boolean } | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [createdCredentials, setCreatedCredentials] = useState<{
+    name: string;
+    email: string;
+    password?: string;
+    role: string;
+  } | null>(null);
+  const [copySuccess, setCopySuccess] = useState(false);
+
+  const generateRandomPassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*';
+    let pass = 'HumAi@';
+    for (let i = 0; i < 6; i++) {
+      pass += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setFormData((prev) => ({ ...prev, password: pass }));
+    setShowPassword(true);
+  };
+
+  const copyCredentialsToClipboard = (creds: { name: string; email: string; password?: string; role: string }) => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://system.humai-hr.com';
+    const text = isRtl
+      ? `بيانات الدخول إلى منصة HumAi HR:\nالاسم: ${creds.name}\nالدور: ${creds.role}\nالبريد الإلكتروني: ${creds.email}\nكلمة المرور: ${creds.password || '(كلمة المرور الحالية)'}\nرابط تسجيل الدخول: ${origin}/login`
+      : `HumAi HR Login Credentials:\nName: ${creds.name}\nRole: ${creds.role}\nEmail: ${creds.email}\nPassword: ${creds.password || '(Current password)'}\nLogin URL: ${origin}/login`;
+    navigator.clipboard.writeText(text);
+    setCopySuccess(true);
+    setTimeout(() => setCopySuccess(false), 3000);
+  };
 
   const isSuperAdmin = currentUser?.role === 'super_admin';
   const isManager = currentUser?.role === 'manager';
@@ -328,8 +366,13 @@ export default function EmployeeDirectoryPage() {
     setModalMode('edit');
     setActiveModalTab('identity');
     setMsg(null);
+    setCreatedCredentials(null);
+    setCopySuccess(false);
+    setShowPassword(false);
     setFormData({
       id: u.id,
+      email: u.email || '',
+      password: '',
       full_name: u.full_name || '',
       full_name_ar: u.full_name_ar || '',
       full_name_en: u.full_name_en || '',
@@ -388,6 +431,9 @@ export default function EmployeeDirectoryPage() {
     setModalMode('create');
     setActiveModalTab('identity');
     setMsg(null);
+    setCreatedCredentials(null);
+    setCopySuccess(false);
+    setShowPassword(false);
     setFormData(emptyForm);
     setIsModalOpen(true);
   };
@@ -477,88 +523,90 @@ export default function EmployeeDirectoryPage() {
         }
       }
 
-      if (modalMode === 'edit' && formData.id) {
-        const { error } = await supabase
-          .from('users')
-          .update(payload)
-          .eq('id', formData.id);
-
-        if (error) throw error;
-
-        if (isPromotingToSuperAdmin) {
-          logAuditAction(supabase, {
-            tenant_id: currentUser.tenant_id,
-            actor_id: currentUser.id,
-            action_type: 'PROMOTE_TO_SUPER_ADMIN',
-            entity_name: 'users',
-            entity_id: formData.id,
-            details: {
-              target_user_name: payload.full_name,
-              previous_role: targetUser?.role || 'none',
-              new_role: 'super_admin',
-            },
+      if (modalMode === 'create') {
+        if (!formData.email.trim() || !formData.email.includes('@')) {
+          setMsg({
+            text: isRtl ? 'يرجى إدخال بريد إلكتروني صالح للموظف' : 'Please provide a valid work email for the employee',
+            error: true,
           });
+          setSaving(false);
+          return;
         }
+        if (!formData.password || formData.password.trim().length < 6) {
+          setMsg({
+            text: isRtl ? 'كلمة المرور يجب ألا تقل عن 6 خانات' : 'Password must be at least 6 characters long',
+            error: true,
+          });
+          setSaving(false);
+          return;
+        }
+      }
 
+      // Provision user with auth credentials and profile atomically
+      const { data: provData, error: provErr } = await supabase.rpc('admin_provision_employee', {
+        p_email: formData.email.trim(),
+        p_password: formData.password && formData.password.trim() ? formData.password.trim() : null,
+        p_full_name: payload.full_name,
+        p_role: payload.role || 'employee',
+        p_user_id: modalMode === 'edit' ? formData.id : null,
+        p_profile_data: payload,
+      });
+
+      if (provErr) throw provErr;
+      if (!provData || !provData.success) {
+        throw new Error(provData?.error || 'Failed to save employee profile and account');
+      }
+
+      const assignedUserId = provData.user_id;
+
+      if (isPromotingToSuperAdmin) {
         logAuditAction(supabase, {
           tenant_id: currentUser.tenant_id,
           actor_id: currentUser.id,
-          action_type: 'UPDATE_EMPLOYEE_PROFILE',
+          action_type: 'PROMOTE_TO_SUPER_ADMIN',
           entity_name: 'users',
-          entity_id: formData.id,
-          details: { updated_fields: Object.keys(payload) },
+          entity_id: assignedUserId,
+          details: {
+            target_user_name: payload.full_name,
+            previous_role: targetUser?.role || 'none',
+            new_role: 'super_admin',
+          },
         });
+      }
 
+      logAuditAction(supabase, {
+        tenant_id: currentUser.tenant_id,
+        actor_id: currentUser.id,
+        action_type: modalMode === 'edit' ? 'UPDATE_EMPLOYEE_PROFILE' : 'CREATE_EMPLOYEE_PROFILE',
+        entity_name: 'users',
+        entity_id: assignedUserId,
+        details: { full_name: payload.full_name, email: formData.email.trim() },
+      });
+
+      if (modalMode === 'create') {
+        setCreatedCredentials({
+          name: payload.full_name || '',
+          email: provData.email || formData.email.trim(),
+          password: formData.password || '',
+          role: payload.role || 'employee',
+        });
+        setMsg({
+          text: isRtl
+            ? 'تم إنشاء حساب الموظف وبيانات تسجيل الدخول بنجاح!'
+            : 'Employee profile & login account created successfully!',
+          error: false,
+        });
+      } else {
         setMsg({
           text: isRtl ? 'تم تحديث بيانات الموظف بنجاح!' : 'Employee profile updated successfully!',
           error: false,
         });
-      } else {
-        // Create Mode
-        const newId = crypto.randomUUID();
-        const { error } = await supabase.from('users').insert({
-          ...payload,
-          id: newId,
-          tenant_id: currentUser.tenant_id,
-          kpi_unit: 'tasks',
-        });
-
-        if (error) throw error;
-
-        if (isPromotingToSuperAdmin) {
-          logAuditAction(supabase, {
-            tenant_id: currentUser.tenant_id,
-            actor_id: currentUser.id,
-            action_type: 'PROMOTE_TO_SUPER_ADMIN',
-            entity_name: 'users',
-            entity_id: newId,
-            details: {
-              target_user_name: payload.full_name,
-              previous_role: 'new_registration',
-              new_role: 'super_admin',
-            },
-          });
-        }
-
-        logAuditAction(supabase, {
-          tenant_id: currentUser.tenant_id,
-          actor_id: currentUser.id,
-          action_type: 'CREATE_EMPLOYEE_PROFILE',
-          entity_name: 'users',
-          entity_id: newId,
-          details: { full_name: payload.full_name },
-        });
-
-        setMsg({
-          text: isRtl ? 'تم إنشاء ملف الموظف الجديد بنجاح!' : 'New employee registered successfully!',
-          error: false,
-        });
+        setTimeout(() => {
+          setIsModalOpen(false);
+        }, 900);
       }
 
       await loadData();
-      setTimeout(() => {
-        setIsModalOpen(false);
-      }, 800);
     } catch (err: unknown) {
       console.error(err);
       const errMsg = err instanceof Error ? err.message : 'Save operation failed';
@@ -842,9 +890,15 @@ export default function EmployeeDirectoryPage() {
                             <span className="font-extrabold text-slate-950 dark:text-white block">
                               {u.full_name}
                             </span>
-                            <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
                               {u.job_title || 'Staff'} • {u.department?.name || 'Operations'}
                             </span>
+                            {u.email && (
+                              <span className="text-[10px] text-slate-400 dark:text-slate-500 flex items-center gap-1 font-mono mt-0.5">
+                                <Mail className="w-2.5 h-2.5 text-slate-400" />
+                                {u.email}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -934,17 +988,38 @@ export default function EmployeeDirectoryPage() {
 
                       {/* Actions */}
                       <td className="py-3 px-4 text-right">
-                        <button
-                          type="button"
-                          onClick={() => handleEdit(u)}
-                          className="p-1.5 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-lg border border-emerald-200 dark:border-emerald-800 cursor-pointer inline-flex items-center gap-1 text-xs font-bold"
-                          title="View / Edit Profile"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                          <span className="hidden sm:inline">
-                            {isSuperAdmin ? (isRtl ? 'تعديل' : 'Edit') : isRtl ? 'عرض' : 'View'}
-                          </span>
-                        </button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          {isSuperAdmin && u.email && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                copyCredentialsToClipboard({
+                                  name: u.full_name || '',
+                                  email: u.email || '',
+                                  role: u.role || 'employee',
+                                })
+                              }
+                              className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg border border-blue-200 dark:border-blue-800 cursor-pointer inline-flex items-center gap-1 text-xs font-bold"
+                              title={isRtl ? 'نسخ بيانات الحساب للدخول' : 'Copy Login Details'}
+                            >
+                              <KeyRound className="w-3.5 h-3.5" />
+                              <span className="hidden lg:inline text-[10px]">
+                                {isRtl ? 'بيانات الدخول' : 'Credentials'}
+                              </span>
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleEdit(u)}
+                            className="p-1.5 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-lg border border-emerald-200 dark:border-emerald-800 cursor-pointer inline-flex items-center gap-1 text-xs font-bold"
+                            title="View / Edit Profile"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">
+                              {isSuperAdmin ? (isRtl ? 'تعديل' : 'Edit') : isRtl ? 'عرض' : 'View'}
+                            </span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -1122,6 +1197,123 @@ export default function EmployeeDirectoryPage() {
                 {/* ─── TAB 1: IDENTITY & BIO ────────────────────────────── */}
                 {activeModalTab === 'identity' && (
                   <div className="space-y-4 animate-in">
+                    {/* Created Credentials banner if newly created */}
+                    {createdCredentials && (
+                      <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <KeyRound className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                            <span className="font-extrabold text-sm">
+                              {isRtl ? 'تم إنشاء بيانات الدخول للموظف بنجاح' : 'Employee Login Credentials Created'}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => copyCredentialsToClipboard(createdCredentials)}
+                            className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer shadow-sm transition-all"
+                          >
+                            {copySuccess ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                            {copySuccess
+                              ? (isRtl ? 'تم النسخ!' : 'Copied!')
+                              : (isRtl ? 'نسخ بيانات الدخول' : 'Copy Credentials')}
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs bg-white/80 dark:bg-slate-900/70 p-3 rounded-xl border border-emerald-100 dark:border-emerald-900/50 font-mono">
+                          <div>
+                            <span className="text-slate-500 dark:text-slate-400 font-sans">{isRtl ? 'البريد الإلكتروني: ' : 'Email: '}</span>
+                            <span className="font-bold text-slate-900 dark:text-slate-100">{createdCredentials.email}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-500 dark:text-slate-400 font-sans">{isRtl ? 'كلمة المرور: ' : 'Password: '}</span>
+                            <span className="font-bold text-slate-900 dark:text-slate-100">{createdCredentials.password || '••••••••'}</span>
+                          </div>
+                        </div>
+                        <p className="text-[11px] text-emerald-700 dark:text-emerald-300">
+                          {isRtl
+                            ? '💡 يمكنك الآن نسخ هذه البيانات وإرسالها للموظف عبر واتساب أو البريد الإلكتروني لتسجيل الدخول.'
+                            : '💡 You can now copy these credentials and share them with the employee via WhatsApp or email.'}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Account & Login Credentials Box */}
+                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Lock className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                          <h4 className="font-extrabold text-xs text-slate-950 dark:text-white uppercase tracking-wider">
+                            {isRtl ? 'بيانات الحساب وتسجيل الدخول' : 'Account & Login Credentials'}
+                          </h4>
+                        </div>
+                        {isSuperAdmin && (
+                          <button
+                            type="button"
+                            onClick={generateRandomPassword}
+                            className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-bold inline-flex items-center gap-1 cursor-pointer"
+                          >
+                            <KeyRound className="w-3 h-3" />
+                            {isRtl ? 'توليد كلمة سر قوية تلقائياً' : 'Generate Strong Password'}
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">
+                            {isRtl ? 'البريد الإلكتروني للعمل (اسم المستخدم):' : 'Work Email (Username):'} *
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="email"
+                              required
+                              value={formData.email}
+                              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                              placeholder="employee@company.com"
+                              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 pl-9 text-xs font-bold text-slate-950 dark:text-white focus:outline-none"
+                            />
+                            <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
+                          </div>
+                          <span className="text-[10px] text-slate-400 mt-1 block">
+                            {isRtl ? 'يُستخدم هذا البريد لتسجيل دخول الموظف للنظام.' : 'Used for employee authentication into the portal.'}
+                          </span>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">
+                            {modalMode === 'create'
+                              ? (isRtl ? 'كلمة المرور الابتدائية:' : 'Initial Password:') + ' *'
+                              : (isRtl ? 'تعيين كلمة مرور جديدة:' : 'New Password (Optional):')}
+                          </label>
+                          <div className="relative">
+                            <input
+                              type={showPassword ? 'text' : 'password'}
+                              value={formData.password}
+                              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                              placeholder={
+                                modalMode === 'create'
+                                  ? '••••••••'
+                                  : isRtl
+                                  ? 'اتركها فارغة للإبقاء على الحالية'
+                                  : 'Leave blank to keep current'
+                              }
+                              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 pr-9 text-xs font-bold text-slate-950 dark:text-white focus:outline-none font-mono"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                            >
+                              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          </div>
+                          <span className="text-[10px] text-slate-400 mt-1 block">
+                            {modalMode === 'create'
+                              ? (isRtl ? 'يجب ألا تقل عن 6 خانات.' : 'Must be at least 6 characters.')
+                              : (isRtl ? 'أدخل كلمة مرور جديدة فقط إذا أردت تغييرها.' : 'Only enter if resetting user password.')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
                         <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">
