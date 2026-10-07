@@ -301,6 +301,7 @@ BEGIN
         now()
     )
     ON CONFLICT (id) DO UPDATE SET
+        tenant_id = COALESCE(EXCLUDED.tenant_id, public.users.tenant_id),
         full_name = EXCLUDED.full_name,
         email = EXCLUDED.email,
         role = EXCLUDED.role,

@@ -473,6 +473,7 @@ export default function EmployeeDirectoryPage() {
 
     try {
       const payload: Partial<UserProfile> = {
+        tenant_id: currentUser.tenant_id,
         full_name: formData.full_name.trim() || formData.full_name_ar || formData.full_name_en,
         full_name_ar: formData.full_name_ar.trim() || null,
         full_name_en: formData.full_name_en.trim() || null,
