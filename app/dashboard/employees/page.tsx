@@ -308,6 +308,13 @@ export default function EmployeeDirectoryPage() {
         const utcTodayStr = now.toISOString().split('T')[0];
         const todayStr = localTodayStr;
 
+        // Auto-close stale records for this tenant before computing stats
+        try {
+          await supabase.rpc('auto_close_stale_attendance', { p_tenant_id: profile.tenant_id });
+        } catch (e) {
+          console.warn('Auto close error on employees directory:', e);
+        }
+
         const { data: attToday, error: attErr } = await supabase
           .from('attendance')
           .select('user_id')

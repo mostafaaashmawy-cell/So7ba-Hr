@@ -494,10 +494,11 @@ export default function PayrollPage() {
       let overtimePay = 0;
       if (settings?.enable_overtime !== false && checkins && hourlyRate > 0) {
         checkins.forEach((c) => {
-          if (c.check_in_time && c.check_out_time) {
+          // Sessions where checkout was forgotten (auto-closed) do not qualify for unverified overtime
+          if (c.check_in_time && c.check_out_time && !c.is_missing_checkout) {
             const workedHours = calculateWorkingMinutes(c.check_in_time, c.check_out_time) / 60;
             if (workedHours > requiredHours) {
-              const extraHours = workedHours - requiredHours;
+              const extraHours = Math.min(workedHours - requiredHours, 6); // Max 6 hours overtime per shift statutory limit
               if (settings?.overtime_calculation_mode === 'fixed_rate') {
                 overtimePay += extraHours * (Number(settings?.overtime_fixed_rate) || 50);
               } else {

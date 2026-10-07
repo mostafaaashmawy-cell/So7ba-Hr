@@ -77,6 +77,13 @@ export default async function SuperAdminDashboardPage() {
     .select('*')
     .order('name');
 
+  // Auto-close any stale unclosed attendance sessions for this tenant
+  try {
+    await supabase.rpc('auto_close_stale_attendance', { p_tenant_id: admin.tenant_id });
+  } catch (err) {
+    console.warn('Auto close stale attendance error:', err);
+  }
+
   // Fetch All Attendance Records
   const { data: allAttendance } = await supabase
     .from('attendance')
@@ -138,7 +145,7 @@ export default async function SuperAdminDashboardPage() {
   }
 
   const totalEmployees = allUsers?.length || 0;
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' });
   const todayAttendanceList =
     allAttendance?.filter((a) => a.date === todayStr || a.check_in_time?.startsWith(todayStr)) || [];
   const activeToday = todayAttendanceList.length || 0;

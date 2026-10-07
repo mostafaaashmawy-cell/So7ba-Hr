@@ -213,6 +213,12 @@ export interface AttendanceRecord {
   date: string;
   created_at?: string;
   user?: UserProfile;
+  tenant_id?: string;
+  is_remote?: boolean;
+  check_in_note?: string | null;
+  check_out_note?: string | null;
+  is_missing_checkout?: boolean;
+  overtime_minutes?: number | null;
 }
 
 export interface LeavePermissionRecord {

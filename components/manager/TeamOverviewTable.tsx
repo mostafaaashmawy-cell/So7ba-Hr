@@ -98,7 +98,7 @@ export default function TeamOverviewTable({
         Date: rec.date,
         'Check-In': rec.check_in_time ? new Date(rec.check_in_time).toLocaleTimeString() : '',
         'Check-Out': rec.check_out_time ? new Date(rec.check_out_time).toLocaleTimeString() : '',
-        'Working Hours': calculateWorkingHours(rec.check_in_time, rec.check_out_time),
+        'Working Hours': calculateWorkingHours(rec.check_in_time, rec.check_out_time, rec.is_missing_checkout),
       }));
       exportToCSV(data, `Attendance_Report_${new Date().toISOString().split('T')[0]}`);
     } else if (activeTab === 'leaves') {
@@ -413,7 +413,7 @@ export default function TeamOverviewTable({
                         <td className="px-4 py-3 font-medium text-emerald-400">{formatTime(rec.check_in_time)}</td>
                         <td className="px-4 py-3 font-medium text-rose-400">{formatTime(rec.check_out_time)}</td>
                         <td className="px-4 py-3 font-bold text-amber-300">
-                          {calculateWorkingHours(rec.check_in_time, rec.check_out_time)}
+                          {calculateWorkingHours(rec.check_in_time, rec.check_out_time, rec.is_missing_checkout)}
                         </td>
                         <td className="px-4 py-3 text-slate-500 dark:text-slate-400 text-[11px]">
                           {rec.lat && rec.lng ? (

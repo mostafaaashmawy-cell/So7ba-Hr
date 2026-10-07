@@ -66,6 +66,13 @@ export default function AttendanceMonitorPage() {
 
     if (depts) setDepartments(depts as DepartmentRecord[]);
 
+    // Auto-close stale records for this tenant
+    try {
+      await supabase.rpc('auto_close_stale_attendance', { p_tenant_id: profile.tenant_id });
+    } catch (e) {
+      console.warn('Auto close error on attendance page:', e);
+    }
+
     // Fetch Attendance
     const { data: attData } = await supabase
       .from('attendance')
@@ -86,9 +93,12 @@ export default function AttendanceMonitorPage() {
   }, [selectedDate]);
 
   // Summary Metrics
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' });
   const totalCheckIns = records.length;
   const presentCount = records.filter((r) => r.check_in_time).length;
-  const inProgressCount = records.filter((r) => r.check_in_time && !r.check_out_time).length;
+  const inProgressCount = records.filter(
+    (r) => r.check_in_time && !r.check_out_time && (r.date === todayStr || !r.is_missing_checkout)
+  ).length;
   const completedCount = records.filter((r) => r.check_in_time && r.check_out_time).length;
 
   // Filtered List
@@ -134,7 +144,7 @@ export default function AttendanceMonitorPage() {
       r.date,
       r.check_in_time ? new Date(r.check_in_time).toLocaleTimeString() : 'N/A',
       r.check_out_time ? new Date(r.check_out_time).toLocaleTimeString() : 'In Progress',
-      calculateWorkingHours(r.check_in_time || '', r.check_out_time),
+      calculateWorkingHours(r.check_in_time || '', r.check_out_time, r.is_missing_checkout),
       r.user?.is_remote ? 'Remote' : 'Office',
     ]);
 
@@ -364,14 +374,21 @@ export default function AttendanceMonitorPage() {
 
                       <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-slate-100 font-sans">
                         {r.check_out_time ? (
-                          <div className="flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-blue-500" />
-                            <span>
-                              {new Date(r.check_out_time).toLocaleTimeString(isRtl ? 'ar-EG' : 'en-US', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </span>
+                          <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`w-2 h-2 rounded-full ${r.is_missing_checkout ? 'bg-amber-500' : 'bg-blue-500'}`} />
+                              <span>
+                                {new Date(r.check_out_time).toLocaleTimeString(isRtl ? 'ar-EG' : 'en-US', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </span>
+                            </div>
+                            {r.is_missing_checkout && (
+                              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+                                {isRtl ? 'إغلاق تلقائي (نسي إنصراف)' : 'Auto-closed (Missing Punch)'}
+                              </span>
+                            )}
                           </div>
                         ) : (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300">
@@ -381,7 +398,7 @@ export default function AttendanceMonitorPage() {
                       </td>
 
                       <td className="py-3.5 px-4 font-bold text-slate-800 dark:text-slate-200 font-sans">
-                        {calculateWorkingHours(r.check_in_time || '', r.check_out_time)}
+                        {calculateWorkingHours(r.check_in_time || '', r.check_out_time, r.is_missing_checkout)}
                       </td>
 
                       <td className="py-3.5 px-4">

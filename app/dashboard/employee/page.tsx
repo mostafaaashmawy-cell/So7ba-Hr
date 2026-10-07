@@ -47,12 +47,19 @@ export default async function EmployeeDashboardPage() {
   const user = userProfile as UserProfile;
   const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }); // YYYY-MM-DD in Cairo TZ
 
-  // Fetch Today's Attendance Sessions
+  // Auto-close any stale unclosed attendance session from prior dates for this user
+  try {
+    await supabase.rpc('auto_close_stale_attendance', { p_user_id: authUser.id });
+  } catch (err) {
+    console.warn('Auto close stale attendance error:', err);
+  }
+
+  // Fetch Today's Attendance Sessions (including any active overnight session)
   const { data: todayAttendance } = await supabase
     .from('attendance')
     .select('*')
     .eq('user_id', authUser.id)
-    .eq('date', todayStr)
+    .or(`date.eq.${todayStr},check_out_time.is.null`)
     .order('check_in_time', { ascending: false });
 
   // Fetch Leaves & Permissions History

@@ -92,8 +92,30 @@ export function getPayrollCycleRange(dateInput: Date | string = getCairoDate()) 
 /**
  * Formats duration between check_in and check_out in hours and minutes.
  */
-export function calculateWorkingHours(checkIn: string, checkOut: string | null): string {
-  if (!checkOut) return 'In Progress';
+export function calculateWorkingHours(
+  checkIn: string,
+  checkOut: string | null,
+  isMissingCheckout?: boolean
+): string {
+  if (isMissingCheckout) {
+    if (checkOut) {
+      const start = typeof checkIn === 'string' ? parseISO(checkIn) : checkIn;
+      const end = typeof checkOut === 'string' ? parseISO(checkOut) : checkOut;
+      const diffMins = Math.max(0, differenceInMinutes(end, start));
+      const hrs = Math.floor(diffMins / 60);
+      const mins = diffMins % 60;
+      return `${hrs}h ${mins}m (Auto)`;
+    }
+    return 'Missing Check-Out';
+  }
+  if (!checkOut) {
+    const start = typeof checkIn === 'string' ? parseISO(checkIn) : checkIn;
+    const now = new Date();
+    if (differenceInMinutes(now, start) > 20 * 60) {
+      return 'Missing Check-Out';
+    }
+    return 'In Progress';
+  }
   const start = typeof checkIn === 'string' ? parseISO(checkIn) : checkIn;
   const end = typeof checkOut === 'string' ? parseISO(checkOut) : checkOut;
   const diffMins = Math.max(0, differenceInMinutes(end, start));
@@ -104,12 +126,18 @@ export function calculateWorkingHours(checkIn: string, checkOut: string | null):
 
 /**
  * Returns duration between check_in and check_out in total minutes.
+ * Includes a safety cap of 14 hours (840 mins) to prevent runaway overtime on missing checkouts.
  */
-export function calculateWorkingMinutes(checkIn: string, checkOut: string | null): number {
+export function calculateWorkingMinutes(
+  checkIn: string,
+  checkOut: string | null,
+  isMissingCheckout?: boolean
+): number {
   if (!checkOut) return 0;
   const start = typeof checkIn === 'string' ? parseISO(checkIn) : checkIn;
   const end = typeof checkOut === 'string' ? parseISO(checkOut) : checkOut;
-  return Math.max(0, differenceInMinutes(end, start));
+  const rawMins = Math.max(0, differenceInMinutes(end, start));
+  return Math.min(rawMins, 14 * 60);
 }
 
 /**

@@ -65,6 +65,13 @@ export default async function ManagerDashboardPage() {
 
   const teamIds = (teamMembers || []).map((m) => m.id);
 
+  // Auto-close any stale attendance sessions for manager's tenant
+  try {
+    await supabase.rpc('auto_close_stale_attendance', { p_tenant_id: manager.tenant_id });
+  } catch (err) {
+    console.warn('Auto close stale attendance error:', err);
+  }
+
   // Fetch Attendance Records
   const { data: attendanceRecords } = await supabase
     .from('attendance')

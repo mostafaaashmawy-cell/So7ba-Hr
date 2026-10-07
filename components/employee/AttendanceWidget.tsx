@@ -170,7 +170,14 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
       }
     }
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    // Auto-close any stale unclosed attendance session before starting a new check-in
+    try {
+      await supabase.rpc('auto_close_stale_attendance', { p_user_id: userId });
+    } catch (e) {
+      console.warn('Auto close check before check-in:', e);
+    }
+
+    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' });
     const nowIso = new Date().toISOString();
 
     const tenantId = userProfile?.tenant_id || tenantSettings?.tenant_id;
@@ -252,15 +259,18 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
   const latestSession = sessions[0] || null;
   const isCheckedIn = !!latestSession && !latestSession.check_out_time;
 
-  // Calculate total working hours across all sessions today
+  // Calculate total working hours across today's sessions
   const calculateTotalWorkingMinutes = () => {
     let totalMins = 0;
-    sessions.forEach((s) => {
-      const start = new Date(s.check_in_time);
-      const end = s.check_out_time ? new Date(s.check_out_time) : new Date();
-      const diff = Math.max(0, Math.floor((end.getTime() - start.getTime()) / 60000));
-      totalMins += diff;
-    });
+    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' });
+    sessions
+      .filter((s) => s.date === todayStr)
+      .forEach((s) => {
+        const start = new Date(s.check_in_time);
+        const end = s.check_out_time ? new Date(s.check_out_time) : new Date();
+        const diff = Math.max(0, Math.floor((end.getTime() - start.getTime()) / 60000));
+        totalMins += Math.min(diff, 12 * 60);
+      });
     return totalMins;
   };
 
@@ -374,6 +384,18 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
         )}
       </div>
 
+      {/* Forgotten Check-out Notice Banner */}
+      {sessions.some((s) => s.is_missing_checkout) && (
+        <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+          <span>
+            {isRtl
+              ? 'تنبيه: تم إغلاق جلسة سابقة تلقائياً بنهاية مواعيد العمل لعدم تسجيل الإنصراف في موعدها.'
+              : 'Notice: A previous attendance session was auto-closed at scheduled shift end due to a missing checkout punch.'}
+          </span>
+        </div>
+      )}
+
       {/* Sessions History List */}
       {sessions.length > 0 && (
         <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-slate-800">
@@ -391,6 +413,11 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
                   <span className="text-slate-500 dark:text-slate-400 font-sans">{formatTime(s.check_in_time)}</span>
                   <span>→</span>
                   <span className="text-slate-500 dark:text-slate-400 font-sans">{s.check_out_time ? formatTime(s.check_out_time) : (isRtl ? 'مستمر...' : 'In Progress...')}</span>
+                  {s.is_missing_checkout && (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300">
+                      {isRtl ? 'إغلاق تلقائي' : 'Auto-closed'}
+                    </span>
+                  )}
                 </div>
                 {s.check_out_time && (
                   <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 font-sans">
