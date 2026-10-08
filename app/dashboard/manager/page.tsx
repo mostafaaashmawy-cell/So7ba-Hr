@@ -14,6 +14,7 @@ import {
 import TeamRequestsApprovalCenter from '@/components/manager/TeamRequestsApprovalCenter';
 import HomeTaskAnalytics from '@/components/dashboard/HomeTaskAnalytics';
 import ManagerActionCards from '@/components/manager/ManagerActionCards';
+import { getCairoDateString } from '@/lib/utils/dateUtils';
 
 export default async function ManagerDashboardPage() {
   const supabase = await createClient();
@@ -114,7 +115,7 @@ export default async function ManagerDashboardPage() {
   }
 
   const totalTeam = teamMembers?.length || 0;
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getCairoDateString();
   const activeToday =
     attendanceRecords?.filter(
       (a) => a.date === todayStr || a.check_in_time?.startsWith(todayStr)

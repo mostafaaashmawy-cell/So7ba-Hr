@@ -20,9 +20,11 @@ import { useLanguage } from '@/lib/context/LanguageContext';
 import { useTenantSettings } from '@/lib/context/SettingsContext';
 import HumAiLogo from '@/components/common/HumAiLogo';
 import { logAuditAction } from '@/lib/utils/auditLogger';
+import { useRouter } from 'next/navigation';
 import {
   calculateWorkingMinutes,
   calculateShiftLatenessMinutes,
+  getCairoDateString,
 } from '@/lib/utils/dateUtils';
 
 interface FinancialAdjustment {
@@ -74,6 +76,7 @@ interface PayslipData {
 }
 
 export default function PayrollPage() {
+  const router = useRouter();
   const { isRtl } = useLanguage();
   const supabase = createClient();
   const { settings: globalSettings, isFeatureEnabled } = useTenantSettings();
@@ -84,8 +87,8 @@ export default function PayrollPage() {
   const [selectedEmployee, setSelectedEmployee] = useState<string>('');
 
   // Payroll Calculation States
-  const [selectedMonth, setSelectedMonth] = useState<string>(
-    new Date().toISOString().substring(0, 7) // 'YYYY-MM'
+  const [selectedMonth, setSelectedMonth] = useState<string>(() =>
+    getCairoDateString().substring(0, 7) // 'YYYY-MM'
   );
 
   // Lists
@@ -126,6 +129,10 @@ export default function PayrollPage() {
       .single();
 
     if (profile) {
+      if (profile.role !== 'super_admin') {
+        router.push('/dashboard/employee');
+        return;
+      }
       setCurrentUser(profile as UserProfile);
 
       // Load all employees in tenant with shifts and departments

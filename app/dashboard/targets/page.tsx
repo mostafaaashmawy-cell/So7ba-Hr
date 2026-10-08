@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '@/lib/context/LanguageContext';
 import { logAuditAction } from '@/lib/utils/auditLogger';
+import { getCairoDateString, getCairoDate } from '@/lib/utils/dateUtils';
 
 interface EmployeeTarget {
   id: string;
@@ -52,17 +53,17 @@ export default function TargetsTasksPage() {
   const [targetType, setTargetType] = useState<'daily' | 'monthly'>('monthly');
 
   // Single Day Date vs Range
-  const [singleDayDate, setSingleDayDate] = useState<string>(
-    new Date().toISOString().split('T')[0]
+  const [singleDayDate, setSingleDayDate] = useState<string>(() =>
+    getCairoDateString()
   );
-  const [startDate, setStartDate] = useState<string>(
-    new Date().toISOString().split('T')[0]
+  const [startDate, setStartDate] = useState<string>(() =>
+    getCairoDateString()
   );
-  const [endDate, setEndDate] = useState<string>(
-    new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0)
-      .toISOString()
-      .split('T')[0]
-  );
+  const [endDate, setEndDate] = useState<string>(() => {
+    const d = getCairoDate();
+    const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    return getCairoDateString(end);
+  });
 
   const [msg, setMsg] = useState<{ text: string; error: boolean } | null>(null);
   const [submitting, setSubmitting] = useState(false);

@@ -5,6 +5,7 @@ import { RefreshCw, ArrowLeftRight, CheckCircle2, AlertCircle } from 'lucide-rea
 import { createClient } from '@/lib/supabase/client';
 import { UserProfile, ShiftSwapRequestRecord } from '@/lib/types/database';
 import { useLanguage } from '@/lib/context/LanguageContext';
+import { getCairoDateString } from '@/lib/utils/dateUtils';
 
 interface ShiftSwapCardProps {
   userId: string;
@@ -22,7 +23,7 @@ export default function ShiftSwapCard({ userId, tenantId }: ShiftSwapCardProps) 
 
   // Form State
   const [targetUserId, setTargetUserId] = useState('');
-  const [requestedDate, setRequestedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [requestedDate, setRequestedDate] = useState(() => getCairoDateString());
   const [notes, setNotes] = useState('');
 
   const loadData = async () => {

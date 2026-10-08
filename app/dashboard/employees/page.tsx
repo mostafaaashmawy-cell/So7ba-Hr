@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -181,6 +182,7 @@ const emptyForm: EditFormState = {
 };
 
 export default function EmployeeDirectoryPage() {
+  const router = useRouter();
   const { isRtl } = useLanguage();
   const supabase = createClient();
 
@@ -263,6 +265,10 @@ export default function EmployeeDirectoryPage() {
       }
 
       if (profile) {
+        if (profile.role !== 'super_admin' && profile.role !== 'manager') {
+          router.push('/dashboard/employee');
+          return;
+        }
         setCurrentUser(profile as UserProfile);
 
         // Fetch all employees in tenant

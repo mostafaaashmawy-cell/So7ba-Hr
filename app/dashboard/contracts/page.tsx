@@ -6,9 +6,11 @@ import { createClient } from '@/lib/supabase/client';
 import { UserProfile } from '@/lib/types/database';
 import { FileText, Save, Download, RefreshCw, AlertCircle, CheckCircle2, FileEdit } from 'lucide-react';
 import { useLanguage } from '@/lib/context/LanguageContext';
+import { useRouter } from 'next/navigation';
 import HumAiLogo from '@/components/common/HumAiLogo';
 
 export default function ContractsPage() {
+  const router = useRouter();
   const { isRtl } = useLanguage();
   const supabase = createClient();
 
@@ -65,6 +67,10 @@ For the Company                         Employee Signature`;
       .single();
 
     if (profile) {
+      if (profile.role !== 'super_admin') {
+        router.push('/dashboard/employee');
+        return;
+      }
       setCurrentUser(profile as UserProfile);
 
       // Load all employees in tenant

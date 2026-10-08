@@ -17,6 +17,7 @@ import {
   Users,
   RefreshCw,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { logAuditAction } from '@/lib/utils/auditLogger';
 
 interface ShiftWithHeadcount extends ShiftRecord {
@@ -24,6 +25,7 @@ interface ShiftWithHeadcount extends ShiftRecord {
 }
 
 export default function ShiftsManagementPage() {
+  const router = useRouter();
   const { isRtl } = useLanguage();
   const supabase = createClient();
 
@@ -71,6 +73,10 @@ export default function ShiftsManagementPage() {
       .single();
 
     if (!profile) return;
+    if (profile.role !== 'super_admin' && profile.role !== 'manager') {
+      router.push('/dashboard/employee');
+      return;
+    }
     setCurrentUser(profile as UserProfile);
 
     // Fetch Shifts

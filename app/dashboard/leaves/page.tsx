@@ -18,6 +18,7 @@ import {
   UserCheck,
   RefreshCw,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { logAuditAction } from '@/lib/utils/auditLogger';
 
 interface LeaveWithUser extends LeavePermissionRecord {
@@ -25,6 +26,7 @@ interface LeaveWithUser extends LeavePermissionRecord {
 }
 
 export default function LeaveApprovalsPage() {
+  const router = useRouter();
   const { isRtl } = useLanguage();
   const supabase = createClient();
 
@@ -51,6 +53,10 @@ export default function LeaveApprovalsPage() {
       .single();
 
     if (!profile) return;
+    if (profile.role !== 'super_admin' && profile.role !== 'manager') {
+      router.push('/dashboard/employee');
+      return;
+    }
     setCurrentUser(profile as UserProfile);
 
     // Fetch leaves for tenant with explicit foreign key

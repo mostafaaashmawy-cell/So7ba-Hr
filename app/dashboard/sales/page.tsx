@@ -15,6 +15,7 @@ import {
   Trash,
 } from 'lucide-react';
 import { useLanguage } from '@/lib/context/LanguageContext';
+import { getCairoDateString } from '@/lib/utils/dateUtils';
 
 interface SalesLog {
   id: string;
@@ -36,8 +37,8 @@ export default function SalesCommissionsPage() {
 
   // Log Form State
   const [salesAmount, setSalesAmount] = useState<number | ''>('');
-  const [salesDate, setSalesDate] = useState<string>(
-    new Date().toISOString().split('T')[0]
+  const [salesDate, setSalesDate] = useState<string>(() =>
+    getCairoDateString()
   );
   const [selectedEmployee, setSelectedEmployee] = useState<string>('');
 

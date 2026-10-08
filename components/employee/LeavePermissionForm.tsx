@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Calendar, CheckCircle, Clock, AlertCircle, Plus, Sparkles } from 'lucide-react';
 import { LeavePermissionRecord } from '@/lib/types/database';
-import { formatDate, getCairoDate } from '@/lib/utils/dateUtils';
+import { formatDate, getCairoDate, getCairoDateString } from '@/lib/utils/dateUtils';
 import { createClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/lib/context/LanguageContext';
 
@@ -33,7 +33,7 @@ export default function LeavePermissionForm({
   const { t, isRtl } = useLanguage();
   const [records, setRecords] = useState<LeavePermissionRecord[]>(initialRecords);
   const [type, setType] = useState<'leave' | 'permission'>('leave');
-  const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState<string>(() => getCairoDateString());
   const [timeframe, setTimeframe] = useState<'morning' | 'evening'>('morning');
   const [excuseTime, setExcuseTime] = useState<string>('10:00');
   const [loading, setLoading] = useState(false);

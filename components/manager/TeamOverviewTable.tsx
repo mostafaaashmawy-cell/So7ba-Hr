@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Users, Clock, Calendar, Target, MapPin, Filter, FileText, Printer, ChevronRight, Download } from 'lucide-react';
 import { UserProfile, AttendanceRecord, LeavePermissionRecord, KpiEntryRecord } from '@/lib/types/database';
-import { formatDate, formatTime, calculateWorkingHours } from '@/lib/utils/dateUtils';
+import { formatDate, formatTime, calculateWorkingHours, getCairoDateString, getCairoDate } from '@/lib/utils/dateUtils';
 import { useLanguage } from '@/lib/context/LanguageContext';
 import { exportToCSV } from '@/lib/utils/csvExport';
 
@@ -43,10 +43,12 @@ export default function TeamOverviewTable({
 
   // PERFORMANCE REPORT STATE
   const [reportUser, setReportUser] = useState<string>(teamMembers[0]?.id || '');
-  const [reportStart, setReportStart] = useState<string>(
-    new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0]
-  );
-  const [reportEnd, setReportEnd] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [reportStart, setReportStart] = useState<string>(() => {
+    const d = getCairoDate();
+    d.setDate(d.getDate() - 30);
+    return getCairoDateString(d);
+  });
+  const [reportEnd, setReportEnd] = useState<string>(() => getCairoDateString());
 
   // 1. FILTER BY MEMBER (TAB VIEWS)
   const memberAttendance = attendanceRecords.filter(

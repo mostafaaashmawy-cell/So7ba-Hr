@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Target, Plus, CheckCircle2, AlertCircle } from 'lucide-react';
 import { KpiEntryRecord } from '@/lib/types/database';
-import { formatDate } from '@/lib/utils/dateUtils';
+import { formatDate, getCairoDateString } from '@/lib/utils/dateUtils';
 import { createClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/lib/context/LanguageContext';
 
@@ -17,7 +17,7 @@ export default function KpiTrackerWidget({ userId, kpiUnit, initialEntries }: Kp
   const { t, isRtl } = useLanguage();
   const [entries, setEntries] = useState<KpiEntryRecord[]>(initialEntries);
   const [amount, setAmount] = useState<number | ''>('');
-  const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState<string>(() => getCairoDateString());
   const [notes, setNotes] = useState<string>('');
   const [kpiUnits, setKpiUnits] = useState<string[]>([]);
   const [selectedUnit, setSelectedUnit] = useState<string>(kpiUnit || 'tasks');

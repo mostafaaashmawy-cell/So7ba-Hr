@@ -14,7 +14,7 @@ import TurnoverAbsenceTrendChart, { MonthlyTrendData } from './TurnoverAbsenceTr
 import DepartmentTurnoverRateChart, { DepartmentTurnoverItem } from './DepartmentTurnoverRateChart';
 import PayrollCostStackedBarChart, { DepartmentPayrollCostItem } from './PayrollCostStackedBarChart';
 
-import { calculateShiftLatenessMinutes } from '@/lib/utils/dateUtils';
+import { calculateShiftLatenessMinutes, getCairoDateString } from '@/lib/utils/dateUtils';
 
 interface HRIntelligenceDashboardProps {
   users?: UserProfile[];
@@ -42,7 +42,7 @@ export default function HRIntelligenceDashboard({
   ).length;
   const remoteCount = users.filter((u) => u.is_remote).length;
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getCairoDateString();
   const onLeaveCount = leaves.filter(
     (l) => l.status === 'approved' && l.type === 'leave' && l.date === todayStr
   ).length;

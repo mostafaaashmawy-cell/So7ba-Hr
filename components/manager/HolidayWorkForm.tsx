@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Plus, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
 import { UserProfile, HolidayWorkRecord } from '@/lib/types/database';
 import { createClient } from '@/lib/supabase/client';
-import { formatDate } from '@/lib/utils/dateUtils';
+import { formatDate, getCairoDateString } from '@/lib/utils/dateUtils';
 import { useLanguage } from '@/lib/context/LanguageContext';
 
 interface HolidayWorkFormProps {
@@ -16,7 +16,7 @@ interface HolidayWorkFormProps {
 export default function HolidayWorkForm({ teamMembers, currentUserId, isSuperAdmin }: HolidayWorkFormProps) {
   const { isRtl } = useLanguage();
   const [selectedEmployee, setSelectedEmployee] = useState<string>(teamMembers[0]?.id || '');
-  const [workingDate, setWorkingDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [workingDate, setWorkingDate] = useState<string>(() => getCairoDateString());
   const [notes, setNotes] = useState<string>('');
   
   const [records, setRecords] = useState<HolidayWorkRecord[]>([]);

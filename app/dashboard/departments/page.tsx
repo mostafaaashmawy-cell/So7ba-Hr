@@ -19,6 +19,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface DepartmentWithStats extends DepartmentRecord {
   memberCount: number;
@@ -27,6 +28,7 @@ interface DepartmentWithStats extends DepartmentRecord {
 }
 
 export default function DepartmentsPage() {
+  const router = useRouter();
   const { isRtl } = useLanguage();
   const supabase = createClient();
 
@@ -57,6 +59,10 @@ export default function DepartmentsPage() {
       .single();
 
     if (!profile) return;
+    if (profile.role !== 'super_admin' && profile.role !== 'manager') {
+      router.push('/dashboard/employee');
+      return;
+    }
     setCurrentUser(profile as UserProfile);
 
     // Fetch Departments

@@ -18,13 +18,19 @@ import {
   Building2,
   RefreshCw,
 } from 'lucide-react';
-import { calculateWorkingHours, calculateShiftLatenessMinutes } from '@/lib/utils/dateUtils';
+import { useRouter } from 'next/navigation';
+import {
+  calculateWorkingHours,
+  calculateShiftLatenessMinutes,
+  getCairoDateString,
+} from '@/lib/utils/dateUtils';
 
 interface AttendanceWithDetails extends AttendanceRecord {
   user?: UserProfile & { department?: { name?: string } };
 }
 
 export default function AttendanceMonitorPage() {
+  const router = useRouter();
   const { isRtl } = useLanguage();
   const supabase = useMemo(() => createClient(), []);
 
@@ -34,8 +40,8 @@ export default function AttendanceMonitorPage() {
   const [departments, setDepartments] = useState<DepartmentRecord[]>([]);
 
   // Filters
-  const [selectedDate, setSelectedDate] = useState<string>(
-    new Date().toISOString().split('T')[0]
+  const [selectedDate, setSelectedDate] = useState<string>(() =>
+    getCairoDateString()
   );
   const [selectedDept, setSelectedDept] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
@@ -56,6 +62,10 @@ export default function AttendanceMonitorPage() {
       .single();
 
     if (!profile) return;
+    if (profile.role !== 'super_admin' && profile.role !== 'manager') {
+      router.push('/dashboard/employee');
+      return;
+    }
     setCurrentUser(profile as UserProfile);
 
     // Fetch Departments
