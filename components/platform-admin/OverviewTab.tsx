@@ -76,23 +76,27 @@ export default function OverviewTab({
   const payingClientsCount = new Set(paidOrders.map((o) => o.company_name || o.tenant_id)).size;
   const blendedCac = payingClientsCount > 0 ? Math.round(totalAdSpend / payingClientsCount) : 0;
 
-  // Normalized MRR calculation:
-  // Annual order => amount / 12
-  // Semi-annual => amount / 6
-  // Monthly => amount / 1
+  // Normalized MRR calculation strictly based on actual verified paid orders:
+  // Annual order => actual amount / 12
+  // Semi-annual => actual amount / 6
+  // Monthly => actual amount / 1
   let mrr = 0;
   tenants.forEach((t) => {
     if (t.subscription_status === 'active') {
-      const tenantOrders = paidOrders.filter((o) => o.tenant_id === t.id);
+      const tenantOrders = paidOrders.filter(
+        (o) => o.tenant_id === t.id || o.company_name?.toLowerCase().trim() === t.name?.toLowerCase().trim()
+      );
       const latestOrder = tenantOrders[0];
       const orderAmount = latestOrder ? Number(latestOrder.amount) : 0;
-      if (t.subscription_plan === 'monthly') {
-        mrr += orderAmount || 1500;
-      } else if (t.subscription_plan === 'semi_annual') {
-        mrr += (orderAmount || 8000) / 6;
-      } else {
-        // default annual
-        mrr += (orderAmount || 15000) / 12;
+      if (orderAmount > 0) {
+        if (t.subscription_plan === 'monthly') {
+          mrr += orderAmount;
+        } else if (t.subscription_plan === 'semi_annual') {
+          mrr += orderAmount / 6;
+        } else {
+          // default annual / enterprise / custom
+          mrr += orderAmount / 12;
+        }
       }
     }
   });

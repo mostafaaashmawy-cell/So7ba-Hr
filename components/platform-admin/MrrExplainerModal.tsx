@@ -29,7 +29,9 @@ export default function MrrExplainerModal({
   const paidOrders = orders.filter((o) => o.payment_status === 'paid');
 
   const tenantBreakdowns = activeTenants.map((t) => {
-    const tOrders = paidOrders.filter((o) => o.tenant_id === t.id);
+    const tOrders = paidOrders.filter(
+      (o) => o.tenant_id === t.id || o.company_name?.toLowerCase().trim() === t.name?.toLowerCase().trim()
+    );
     const latestOrder = tOrders[0];
     const contractAmount = latestOrder ? Number(latestOrder.amount) : 0;
     const plan = t.subscription_plan || 'annual';
@@ -37,16 +39,20 @@ export default function MrrExplainerModal({
     let monthlyContribution = 0;
     let formulaDesc = '';
 
-    if (plan === 'monthly') {
-      monthlyContribution = contractAmount || 1500;
-      formulaDesc = `${(contractAmount || 1500).toLocaleString()} EGP / 1 mo`;
-    } else if (plan === 'semi_annual') {
-      monthlyContribution = (contractAmount || 8000) / 6;
-      formulaDesc = `${(contractAmount || 8000).toLocaleString()} EGP / 6 mos`;
+    if (contractAmount > 0) {
+      if (plan === 'monthly') {
+        monthlyContribution = contractAmount;
+        formulaDesc = `${contractAmount.toLocaleString()} EGP / 1 mo`;
+      } else if (plan === 'semi_annual') {
+        monthlyContribution = contractAmount / 6;
+        formulaDesc = `${contractAmount.toLocaleString()} EGP / 6 mos`;
+      } else {
+        // annual or enterprise
+        monthlyContribution = contractAmount / 12;
+        formulaDesc = `${contractAmount.toLocaleString()} EGP / 12 mos`;
+      }
     } else {
-      // annual or enterprise
-      monthlyContribution = (contractAmount || 15000) / 12;
-      formulaDesc = `${(contractAmount || 15000).toLocaleString()} EGP / 12 mos`;
+      formulaDesc = 'No paid invoice (Free / Test)';
     }
 
     return {

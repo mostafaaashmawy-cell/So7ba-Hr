@@ -83,31 +83,35 @@ export default function FinancialsTab({
   const ltv = paidClientsCount > 0 ? Math.round(totalRevenue / paidClientsCount) : 0;
   const ltvToCac = blendedCac > 0 ? (ltv / blendedCac).toFixed(1) : 'N/A';
 
-  // 4. Normalized MRR Calculation
+  // 4. Normalized MRR Calculation strictly based on verified paid orders:
   let mrr = 0;
   tenants.forEach((t) => {
     if (t.subscription_status === 'active') {
-      const tenantOrders = paidOrders.filter((o) => o.tenant_id === t.id);
+      const tenantOrders = paidOrders.filter(
+        (o) => o.tenant_id === t.id || o.company_name?.toLowerCase().trim() === t.name?.toLowerCase().trim()
+      );
       const latestOrder = tenantOrders[0];
       const amount = latestOrder ? Number(latestOrder.amount) : 0;
-      if (t.subscription_plan === 'monthly') {
-        mrr += amount || 1500;
-      } else if (t.subscription_plan === 'semi_annual') {
-        mrr += (amount || 8000) / 6;
-      } else {
-        mrr += (amount || 15000) / 12;
+      if (amount > 0) {
+        if (t.subscription_plan === 'monthly') {
+          mrr += amount;
+        } else if (t.subscription_plan === 'semi_annual') {
+          mrr += amount / 6;
+        } else {
+          mrr += amount / 12;
+        }
       }
     }
   });
 
   const arr = mrr * 12;
   const activeTenantsCount = tenants.filter((t) => t.subscription_status === 'active').length;
-  const arpa = activeTenantsCount > 0 ? Math.round(totalRevenue / activeTenantsCount) : 0;
+  const arpa = paidClientsCount > 0 ? Math.round(totalRevenue / paidClientsCount) : 0;
   const totalEmployees = tenants.reduce((sum, t) => sum + (t.user_count || 0), 0);
   const arpu = totalEmployees > 0 ? Math.round(totalRevenue / totalEmployees) : 0;
 
   // Payback period (Months)
-  const averageMonthlyYieldPerClient = activeTenantsCount > 0 ? mrr / activeTenantsCount : 0;
+  const averageMonthlyYieldPerClient = paidClientsCount > 0 ? mrr / paidClientsCount : 0;
   const paybackMonths =
     averageMonthlyYieldPerClient > 0 && blendedCac > 0
       ? (blendedCac / averageMonthlyYieldPerClient).toFixed(1)
