@@ -54,37 +54,89 @@ export function getPayrollMonthDate(dateInput: Date | string = getCairoDate()): 
 }
 
 /**
+ * Returns the date range [startStr, endStr] for a given payroll month (YYYY-MM) and cycle start day.
+ * - startDay = 1: 1st of month to end of month (e.g. 2026-10-01 to 2026-10-31)
+ * - startDay = 26: 26th of previous month to 25th of selected month (e.g. 2026-09-26 to 2026-10-25)
+ */
+export function getPayrollCycleForMonth(monthStr: string, startDay: number = 1) {
+  const parts = monthStr.split('-');
+  const y = Number(parts[0]);
+  const m = Number(parts[1]);
+
+  if (startDay <= 1) {
+    const lastDay = new Date(y, m, 0).getDate();
+    return {
+      startStr: `${monthStr}-01`,
+      endStr: `${monthStr}-${String(lastDay).padStart(2, '0')}`,
+      startDay: 1,
+      endDay: lastDay,
+    };
+  }
+
+  // Previous month calculation
+  const prevMonthIndex = m - 2; // 0-indexed
+  const prevYear = prevMonthIndex < 0 ? y - 1 : y;
+  const prevMonthNum = prevMonthIndex < 0 ? 12 : prevMonthIndex + 1;
+  const prevMonthStr = `${prevYear}-${String(prevMonthNum).padStart(2, '0')}`;
+  const endCycleDay = startDay - 1;
+
+  return {
+    startStr: `${prevMonthStr}-${String(startDay).padStart(2, '0')}`,
+    endStr: `${monthStr}-${String(endCycleDay).padStart(2, '0')}`,
+    startDay,
+    endDay: endCycleDay,
+  };
+}
+
+/**
  * Returns the date range [startDate, endDate] for the active payroll cycle containing the date.
  */
-export function getPayrollCycleRange(dateInput: Date | string = getCairoDate()) {
+export function getPayrollCycleRange(
+  dateInput: Date | string = getCairoDate(),
+  customStartDay: number = 26
+) {
+  // If a 'YYYY-MM' format string is passed directly, delegate to getPayrollCycleForMonth
+  if (typeof dateInput === 'string' && /^\d{4}-\d{2}$/.test(dateInput)) {
+    const res = getPayrollCycleForMonth(dateInput, customStartDay);
+    return {
+      startDate: new Date(res.startStr),
+      endDate: new Date(res.endStr),
+      startStr: res.startStr,
+      endStr: res.endStr,
+    };
+  }
+
   const d = getCairoDate(dateInput);
   const day = d.getDate();
   const year = d.getFullYear();
   const month = d.getMonth();
+  const cutoff = customStartDay > 1 ? customStartDay : 26;
 
-  if (day >= 26) {
-    // Current cycle started on 26th of this month, ends on 25th of next month
-    const startDate = new Date(year, month, 26);
+  if (day >= cutoff) {
+    // Current cycle started on cutoff of this month, ends on cutoff-1 of next month
+    const startDate = new Date(year, month, cutoff);
     const endMonth = month === 11 ? 0 : month + 1;
     const endYear = month === 11 ? year + 1 : year;
-    const endDate = new Date(endYear, endMonth, 25);
+    const endDay = cutoff - 1;
+    const endDate = new Date(endYear, endMonth, endDay);
     return {
       startDate,
       endDate,
-      startStr: `${year}-${String(month + 1).padStart(2, '0')}-26`,
-      endStr: `${endYear}-${String(endMonth + 1).padStart(2, '0')}-25`,
+      startStr: `${year}-${String(month + 1).padStart(2, '0')}-${String(cutoff).padStart(2, '0')}`,
+      endStr: `${endYear}-${String(endMonth + 1).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`,
     };
   } else {
-    // Current cycle started on 26th of previous month, ends on 25th of this month
+    // Current cycle started on cutoff of previous month, ends on cutoff-1 of this month
     const startMonth = month === 0 ? 11 : month - 1;
     const startYear = month === 0 ? year - 1 : year;
-    const startDate = new Date(startYear, startMonth, 26);
-    const endDate = new Date(year, month, 25);
+    const endDay = cutoff - 1;
+    const startDate = new Date(startYear, startMonth, cutoff);
+    const endDate = new Date(year, month, endDay);
     return {
       startDate,
       endDate,
-      startStr: `${startYear}-${String(startMonth + 1).padStart(2, '0')}-26`,
-      endStr: `${year}-${String(month + 1).padStart(2, '0')}-25`,
+      startStr: `${startYear}-${String(startMonth + 1).padStart(2, '0')}-${String(cutoff).padStart(2, '0')}`,
+      endStr: `${year}-${String(month + 1).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`,
     };
   }
 }

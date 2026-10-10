@@ -162,6 +162,9 @@ export default function SettingsHubPage() {
   const [minuteDeductionRate, setMinuteDeductionRate] = useState<number>(0.005);
   const [resolvingMapIndex, setResolvingMapIndex] = useState<number | null>(null);
 
+  // Monthly Payroll Financial Cycle
+  const [payrollCycleStartDay, setPayrollCycleStartDay] = useState<number>(1);
+
   // Salary Advance
   const [maxAdvancePercentage, setMaxAdvancePercentage] = useState<number>(50);
   const [advanceEligibilityDay, setAdvanceEligibilityDay] = useState<number>(15);
@@ -226,6 +229,8 @@ export default function SettingsHubPage() {
             setAdvanceEligibilityDay(s.advance_eligibility_day);
           if (s.max_monthly_tenant_advance_budget !== undefined)
             setMaxMonthlyTenantAdvanceBudget(s.max_monthly_tenant_advance_budget);
+          if (s.payroll_cycle_start_day !== undefined)
+            setPayrollCycleStartDay(s.payroll_cycle_start_day);
 
           if (s.enable_shifts !== undefined) setEnableShifts(s.enable_shifts);
           if (s.enable_advances !== undefined) setEnableAdvances(s.enable_advances);
@@ -504,6 +509,8 @@ export default function SettingsHubPage() {
       max_advance_percentage: Number(maxAdvancePercentage || 50),
       advance_eligibility_day: Number(advanceEligibilityDay || 15),
       max_monthly_tenant_advance_budget: Number(maxMonthlyTenantAdvanceBudget || 0),
+      payroll_cycle_start_day: Number(payrollCycleStartDay || 1),
+      payroll_cycle_type: Number(payrollCycleStartDay) === 1 ? 'calendar_month' : 'custom_cutoff',
       enable_shifts: Boolean(enableShifts),
       enable_advances: Boolean(enableAdvances),
       enable_commissions: Boolean(enableCommissions),
@@ -1635,6 +1642,50 @@ export default function SettingsHubPage() {
                   <span className="text-[10px] text-slate-400 block mt-1">
                     {isRtl ? '0 تعني بدون سقف لميزانية الشركة' : 'Set 0 for unlimited company budget'}
                   </span>
+                </div>
+              </div>
+
+              {/* Financial Cycle Cutoff Configuration */}
+              <div className="pt-4 border-t border-slate-200 dark:border-slate-700/60">
+                <div className="mb-3">
+                  <h4 className="text-sm font-extrabold text-slate-950 dark:text-white flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-emerald-600" />
+                    {isRtl ? 'اعتماد توقيت الدورة المالية الشهرية للمرتبات' : 'Monthly Payroll Financial Cutoff Cycle'}
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    {isRtl
+                      ? 'حدد يوم بداية الدورة المالية لاحتساب المرتبات، الأذونات، الخصومات وساعات العمل المترتبة عليها.'
+                      : 'Define the starting day of the payroll cycle to align overtime, deductions, and commissions.'}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      {isRtl ? 'يوم بداية الدورة المالية' : 'Cycle Start Day'}
+                    </label>
+                    <select
+                      value={payrollCycleStartDay}
+                      onChange={(e) => setPayrollCycleStartDay(Number(e.target.value))}
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-950 dark:text-white font-sans focus:outline-none focus:border-emerald-500 cursor-pointer"
+                    >
+                      <option value={1}>{isRtl ? 'يوم 1 (شهر تقويمي كامل: 1 إلى نهاية الشهر)' : 'Day 1 (Full Calendar Month: 1st to End)'}</option>
+                      <option value={26}>{isRtl ? 'يوم 26 (دورة الشركات الشائعة: 26 الشهر السابق إلى 25 الحالي)' : 'Day 26 (Corporate Cycle: 26th prev month to 25th)'}</option>
+                      <option value={21}>{isRtl ? 'يوم 21 (دورة 21 الشهر السابق إلى 20 الحالي)' : 'Day 21 (Cycle: 21st prev month to 20th)'}</option>
+                      <option value={28}>{isRtl ? 'يوم 28 (دورة 28 الشهر السابق إلى 27 الحالي)' : 'Day 28 (Cycle: 28th prev month to 27th)'}</option>
+                    </select>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 text-xs">
+                    <span className="font-bold text-emerald-800 dark:text-emerald-300 block mb-0.5">
+                      {isRtl ? 'ملخص دورة الحسابات المعتمدة:' : 'Active Cycle Summary:'}
+                    </span>
+                    <span className="text-slate-600 dark:text-slate-300 text-[11px]">
+                      {payrollCycleStartDay === 1
+                        ? (isRtl ? 'الدورة من أول يوم في الشهر حتى آخر يوم فيه (مثال: 01-10 إلى 31-10).' : 'Runs from 1st to last day of the calendar month.')
+                        : (isRtl ? `الدورة تبدأ يوم ${payrollCycleStartDay} من الشهر السابق وتنتهي يوم ${payrollCycleStartDay - 1} من الشهر الحالي.` : `Runs from day ${payrollCycleStartDay} of prev month to day ${payrollCycleStartDay - 1} of selected month.`)}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

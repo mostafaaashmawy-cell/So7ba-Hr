@@ -19,6 +19,7 @@ import { formatTime } from '@/lib/utils/dateUtils';
 import { createClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/lib/context/LanguageContext';
 import { logAuditAction } from '@/lib/utils/auditLogger';
+import CairoClockBadge from '@/components/common/CairoClockBadge';
 
 interface AttendanceWidgetProps {
   userId: string;
@@ -302,8 +303,10 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
           </div>
         </div>
 
-        {/* Status Badge */}
-        <div className="flex items-center gap-2">
+        {/* Status Badge & Cairo Clock */}
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <CairoClockBadge compact />
+
           {userProfile?.is_remote && (
             <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800">
               <Globe className="w-3 h-3" /> {isRtl ? 'عمل عن بعد' : 'Remote Mode'}

@@ -15,6 +15,15 @@ import {
   DollarSign,
   Plus,
   Wallet,
+  Calendar,
+  CreditCard,
+  Building,
+  Smartphone,
+  Banknote,
+  Clock,
+  ShieldCheck,
+  ChevronDown,
+  TrendingUp,
 } from 'lucide-react';
 import { useLanguage } from '@/lib/context/LanguageContext';
 import { useTenantSettings } from '@/lib/context/SettingsContext';
@@ -25,6 +34,7 @@ import {
   calculateWorkingMinutes,
   calculateShiftLatenessMinutes,
   getCairoDateString,
+  getPayrollCycleForMonth,
 } from '@/lib/utils/dateUtils';
 
 interface FinancialAdjustment {
@@ -51,14 +61,22 @@ interface AdvanceRequest {
 }
 
 interface PayslipData {
+  employeeId: string;
   employeeName: string;
   departmentName: string;
   jobTitle: string;
   basicSalary: number;
   isProrated?: boolean;
   proratedDays?: number;
+  cycleStartDate: string;
+  cycleEndDate: string;
+  cycleStartDay: number;
   commissionRate: number;
-  commission: number;
+  commission: number; // Current month earned
+  carriedDeferredCommission: number; // Carried from previous month
+  commissionTotal: number; // Current earned + carried
+  commissionPaid: number; // Paid this month
+  commissionDeferred: number; // Deferred to next month
   totalSales: number;
   bonuses: number;
   overtime: number;
@@ -73,6 +91,11 @@ interface PayslipData {
   totalDeductions: number;
   netPay: number;
   month: string;
+  paymentStatus: 'paid' | 'unpaid' | string;
+  paymentMethod: string;
+  paidAt?: string | null;
+  paidBy?: string | null;
+  employeeAccountInfo?: string | null;
 }
 
 export default function PayrollPage() {
@@ -108,6 +131,7 @@ export default function PayrollPage() {
   // Payslip compiled states
   const [payslipData, setPayslipData] = useState<PayslipData | null>(null);
   const [showPayslip, setShowPayslip] = useState(false);
+  const [customPartialCommission, setCustomPartialCommission] = useState<number | ''>('');
 
   const enableAdvances = isFeatureEnabled('enable_advances');
   const enableCommissions = isFeatureEnabled('enable_commissions');
@@ -318,12 +342,7 @@ export default function PayrollPage() {
       const emp = employees.find((e) => e.id === selectedEmployee);
       if (!emp) throw new Error('Employee record missing');
 
-      const startStr = `${selectedMonth}-01`;
-      const [y, m] = selectedMonth.split('-').map(Number);
-      const lastDay = new Date(y, m, 0).getDate();
-      const endStr = `${selectedMonth}-${String(lastDay).padStart(2, '0')}`;
-
-      // 0. Load Tenant Settings
+      // 0. Load Tenant Settings & Financial Cycle Cutoff Day
       const { data: tenantSettings } = await supabase
         .from('tenant_settings')
         .select('*')
@@ -333,7 +352,36 @@ export default function PayrollPage() {
       const settings: TenantSettings | null =
         (tenantSettings as TenantSettings) || globalSettings;
 
-      // 1. Fetch Verified Sales from sales_logs with tenant_id and date filters
+      const cycleCutoff = Number(settings?.payroll_cycle_start_day || 1);
+      const { startStr, endStr } = getPayrollCycleForMonth(selectedMonth, cycleCutoff);
+
+      // Check for saved payroll record for this employee and month
+      const { data: existingRecord } = await supabase
+        .from('payroll_records')
+        .select('*')
+        .eq('tenant_id', currentUser.tenant_id)
+        .eq('user_id', emp.id)
+        .eq('month', selectedMonth)
+        .maybeSingle();
+
+      // Check previous month for carried deferred commission
+      const [yNum, mNum] = selectedMonth.split('-').map(Number);
+      const prevMonthIndex = mNum - 2;
+      const prevYear = prevMonthIndex < 0 ? yNum - 1 : yNum;
+      const prevMonthNum = prevMonthIndex < 0 ? 12 : prevMonthIndex + 1;
+      const prevMonthStr = `${prevYear}-${String(prevMonthNum).padStart(2, '0')}`;
+
+      const { data: prevRecord } = await supabase
+        .from('payroll_records')
+        .select('commission_deferred')
+        .eq('tenant_id', currentUser.tenant_id)
+        .eq('user_id', emp.id)
+        .eq('month', prevMonthStr)
+        .maybeSingle();
+
+      const carriedDeferredCommission = Number(prevRecord?.commission_deferred || 0);
+
+      // 1. Fetch Verified Sales from sales_logs with tenant_id and financial cycle date filters
       let totalSales = 0;
       let empCommissionRate = 0;
       let commission = 0;
@@ -532,9 +580,36 @@ export default function PayrollPage() {
         healthIns = Number(emp.health_insurance ?? 0);
       }
 
-      // 8. Income Tax deduction with enable_income_tax guard and per-employee rate
+      // 8. Commission Totals & Deferred Carryover
+      const earnedCommission = Math.round(commission);
+      const commissionTotal = earnedCommission + carriedDeferredCommission;
+      let commissionPaid = commissionTotal;
+      let commissionDeferred = 0;
+
+      if (existingRecord) {
+        if (existingRecord.commission_paid !== null && existingRecord.commission_paid !== undefined) {
+          commissionPaid = Number(existingRecord.commission_paid);
+          commissionDeferred = Number(existingRecord.commission_deferred ?? (commissionTotal - commissionPaid));
+        }
+      }
+
+      // Compute Employee Payout Account info string
+      let accountInfo: string | null = null;
+      if (emp.iban) {
+        accountInfo = `IBAN: ${emp.iban}`;
+      } else if (emp.bank_account_number) {
+        accountInfo = `${emp.bank_name || 'Bank'}: ${emp.bank_account_number}`;
+      } else if (emp.instapay_handle) {
+        accountInfo = `InstaPay: ${emp.instapay_handle}`;
+      } else if (emp.wallet_phone_number) {
+        accountInfo = `Wallet: ${emp.wallet_phone_number}`;
+      } else if (emp.fawry_mobile_number) {
+        accountInfo = `Fawry: ${emp.fawry_mobile_number}`;
+      }
+
+      // 9. Income Tax deduction with enable_income_tax guard and per-employee rate
       let incomeTax = 0;
-      const grossEarnings = empBasicSalary + commission + bonuses + overtimePay + nightShiftAllowance;
+      const grossEarnings = empBasicSalary + commissionPaid + bonuses + overtimePay + nightShiftAllowance;
       if (settings?.enable_income_tax !== false && Number(emp.income_tax_rate ?? 0) > 0) {
         const taxableBase = Math.max(0, grossEarnings - socialIns);
         incomeTax = Math.round(taxableBase * (Number(emp.income_tax_rate) / 100));
@@ -546,6 +621,7 @@ export default function PayrollPage() {
       const netPay = Math.max(0, grossEarnings - totalDeductions);
 
       setPayslipData({
+        employeeId: emp.id,
         employeeName: emp.full_name,
         departmentName:
           ((emp as unknown) as { department?: { name?: string } }).department?.name ||
@@ -554,8 +630,15 @@ export default function PayrollPage() {
         basicSalary: empBasicSalary,
         isProrated,
         proratedDays,
+        cycleStartDate: startStr,
+        cycleEndDate: endStr,
+        cycleStartDay: cycleCutoff,
         commissionRate: empCommissionRate,
-        commission: Math.round(commission),
+        commission: earnedCommission,
+        carriedDeferredCommission,
+        commissionTotal,
+        commissionPaid,
+        commissionDeferred,
         totalSales: Math.round(totalSales),
         bonuses: Math.round(bonuses),
         overtime: overtimePay,
@@ -570,14 +653,171 @@ export default function PayrollPage() {
         totalDeductions: Math.round(totalDeductions),
         netPay: Math.round(netPay),
         month: selectedMonth,
+        paymentStatus: existingRecord?.payment_status || 'unpaid',
+        paymentMethod: existingRecord?.payment_method || emp.payment_method || emp.payout_method || 'bank_transfer',
+        paidAt: existingRecord?.paid_at || null,
+        paidBy: existingRecord?.paid_by || null,
+        employeeAccountInfo: accountInfo,
       });
 
+      setCustomPartialCommission(commissionPaid);
       setShowPayslip(true);
     } catch (e: unknown) {
       const errMsg = e instanceof Error ? e.message : 'Payslip compilation failed';
       setMsg({ text: errMsg, error: true });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTogglePaymentStatus = async (newStatus: 'paid' | 'unpaid') => {
+    if (!payslipData || !currentUser?.tenant_id) return;
+    setSubmitting(true);
+    setMsg(null);
+
+    try {
+      const isPaid = newStatus === 'paid';
+      const paidTimestamp = isPaid ? (payslipData.paidAt || new Date().toISOString()) : null;
+      const payingUser = isPaid ? currentUser.id : null;
+
+      const payload = {
+        tenant_id: currentUser.tenant_id,
+        user_id: payslipData.employeeId,
+        month: payslipData.month,
+        cycle_start_date: payslipData.cycleStartDate,
+        cycle_end_date: payslipData.cycleEndDate,
+        basic_salary: payslipData.basicSalary,
+        gross_earnings: payslipData.grossEarnings,
+        total_deductions: payslipData.totalDeductions,
+        net_salary: payslipData.netPay,
+        payment_status: newStatus,
+        payment_method: payslipData.paymentMethod,
+        paid_at: paidTimestamp,
+        paid_by: payingUser,
+        commission_total: payslipData.commissionTotal,
+        commission_paid: payslipData.commissionPaid,
+        commission_deferred: payslipData.commissionDeferred,
+        details: payslipData,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase
+        .from('payroll_records')
+        .upsert(payload, { onConflict: 'tenant_id,user_id,month' });
+
+      if (error) throw error;
+
+      setPayslipData({
+        ...payslipData,
+        paymentStatus: newStatus,
+        paidAt: paidTimestamp,
+        paidBy: payingUser,
+      });
+
+      logAuditAction(supabase, {
+        tenant_id: currentUser.tenant_id,
+        actor_id: currentUser.id,
+        action_type: isPaid ? 'MARK_PAYROLL_PAID' : 'MARK_PAYROLL_UNPAID',
+        entity_name: 'payroll_records',
+        details: {
+          employee: payslipData.employeeName,
+          month: payslipData.month,
+          amount: payslipData.netPay,
+          payment_method: payslipData.paymentMethod,
+        },
+      });
+
+      setMsg({
+        text: isPaid
+          ? (isRtl ? 'تم تأكيد صرف ودفع المرتب للموظف بنجاح وتوثيق العملية في سجلات الشركة!' : 'Salary marked as paid successfully!')
+          : (isRtl ? 'تم إلغاء حالة الدفع بنجاح.' : 'Payment status reverted to unpaid.'),
+        error: false,
+      });
+    } catch (e: unknown) {
+      const errMsg = e instanceof Error ? e.message : 'Failed to update payment status';
+      setMsg({ text: errMsg, error: true });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleAdjustCommission = async (paidAmount: number) => {
+    if (!payslipData) return;
+    const safePaid = Math.max(0, Math.min(payslipData.commissionTotal, Math.round(paidAmount)));
+    const safeDeferred = Math.max(0, payslipData.commissionTotal - safePaid);
+
+    // Recalculate gross and net take-home
+    const newGross = payslipData.basicSalary + safePaid + payslipData.bonuses + payslipData.overtime + payslipData.nightShiftAllowance;
+    const newNet = Math.max(0, newGross - payslipData.totalDeductions);
+
+    const updated = {
+      ...payslipData,
+      commissionPaid: safePaid,
+      commissionDeferred: safeDeferred,
+      grossEarnings: newGross,
+      netPay: newNet,
+    };
+    setPayslipData(updated);
+
+    // If already saved to payroll_records, sync it silently
+    if (currentUser?.tenant_id) {
+      try {
+        await supabase
+          .from('payroll_records')
+          .upsert({
+            tenant_id: currentUser.tenant_id,
+            user_id: payslipData.employeeId,
+            month: payslipData.month,
+            cycle_start_date: payslipData.cycleStartDate,
+            cycle_end_date: payslipData.cycleEndDate,
+            basic_salary: payslipData.basicSalary,
+            gross_earnings: newGross,
+            total_deductions: payslipData.totalDeductions,
+            net_salary: newNet,
+            payment_status: payslipData.paymentStatus,
+            payment_method: payslipData.paymentMethod,
+            commission_total: payslipData.commissionTotal,
+            commission_paid: safePaid,
+            commission_deferred: safeDeferred,
+            details: updated,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'tenant_id,user_id,month' });
+      } catch (err) {
+        console.warn('Sync commission deferral:', err);
+      }
+    }
+  };
+
+  const handleChangePaymentMethod = async (newMethod: string) => {
+    if (!payslipData) return;
+    const updated = { ...payslipData, paymentMethod: newMethod };
+    setPayslipData(updated);
+
+    if (currentUser?.tenant_id) {
+      try {
+        await supabase
+          .from('payroll_records')
+          .upsert({
+            tenant_id: currentUser.tenant_id,
+            user_id: payslipData.employeeId,
+            month: payslipData.month,
+            cycle_start_date: payslipData.cycleStartDate,
+            cycle_end_date: payslipData.cycleEndDate,
+            basic_salary: payslipData.basicSalary,
+            gross_earnings: payslipData.grossEarnings,
+            total_deductions: payslipData.totalDeductions,
+            net_salary: payslipData.netPay,
+            payment_status: payslipData.paymentStatus,
+            payment_method: newMethod,
+            commission_total: payslipData.commissionTotal,
+            commission_paid: payslipData.commissionPaid,
+            commission_deferred: payslipData.commissionDeferred,
+            details: updated,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'tenant_id,user_id,month' });
+      } catch (err) {
+        console.warn('Sync payment method:', err);
+      }
     }
   };
 
@@ -643,6 +883,24 @@ export default function PayrollPage() {
                 </div>
               </div>
 
+              {/* Financial Cutoff Cycle Banner */}
+              <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs font-sans print:border-black print:bg-transparent">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-emerald-600 dark:text-emerald-400 print:text-black" />
+                  <span className="font-bold text-slate-700 dark:text-slate-300 print:text-black">
+                    {isRtl ? 'الدورة المالية المعتمدة:' : 'Financial Cutoff Cycle:'}
+                  </span>
+                  <span className="font-extrabold text-emerald-700 dark:text-emerald-300 print:text-black">
+                    {payslipData.cycleStartDate} {isRtl ? 'إلى' : 'to'} {payslipData.cycleEndDate}
+                  </span>
+                </div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 print:text-black">
+                  {payslipData.cycleStartDay === 1
+                    ? (isRtl ? 'دورة تقويمية كاملة (1 إلى نهاية الشهر)' : 'Full Calendar Month (1st to End)')
+                    : (isRtl ? `دورة مقفلة يوم ${payslipData.cycleStartDay} (من ${payslipData.cycleStartDay} السابق إلى ${payslipData.cycleStartDay - 1} الحالي)` : `Cutoff Cycle (Day ${payslipData.cycleStartDay} to ${payslipData.cycleStartDay - 1})`)}
+                </div>
+              </div>
+
               {/* Bio Grid */}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 py-3 border-b border-slate-200 dark:border-slate-800 print:border-black font-sans text-xs">
                 <div>
@@ -668,6 +926,49 @@ export default function PayrollPage() {
                   <span className="text-sm font-bold text-slate-900 dark:text-slate-100 print:text-black">
                     {payslipData.departmentName}
                   </span>
+                </div>
+              </div>
+
+              {/* Employee Payout Method & Channel Details */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-sans print:border-black print:bg-transparent">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300">
+                    <Wallet className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[11px] font-semibold">{isRtl ? 'طريقة صرف واستلام الراتب:' : 'Payout Channel & Details:'}</span>
+                    <span className="font-extrabold text-slate-950 dark:text-white capitalize">
+                      {payslipData.paymentMethod === 'bank_transfer' ? (isRtl ? 'تحويل بنكي' : 'Bank Transfer')
+                        : payslipData.paymentMethod === 'instapay' ? 'InstaPay'
+                        : payslipData.paymentMethod === 'vodafone_cash' || payslipData.paymentMethod === 'e_wallet' ? (isRtl ? 'محفظة إلكترونية / فودافون كاش' : 'E-Wallet')
+                        : payslipData.paymentMethod === 'cash' ? (isRtl ? 'نقداً / كاش' : 'Cash')
+                        : payslipData.paymentMethod === 'fawry' ? 'Fawry'
+                        : payslipData.paymentMethod === 'cheque' ? (isRtl ? 'شيك مصرفي' : 'Cheque')
+                        : payslipData.paymentMethod}
+                    </span>
+                    {payslipData.employeeAccountInfo && (
+                      <span className="text-[11px] text-slate-600 dark:text-slate-300 font-sans block mt-0.5">
+                        {payslipData.employeeAccountInfo}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Admin Quick Payout Method Selector */}
+                <div className="flex items-center gap-2 print:hidden">
+                  <span className="text-slate-400 text-[11px]">{isRtl ? 'تغيير طريقة الصرف:' : 'Change Method:'}</span>
+                  <select
+                    value={payslipData.paymentMethod}
+                    onChange={(e) => handleChangePaymentMethod(e.target.value)}
+                    className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1 text-xs font-bold text-slate-800 dark:text-slate-200 cursor-pointer focus:outline-none"
+                  >
+                    <option value="bank_transfer">{isRtl ? 'تحويل بنكي' : 'Bank Transfer'}</option>
+                    <option value="instapay">InstaPay</option>
+                    <option value="vodafone_cash">{isRtl ? 'فودافون كاش / محفظة' : 'Vodafone Cash / Wallet'}</option>
+                    <option value="cash">{isRtl ? 'كاش / نقداً' : 'Cash'}</option>
+                    <option value="cheque">{isRtl ? 'شيك مصرفي' : 'Cheque'}</option>
+                    <option value="fawry">Fawry</option>
+                  </select>
                 </div>
               </div>
 
@@ -799,6 +1100,193 @@ export default function PayrollPage() {
                 <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400 print:text-black font-sans">
                   {payslipData.netPay.toLocaleString()} EGP
                 </span>
+              </div>
+
+              {/* Commission Disbursement & Deferral Controls */}
+              {enableCommissions && payslipData.commissionTotal > 0 && (
+                <div className="p-4 rounded-2xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/60 space-y-3 font-sans print:border-black print:bg-transparent">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200/80 dark:border-amber-800/40 pb-2.5">
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <TrendingUp className="w-4 h-4 text-amber-600 dark:text-amber-400 print:text-black" />
+                        <h4 className="text-xs font-extrabold text-amber-950 dark:text-amber-200 print:text-black">
+                          {isRtl ? 'إدارة صرف وتأجيل العمولة (العمولة المؤجلة)' : 'Commission Payout & Deferral'}
+                        </h4>
+                      </div>
+                      <p className="text-[11px] text-amber-800/80 dark:text-amber-300/80 mt-0.5">
+                        {isRtl
+                          ? 'يمكنك صرف العمولة بالكامل، تأجيلها للشهر القادم، أو صرف جزء وتأجيل المتبقي تلقائياً.'
+                          : 'Choose to disburse full commission, defer to next month, or split and carry forward remainder.'}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] text-amber-800 dark:text-amber-300 block font-bold">
+                        {isRtl ? 'إجمالي العمولة المتاحة' : 'Total Available Commission'}
+                      </span>
+                      <span className="text-sm font-black text-amber-900 dark:text-amber-100 font-sans">
+                        {payslipData.commissionTotal.toLocaleString()} EGP
+                      </span>
+                      {payslipData.carriedDeferredCommission > 0 && (
+                        <span className="text-[10px] text-emerald-700 dark:text-emerald-400 block font-semibold">
+                          {isRtl
+                            ? `(تشمل ${payslipData.carriedDeferredCommission.toLocaleString()} ج.م مرحّلة من الشهر السابق)`
+                            : `(includes ${payslipData.carriedDeferredCommission.toLocaleString()} EGP carried over)`}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Summary badges */}
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800/50 print:border-black">
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
+                        {isRtl ? 'المصروف الآن مع الراتب:' : 'Paid with this salary:'}
+                      </span>
+                      <span className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400 font-sans">
+                        {payslipData.commissionPaid.toLocaleString()} EGP
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800/50 print:border-black">
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
+                        {isRtl ? 'العمولة المؤجلة للشهر القادم:' : 'Deferred to next cycle:'}
+                      </span>
+                      <span className="text-sm font-extrabold text-amber-600 dark:text-amber-400 font-sans">
+                        {payslipData.commissionDeferred.toLocaleString()} EGP
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Admin action buttons */}
+                  <div className="space-y-2 pt-1 print:hidden">
+                    <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">
+                      {isRtl ? 'خيارات الصرف السريع:' : 'Quick Actions:'}
+                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleAdjustCommission(payslipData.commissionTotal);
+                          setCustomPartialCommission(payslipData.commissionTotal);
+                        }}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+                      >
+                        {isRtl ? 'صرف كامل العمولة هذا الشهر' : 'Pay Full Commission'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleAdjustCommission(0);
+                          setCustomPartialCommission(0);
+                        }}
+                        className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+                      >
+                        {isRtl ? 'تأجيل كامل العمولة للشهر القادم' : 'Defer All to Next Month'}
+                      </button>
+                    </div>
+
+                    {/* Custom partial disbursement */}
+                    <div className="flex items-center gap-2 pt-2 border-t border-amber-200/60 dark:border-amber-800/30">
+                      <span className="text-xs text-slate-700 dark:text-slate-300 font-semibold whitespace-nowrap">
+                        {isRtl ? 'صرف جزء محدد:' : 'Custom Partial Payout:'}
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        max={payslipData.commissionTotal}
+                        placeholder={isRtl ? 'المبلغ المراد صرفه' : 'Amount to pay'}
+                        value={customPartialCommission !== '' ? customPartialCommission : payslipData.commissionPaid}
+                        onChange={(e) => setCustomPartialCommission(e.target.value === '' ? '' : Number(e.target.value))}
+                        className="w-32 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1 text-xs font-bold font-sans text-slate-950 dark:text-white focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (customPartialCommission !== '') {
+                            handleAdjustCommission(Number(customPartialCommission));
+                          }
+                        }}
+                        className="bg-slate-800 hover:bg-slate-900 text-white dark:bg-slate-700 dark:hover:bg-slate-600 px-3 py-1 rounded-xl text-xs font-bold cursor-pointer transition-all"
+                      >
+                        {isRtl ? 'تطبيق التوزيع' : 'Apply Split'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Salary Disbursement & Confirmation Card */}
+              <div
+                className={`p-4 rounded-2xl border transition-all font-sans print:border-black print:bg-transparent ${
+                  payslipData.paymentStatus === 'paid'
+                    ? 'bg-emerald-500/10 border-emerald-500/30'
+                    : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'
+                }`}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={`p-2.5 rounded-xl ${
+                        payslipData.paymentStatus === 'paid'
+                          ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
+                          : 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300'
+                      }`}
+                    >
+                      <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-extrabold text-slate-950 dark:text-white">
+                          {isRtl ? 'حالة اعتماد وصرف الراتب:' : 'Salary Disbursement Status:'}
+                        </span>
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                            payslipData.paymentStatus === 'paid'
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700'
+                              : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-700'
+                          }`}
+                        >
+                          {payslipData.paymentStatus === 'paid'
+                            ? (isRtl ? 'تم الدفع والصرف للموظف' : 'Paid & Disbursed')
+                            : (isRtl ? 'قيد المراجعة / لم يتم الدفع بعد' : 'Pending Payment')}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                        {payslipData.paymentStatus === 'paid'
+                          ? (isRtl
+                              ? `تم توثيق صرف الراتب (${payslipData.netPay.toLocaleString()} ج.م) عبر ${payslipData.paymentMethod} ${payslipData.paidAt ? `بتاريخ ${new Date(payslipData.paidAt).toLocaleDateString('ar-EG')}` : ''}`
+                              : `Recorded paid via ${payslipData.paymentMethod} ${payslipData.paidAt ? `on ${new Date(payslipData.paidAt).toLocaleDateString()}` : ''}`)
+                          : (isRtl
+                              ? 'اضغط أدناه لتوثيق أن الشركة قامت بتحويل وصرف الراتب للموظف لهذا الشهر.'
+                              : 'Click below to confirm that salary has been officially disbursed to employee.')}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Payment toggle buttons */}
+                  <div className="print:hidden">
+                    {payslipData.paymentStatus === 'paid' ? (
+                      <button
+                        type="button"
+                        disabled={submitting}
+                        onClick={() => handleTogglePaymentStatus('unpaid')}
+                        className="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${submitting ? 'animate-spin' : ''}`} />
+                        {isRtl ? 'إلغاء التأكيد / إعادة إلى معلق' : 'Revert to Unpaid'}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={submitting}
+                        onClick={() => handleTogglePaymentStatus('paid')}
+                        className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white px-4 py-2 rounded-xl text-xs font-extrabold transition-all shadow-md hover:shadow-lg cursor-pointer flex items-center gap-2"
+                      >
+                        <CheckCircle2 className={`w-4 h-4 ${submitting ? 'animate-spin' : ''}`} />
+                        {isRtl ? 'تأكيد دفع وصرف المرتب للموظف' : 'Mark as Paid & Disbursed'}
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>

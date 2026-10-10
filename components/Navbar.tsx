@@ -27,6 +27,7 @@ import { useSidebar } from '@/lib/context/SidebarContext';
 import { generateDynamicNotifications } from '@/lib/utils/notificationHelper';
 import PageGuideModal from '@/components/common/PageGuideModal';
 import HumAiLogo from '@/components/common/HumAiLogo';
+import CairoClockBadge from '@/components/common/CairoClockBadge';
 import PwaInstallButton from '@/components/common/PwaInstallButton';
 import { MOBILE_NAV_BY_ROLE } from '@/lib/config/navConfig';
 
@@ -272,6 +273,9 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
 
           {/* Right: Action icons */}
           <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Cairo Internet Network Clock */}
+            <CairoClockBadge compact />
+
             {/* PWA Mobile Install Button */}
             <PwaInstallButton />
 

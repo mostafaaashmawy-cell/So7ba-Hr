@@ -97,6 +97,8 @@ export interface TenantSettings {
   geofencing_lng?: number | null;
   geofencing_radius?: number;
   leave_approval_mode?: 'auto_approve' | 'hierarchical';
+  payroll_cycle_start_day?: number; // e.g. 1 (1st to end of month) or 26 (26th to 25th)
+  payroll_cycle_type?: 'calendar_month' | 'custom_cutoff';
 }
 
 export type AdjustmentType = 'bonus' | 'penalty' | 'deduction' | 'holiday_comp' | 'other';
@@ -221,18 +223,71 @@ export interface AttendanceRecord {
   overtime_minutes?: number | null;
 }
 
+export interface LeavePermissionApprovalStep {
+  stage?: string;
+  role?: string;
+  reviewer_id?: string;
+  reviewer_name?: string;
+  action: 'approved' | 'rejected' | 'pending';
+  note?: string;
+  timestamp?: string;
+}
+
 export interface LeavePermissionRecord {
   id: string;
   user_id: string;
   type: LeavePermType;
+  leave_sub_type?: 'annual' | 'casual' | 'sick' | 'unpaid' | string | null;
   date: string;
   status: string;
   timeframe?: string | null;
   excuse_time?: string | null;
+  approval_trail?: LeavePermissionApprovalStep[];
   reviewed_by?: string | null;
   reviewed_at?: string | null;
   rejection_reason?: string | null;
   created_at?: string;
+  user?: UserProfile;
+}
+
+export interface EmployeeTargetRecord {
+  id: string;
+  tenant_id?: string;
+  user_id: string;
+  month: string;
+  target_amount: number;
+  achieved_amount?: number;
+  kpi_metric_name?: string;
+  unit?: string;
+  commission_percentage?: number;
+  bonus_threshold?: number;
+  notes?: string | null;
+  created_at?: string;
+  user?: UserProfile;
+}
+
+export interface PayrollRecord {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  month: string;
+  cycle_start_date: string;
+  cycle_end_date: string;
+  basic_salary: number;
+  gross_earnings: number;
+  total_deductions: number;
+  net_salary: number;
+  payment_status: 'paid' | 'unpaid' | string;
+  payment_method?: string | null;
+  paid_at?: string | null;
+  paid_by?: string | null;
+  commission_total?: number;
+  commission_paid?: number;
+  commission_deferred?: number;
+  deferred_notes?: string | null;
+  details?: Record<string, unknown> | null;
+  created_at?: string;
+  updated_at?: string;
   user?: UserProfile;
 }
 

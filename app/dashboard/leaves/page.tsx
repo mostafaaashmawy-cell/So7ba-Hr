@@ -17,6 +17,9 @@ import {
   AlertTriangle,
   UserCheck,
   RefreshCw,
+  GitBranch,
+  ArrowRight,
+  ShieldCheck,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { logAuditAction } from '@/lib/utils/auditLogger';
@@ -37,6 +40,7 @@ export default function LeaveApprovalsPage() {
   const [actionId, setActionId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [msg, setMsg] = useState<{ text: string; error: boolean } | null>(null);
+  const [selectedTrailLeave, setSelectedTrailLeave] = useState<LeaveWithUser | null>(null);
 
   const fetchLeaves = async () => {
     setLoading(true);
@@ -83,15 +87,39 @@ export default function LeaveApprovalsPage() {
     setMsg(null);
 
     try {
+      const currentItem = leaves.find((l) => l.id === id);
+      const existingTrail = Array.isArray(currentItem?.approval_trail) ? currentItem.approval_trail : [];
+      const newStep = {
+        stage: 'admin_review',
+        role: currentUser.role,
+        reviewer_id: currentUser.id,
+        reviewer_name: currentUser.full_name || 'Admin',
+        action: newStatus === 'active' ? 'approved' : 'rejected',
+        note: newStatus === 'active'
+          ? (isRtl ? 'تمت الموافقة والاعتماد الإداري' : 'Approved by management')
+          : (isRtl ? 'تم رفض الطلب' : 'Rejected by management'),
+        timestamp: new Date().toISOString(),
+      };
+      const updatedTrail = [...existingTrail, newStep];
+
       const { error } = await supabase
         .from('leaves_permissions')
-        .update({ status: newStatus })
+        .update({
+          status: newStatus,
+          reviewed_by: currentUser.id,
+          reviewed_at: new Date().toISOString(),
+          approval_trail: updatedTrail,
+        })
         .eq('id', id);
 
       if (error) throw error;
 
       setLeaves((prev) =>
-        prev.map((item) => (item.id === id ? { ...item, status: newStatus } : item))
+        prev.map((item) =>
+          item.id === id
+            ? { ...item, status: newStatus, approval_trail: updatedTrail as any }
+            : item
+        )
       );
 
       logAuditAction(supabase, {
@@ -107,11 +135,74 @@ export default function LeaveApprovalsPage() {
         text:
           newStatus === 'active'
             ? isRtl
-              ? 'تمت الموافقة على الطلب بنجاح!'
+              ? 'تمت الموافقة على الطلب بنجاح وتوثيق مسار الاعتماد!'
               : 'Leave request approved successfully!'
             : isRtl
-            ? 'تم رفض الطلب.'
+            ? 'تم رفض الطلب وتوثيق مسار الاعتماد.'
             : 'Leave request rejected.',
+        error: false,
+      });
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Action failed';
+      setMsg({ text: errMsg, error: true });
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const handleReclassifyLeave = async (id: string, newSubType: string) => {
+    if (!currentUser || !currentUser.tenant_id) return;
+    setActionId(id);
+    setMsg(null);
+
+    try {
+      const currentItem = leaves.find((l) => l.id === id);
+      const existingTrail = Array.isArray(currentItem?.approval_trail) ? currentItem.approval_trail : [];
+
+      const subTypeLabel =
+        newSubType === 'annual'
+          ? (isRtl ? 'إجازة اعتيادية' : 'Annual Leave')
+          : newSubType === 'casual'
+          ? (isRtl ? 'إجازة عارضة' : 'Casual Leave')
+          : newSubType === 'sick'
+          ? (isRtl ? 'إجازة مرضية' : 'Sick Leave')
+          : (isRtl ? 'إجازة بدون مرتب' : 'Unpaid Leave');
+
+      const newStep = {
+        stage: 'reclassification',
+        role: currentUser.role,
+        reviewer_id: currentUser.id,
+        reviewer_name: currentUser.full_name || 'Admin',
+        action: 'approved',
+        note: isRtl
+          ? `قام الإداري (${currentUser.full_name}) بتعديل تصنيف الإجازة إلى: ${subTypeLabel}`
+          : `Reclassified to: ${subTypeLabel} by ${currentUser.full_name}`,
+        timestamp: new Date().toISOString(),
+      };
+      const updatedTrail = [...existingTrail, newStep];
+
+      const { error } = await supabase
+        .from('leaves_permissions')
+        .update({
+          leave_sub_type: newSubType,
+          approval_trail: updatedTrail,
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setLeaves((prev) =>
+        prev.map((item) =>
+          item.id === id
+            ? { ...item, leave_sub_type: newSubType, approval_trail: updatedTrail as any }
+            : item
+        )
+      );
+
+      setMsg({
+        text: isRtl
+          ? `تم تعديل نوع الإجازة إلى (${subTypeLabel}) بنجاح وتوثيق ذلك في مسار الاعتماد!`
+          : `Leave reclassified to ${subTypeLabel} successfully!`,
         error: false,
       });
     } catch (err: unknown) {
@@ -268,10 +359,10 @@ export default function LeaveApprovalsPage() {
               <thead>
                 <tr className="bg-slate-100 dark:bg-slate-800/80 text-slate-950 dark:text-slate-100 font-semibold uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-700">
                   <th className="py-3 px-4">{isRtl ? 'الموظف' : 'Employee'}</th>
-                  <th className="py-3 px-4">{isRtl ? 'نوع الطلب' : 'Request Type'}</th>
+                  <th className="py-3 px-4">{isRtl ? 'النوع والتصنيف' : 'Type & Sub-type'}</th>
                   <th className="py-3 px-4">{isRtl ? 'تاريخ الطلب' : 'Date'}</th>
                   <th className="py-3 px-4">{isRtl ? 'الفترة / الوقت' : 'Timeframe'}</th>
-                  <th className="py-3 px-4">{isRtl ? 'الرصيد المتاح' : 'Leave Allowance'}</th>
+                  <th className="py-3 px-4">{isRtl ? 'مسار الاعتماد' : 'Approval Trail'}</th>
                   <th className="py-3 px-4 text-right">{isRtl ? 'الإجراء' : 'Actions'}</th>
                 </tr>
               </thead>
@@ -306,22 +397,31 @@ export default function LeaveApprovalsPage() {
                         </div>
                       </td>
 
-                      <td className="py-3.5 px-4 font-bold">
-                        <span
-                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                            l.type === 'leave'
-                              ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300'
-                              : 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300'
-                          }`}
-                        >
-                          {l.type === 'leave'
-                            ? isRtl
-                              ? 'إجازة اعتيادية'
-                              : 'Full Day Leave'
-                            : isRtl
-                            ? 'إذن استئذان'
-                            : 'Permission'}
-                        </span>
+                      <td className="py-3.5 px-4">
+                        {l.type === 'leave' ? (
+                          <div className="flex flex-col gap-1 items-start">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold border bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300">
+                              {isRtl ? 'إجازة' : 'Leave'}
+                            </span>
+                            {/* Super Admin Quick Reclassify Select */}
+                            <select
+                              value={l.leave_sub_type || 'annual'}
+                              onChange={(e) => handleReclassifyLeave(l.id, e.target.value)}
+                              disabled={actionId === l.id}
+                              className="text-[11px] font-bold bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-0.5 text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer hover:border-emerald-500 transition-colors"
+                              title={isRtl ? 'تغيير تصنيف الإجازة وتوثيقه' : 'Reclassify leave sub-type'}
+                            >
+                              <option value="annual">{isRtl ? 'اعتيادية (Annual)' : 'Annual'}</option>
+                              <option value="casual">{isRtl ? 'عارضة (Casual)' : 'Casual'}</option>
+                              <option value="sick">{isRtl ? 'مرضية (Sick)' : 'Sick'}</option>
+                              <option value="unpaid">{isRtl ? 'بدون مرتب (Unpaid)' : 'Unpaid'}</option>
+                            </select>
+                          </div>
+                        ) : (
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold border bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300">
+                            {isRtl ? 'إذن استئذان' : 'Permission'}
+                          </span>
+                        )}
                       </td>
 
                       <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-slate-100 font-sans">
@@ -338,8 +438,21 @@ export default function LeaveApprovalsPage() {
                         )}
                       </td>
 
-                      <td className="py-3.5 px-4 font-sans font-bold text-slate-700 dark:text-slate-300">
-                        {l.user?.annual_leave_allowance ?? 21} Days Cap
+                      <td className="py-3.5 px-4">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedTrailLeave(l)}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 cursor-pointer transition-all"
+                        >
+                          <GitBranch className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                          <span>
+                            {Array.isArray(l.approval_trail) && l.approval_trail.length > 0
+                              ? `${l.approval_trail.length} ${isRtl ? 'مراحل' : 'steps'}`
+                              : isRtl
+                              ? 'عرض المسار'
+                              : 'View Trail'}
+                          </span>
+                        </button>
                       </td>
 
                       <td className="py-3.5 px-4 text-right">
@@ -372,7 +485,7 @@ export default function LeaveApprovalsPage() {
                                 : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400'
                             }`}
                           >
-                            {l.status === 'active' ? 'Approved' : 'Rejected'}
+                            {l.status === 'active' ? (isRtl ? 'معتمد' : 'Approved') : (isRtl ? 'مرفوض' : 'Rejected')}
                           </span>
                         )}
                       </td>
@@ -383,6 +496,121 @@ export default function LeaveApprovalsPage() {
             </table>
           </div>
         </div>
+
+        {/* Approval Trail Workflow Modal */}
+        {selectedTrailLeave && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
+            <div className="cleariq-card max-w-lg w-full p-6 cleariq-card-hover space-y-5 animate-in">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+                    <GitBranch className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-sm sm:text-base text-slate-950 dark:text-white">
+                      {isRtl ? 'مسار وتاريخ اعتماد الطلب' : 'Approval Workflow Trail'}
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      {selectedTrailLeave.user?.full_name} • {selectedTrailLeave.date}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedTrailLeave(null)}
+                  className="p-1 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Status Header */}
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs">
+                <div>
+                  <span className="text-slate-400 block">{isRtl ? 'نوع الطلب والتصنيف:' : 'Type & Subtype:'}</span>
+                  <span className="font-bold text-slate-900 dark:text-white">
+                    {selectedTrailLeave.type === 'leave'
+                      ? `${isRtl ? 'إجازة' : 'Leave'} (${
+                          selectedTrailLeave.leave_sub_type === 'casual'
+                            ? (isRtl ? 'عارضة' : 'Casual')
+                            : selectedTrailLeave.leave_sub_type === 'sick'
+                            ? (isRtl ? 'مرضية' : 'Sick')
+                            : selectedTrailLeave.leave_sub_type === 'unpaid'
+                            ? (isRtl ? 'بدون مرتب' : 'Unpaid')
+                            : (isRtl ? 'اعتيادية' : 'Annual')
+                        })`
+                      : isRtl ? 'إذن استئذان' : 'Permission'}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-slate-400 block">{isRtl ? 'الحالة الحالية:' : 'Current Status:'}</span>
+                  <span
+                    className={`font-bold px-2 py-0.5 rounded-full text-[10px] border ${
+                      selectedTrailLeave.status === 'active'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400'
+                        : selectedTrailLeave.status === 'pending'
+                        ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400'
+                        : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400'
+                    }`}
+                  >
+                    {selectedTrailLeave.status === 'active'
+                      ? (isRtl ? 'معتمد' : 'Approved')
+                      : selectedTrailLeave.status === 'pending'
+                      ? (isRtl ? 'قيد المراجعة' : 'Pending')
+                      : (isRtl ? 'مرفوض' : 'Rejected')}
+                  </span>
+                </div>
+              </div>
+
+              {/* Timeline Steps */}
+              <div className="space-y-4 max-h-72 overflow-y-auto px-1">
+                {Array.isArray(selectedTrailLeave.approval_trail) &&
+                selectedTrailLeave.approval_trail.length > 0 ? (
+                  selectedTrailLeave.approval_trail.map((step, idx) => (
+                    <div key={idx} className="relative flex gap-3 text-xs">
+                      {/* Timeline line */}
+                      {idx !== selectedTrailLeave.approval_trail!.length - 1 && (
+                        <div className="absolute top-5 left-3 bottom-0 w-0.5 bg-slate-200 dark:bg-slate-700" />
+                      )}
+                      <div className="relative z-10 w-6 h-6 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-600 flex items-center justify-center shrink-0 text-[10px] font-bold text-emerald-700 dark:text-emerald-300">
+                        {idx + 1}
+                      </div>
+                      <div className="flex-1 pb-4 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-extrabold text-slate-900 dark:text-white">
+                            {step.reviewer_name || (isRtl ? 'المشرف' : 'Reviewer')}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-sans">
+                            {step.timestamp ? new Date(step.timestamp).toLocaleString(isRtl ? 'ar-EG' : 'en-US') : ''}
+                          </span>
+                        </div>
+                        <p className="text-slate-600 dark:text-slate-300 text-xs">
+                          {step.note || (step.action === 'approved' ? 'Approved' : 'Pending')}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-4 rounded-xl text-center text-xs text-slate-400 bg-slate-50 dark:bg-slate-800/40">
+                    {isRtl
+                      ? 'تم تسجيل الطلب قبل تفعيل مسار المراجعة التفصيلي، حالته الحالية معتمدة.'
+                      : 'Legacy record without historical trail steps.'}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end pt-2 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setSelectedTrailLeave(null)}
+                  className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer"
+                >
+                  {isRtl ? 'إغلاق' : 'Close'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

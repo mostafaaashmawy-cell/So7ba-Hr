@@ -33,6 +33,7 @@ export default function LeavePermissionForm({
   const { t, isRtl } = useLanguage();
   const [records, setRecords] = useState<LeavePermissionRecord[]>(initialRecords);
   const [type, setType] = useState<'leave' | 'permission'>('leave');
+  const [leaveSubType, setLeaveSubType] = useState<'annual' | 'casual' | 'sick' | 'unpaid'>('annual');
   const [date, setDate] = useState<string>(() => getCairoDateString());
   const [timeframe, setTimeframe] = useState<'morning' | 'evening'>('morning');
   const [excuseTime, setExcuseTime] = useState<string>('10:00');
@@ -63,7 +64,7 @@ export default function LeavePermissionForm({
     setLoading(true);
     setMsg(null);
 
-    if (type === 'leave' && remainingLeaves <= 0) {
+    if (type === 'leave' && remainingLeaves <= 0 && leaveSubType !== 'unpaid') {
       setMsg({ text: t('maxLeavesExceeded'), error: true });
       setLoading(false);
       return;
@@ -88,16 +89,40 @@ export default function LeavePermissionForm({
     const isHierarchical = leaveApprovalMode === 'hierarchical';
     const initialStatus = isHierarchical ? 'pending' : 'active';
 
+    const subTypeLabel =
+      leaveSubType === 'annual'
+        ? (isRtl ? 'إجازة اعتيادية' : 'Annual Leave')
+        : leaveSubType === 'casual'
+        ? (isRtl ? 'إجازة عارضة' : 'Casual Leave')
+        : leaveSubType === 'sick'
+        ? (isRtl ? 'إجازة مرضية' : 'Sick Leave')
+        : (isRtl ? 'إجازة بدون مرتب' : 'Unpaid Leave');
+
+    const initialTrail = [
+      {
+        stage: 'submission',
+        role: userRole,
+        reviewer_name: userName || (isRtl ? 'الموظف' : 'Employee'),
+        action: isHierarchical ? 'pending' : 'approved',
+        note: isHierarchical
+          ? (isRtl ? `تم تقديم الطلب (${subTypeLabel}) بانتظار موافقة الإدارة` : `Request submitted (${subTypeLabel}) pending review`)
+          : (isRtl ? 'معتمد تلقائياً حسب سياسة المؤسسة' : 'Auto-approved per company policy'),
+        timestamp: new Date().toISOString(),
+      },
+    ];
+
     const { data, error } = await supabase
       .from('leaves_permissions')
       .insert({
         user_id: userId,
         tenant_id: tenantId,
         type,
+        leave_sub_type: type === 'leave' ? leaveSubType : null,
         date,
         status: initialStatus,
         timeframe: type === 'permission' ? timeframe : null,
         excuse_time: type === 'permission' ? excuseTime : null,
+        approval_trail: initialTrail,
       })
       .select()
       .single();
@@ -233,7 +258,7 @@ export default function LeavePermissionForm({
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
             <div>
               <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">{t('type')}</label>
               <select
@@ -241,10 +266,28 @@ export default function LeavePermissionForm({
                 onChange={(e) => setType(e.target.value as 'leave' | 'permission')}
                 className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-purple-500"
               >
-                <option value="leave">{t('annualLeave')}</option>
+                <option value="leave">{isRtl ? 'إجازة كاملة' : 'Full Day Leave'}</option>
                 <option value="permission">{t('permission')}</option>
               </select>
             </div>
+
+            {type === 'leave' && (
+              <div>
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">
+                  {isRtl ? 'تصنيف نوع الإجازة' : 'Leave Sub-Type'}
+                </label>
+                <select
+                  value={leaveSubType}
+                  onChange={(e) => setLeaveSubType(e.target.value as any)}
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-purple-500"
+                >
+                  <option value="annual">{isRtl ? 'إجازة اعتيادية (Annual)' : 'Annual Leave'}</option>
+                  <option value="casual">{isRtl ? 'إجازة عارضة (Casual)' : 'Casual Leave'}</option>
+                  <option value="sick">{isRtl ? 'إجازة مرضية (Sick)' : 'Sick Leave'}</option>
+                  <option value="unpaid">{isRtl ? 'إجازة بدون مرتب (Unpaid)' : 'Unpaid Leave'}</option>
+                </select>
+              </div>
+            )}
 
             <div>
               <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">{t('date')}</label>
@@ -335,11 +378,24 @@ export default function LeavePermissionForm({
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {records.slice(0, 10).map((r) => (
                     <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 dark:border-slate-800/60 border-b last:border-none">
-                      <td className="px-4 py-3 font-medium capitalize">
+                      <td className="px-4 py-3 font-medium">
                         {r.type === 'leave' ? (
-                          <span className="text-purple-300">{t('annualLeave')}</span>
+                          <div className="flex flex-col">
+                            <span className="text-purple-600 dark:text-purple-300 font-bold">
+                              {r.leave_sub_type === 'casual'
+                                ? (isRtl ? 'إجازة عارضة' : 'Casual Leave')
+                                : r.leave_sub_type === 'sick'
+                                ? (isRtl ? 'إجازة مرضية' : 'Sick Leave')
+                                : r.leave_sub_type === 'unpaid'
+                                ? (isRtl ? 'إجازة بدون مرتب' : 'Unpaid Leave')
+                                : (isRtl ? 'إجازة اعتيادية' : 'Annual Leave')}
+                            </span>
+                            <span className="text-[10px] text-slate-400 capitalize">
+                              {r.leave_sub_type || 'annual'}
+                            </span>
+                          </div>
                         ) : (
-                          <span className="text-blue-300">{t('permission')}</span>
+                          <span className="text-blue-600 dark:text-blue-300 font-bold">{t('permission')}</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{formatDate(r.date)}</td>

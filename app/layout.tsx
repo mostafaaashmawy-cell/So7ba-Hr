@@ -16,7 +16,11 @@ export const metadata: Metadata = {
   title: "HumAi - Smart HR & Operations Platform",
   description: "HumAi - Smart Multi-Tenant HR & Operations Management Platform",
   manifest: "/manifest.json",
-  icons: { icon: "/favicon.ico" },
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 import { LanguageProvider } from "@/lib/context/LanguageContext";

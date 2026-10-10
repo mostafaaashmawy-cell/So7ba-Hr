@@ -76,6 +76,13 @@ export default async function EmployeeDashboardPage() {
     .eq('user_id', authUser.id)
     .order('created_at', { ascending: false });
 
+  // Fetch Assigned Operational Targets for Employee
+  const { data: targetsData } = await supabase
+    .from('employee_targets')
+    .select('*')
+    .eq('user_id', authUser.id)
+    .order('start_date', { ascending: false });
+
   // Fetch Holiday Work Compensations count
   const { data: holidayWorkHistory } = await supabase
     .from('holiday_work')
@@ -138,8 +145,10 @@ export default async function EmployeeDashboardPage() {
         {/* KPI / Performance Daily Logs Widget */}
         <KpiTrackerWidget
           userId={authUser.id}
+          tenantId={user.tenant_id}
           kpiUnit={user?.kpi_unit || 'tasks'}
           initialEntries={(kpiHistory as KpiEntryRecord[]) || []}
+          assignedTargets={(targetsData as any[]) || []}
         />
 
         {/* Shift Swap Request Card (When shifts system is enabled) */}

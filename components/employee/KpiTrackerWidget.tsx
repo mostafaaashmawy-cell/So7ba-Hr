@@ -7,13 +7,30 @@ import { formatDate, getCairoDateString } from '@/lib/utils/dateUtils';
 import { createClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/lib/context/LanguageContext';
 
-interface KpiTrackerProps {
-  userId: string;
-  kpiUnit: string;
-  initialEntries: KpiEntryRecord[];
+interface TargetItem {
+  id: string;
+  unit: string;
+  target_value: number;
+  target_type: 'daily' | 'monthly' | string;
+  start_date: string;
+  end_date: string;
 }
 
-export default function KpiTrackerWidget({ userId, kpiUnit, initialEntries }: KpiTrackerProps) {
+interface KpiTrackerProps {
+  userId: string;
+  tenantId?: string | null;
+  kpiUnit: string;
+  initialEntries: KpiEntryRecord[];
+  assignedTargets?: TargetItem[];
+}
+
+export default function KpiTrackerWidget({
+  userId,
+  tenantId,
+  kpiUnit,
+  initialEntries,
+  assignedTargets = [],
+}: KpiTrackerProps) {
   const { t, isRtl } = useLanguage();
   const [entries, setEntries] = useState<KpiEntryRecord[]>(initialEntries);
   const [amount, setAmount] = useState<number | ''>('');
@@ -55,15 +72,28 @@ export default function KpiTrackerWidget({ userId, kpiUnit, initialEntries }: Kp
     setLoading(true);
     setMsg(null);
 
+    const payload: {
+      user_id: string;
+      date: string;
+      amount: number;
+      unit: string;
+      notes: string | null;
+      tenant_id?: string;
+    } = {
+      user_id: userId,
+      date,
+      amount: Number(amount),
+      unit: selectedUnit,
+      notes: notes.trim() || null,
+    };
+
+    if (tenantId) {
+      payload.tenant_id = tenantId;
+    }
+
     const { data, error } = await supabase
       .from('kpi_entries')
-      .insert({
-        user_id: userId,
-        date,
-        amount: Number(amount),
-        unit: selectedUnit,
-        notes: notes.trim() || null,
-      })
+      .insert(payload)
       .select()
       .single();
 
@@ -187,6 +217,109 @@ export default function KpiTrackerWidget({ userId, kpiUnit, initialEntries }: Kp
           </button>
         </div>
       </form>
+
+      {/* Assigned Production Targets & Goals */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Target className="w-4 h-4 text-purple-500" />
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+              {isRtl ? 'الأهداف الإنتاجية المحددة لك' : 'Assigned Production Targets'}
+            </h4>
+          </div>
+          {assignedTargets.length > 0 && (
+            <span className="text-[10px] font-semibold text-slate-400">
+              {assignedTargets.length} {isRtl ? 'أهداف نشطة' : 'active targets'}
+            </span>
+          )}
+        </div>
+
+        {assignedTargets.length === 0 ? (
+          <div className="p-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-center text-xs text-slate-400 bg-slate-50/50 dark:bg-slate-900/40">
+            {isRtl
+              ? 'لا توجد أهداف إنتاجية مسندة إليك حالياً لهذا الشهر من قبل الإدارة.'
+              : 'No operational targets currently assigned by management for this cycle.'}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {assignedTargets.map((target) => {
+              // Calculate achieved quantity for this target
+              const achievedInWindow = entries
+                .filter(
+                  (e) =>
+                    e.unit?.toLowerCase() === target.unit?.toLowerCase() &&
+                    e.date >= target.start_date &&
+                    e.date <= target.end_date
+                )
+                .reduce((sum, e) => sum + Number(e.amount), 0);
+
+              const percent = Math.min(
+                100,
+                Math.round((achievedInWindow / (Number(target.target_value) || 1)) * 100)
+              );
+              const isCompleted = achievedInWindow >= Number(target.target_value);
+
+              return (
+                <div
+                  key={target.id}
+                  className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 space-y-2.5"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100 capitalize">
+                      {target.unit}
+                    </span>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                        isCompleted
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20'
+                          : 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20'
+                      }`}
+                    >
+                      {isCompleted
+                        ? isRtl
+                          ? 'مكتمل 🎯'
+                          : 'Completed 🎯'
+                        : isRtl
+                        ? target.target_type === 'daily'
+                          ? 'هدف يومي'
+                          : 'هدف شهري'
+                        : target.target_type}
+                    </span>
+                  </div>
+
+                  <div className="flex items-baseline justify-between text-xs">
+                    <span className="text-slate-500 dark:text-slate-400">
+                      {isRtl ? 'المحقق / المستهدف:' : 'Achieved / Goal:'}
+                    </span>
+                    <span className="font-extrabold text-slate-900 dark:text-white font-sans">
+                      <span className="text-purple-600 dark:text-purple-400">{achievedInWindow}</span>{' '}
+                      /{' '}{target.target_value} {target.unit}
+                    </span>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="space-y-1">
+                    <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-500 ${
+                          isCompleted ? 'bg-emerald-500' : 'bg-purple-600'
+                        }`}
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-[10px] text-slate-400">
+                      <span>
+                        {formatDate(target.start_date)} - {formatDate(target.end_date)}
+                      </span>
+                      <span className="font-bold">{percent}%</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Production History */}
       <div>
