@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "generate:manual": "node scripts/generate-manual.js"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
@@ -34,6 +35,7 @@
     "eslint-config-next": "^15.1.7",
     "isomorphic-git": "^1.38.9",
     "postcss": "^8.5.21",
+    "puppeteer-core": "^25.13.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.0.0",
     "wrangler": "^4.127.1"

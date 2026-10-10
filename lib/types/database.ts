@@ -335,3 +335,27 @@ export interface TenantInvitationRecord {
   notes?: string | null;
 }
 
+export interface SubscriptionOrderRecord {
+  id: string;
+  order_number: string;
+  tenant_id?: string | null;
+  company_name: string;
+  admin_email?: string | null;
+  admin_phone?: string | null;
+  plan_type: 'monthly' | 'semi_annual' | 'annual' | 'enterprise' | 'custom' | string;
+  billing_cycle?: string;
+  amount: number;
+  currency?: string;
+  payment_method: 'bank_transfer' | 'instapay' | 'cash' | 'vodafone_cash' | 'cheque' | 'credit_card' | 'fawry' | string;
+  payment_status: 'paid' | 'pending' | 'failed' | 'refunded' | string;
+  payment_reference?: string | null;
+  invoice_date?: string;
+  starts_at?: string | null;
+  expires_at?: string | null;
+  notes?: string | null;
+  invitation_id?: string | null;
+  created_at?: string;
+  created_by?: string | null;
+  tenant?: TenantRecord;
+}
+
