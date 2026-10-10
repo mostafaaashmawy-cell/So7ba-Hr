@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { createClient } from '@/lib/supabase/client';
 import { UserProfile, TenantSettings } from '@/lib/types/database';
@@ -366,6 +367,7 @@ export default function PayrollPage() {
 
       // Check previous month for carried deferred commission
       const [yNum, mNum] = selectedMonth.split('-').map(Number);
+      const lastDay = new Date(yNum, mNum, 0).getDate();
       const prevMonthIndex = mNum - 2;
       const prevYear = prevMonthIndex < 0 ? yNum - 1 : yNum;
       const prevMonthNum = prevMonthIndex < 0 ? 12 : prevMonthIndex + 1;
@@ -1306,6 +1308,32 @@ export default function PayrollPage() {
                     ? 'احتساب صافي الراتب، استقطاع السلف والتأخير آلياً، واحتساب العمولات المسجلة في ملف الموظف'
                     : 'Calculate net payouts, auto-deduct lateness & advances, and apply individual commission rates'}
                 </p>
+              </div>
+
+              {/* Financial Cycle Quick Info Banner */}
+              <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-sans">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                    <Calendar className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block">
+                      {isRtl ? 'الدورة المالية الشهرية المعتمدة لحسابات المرتبات:' : 'Active Monthly Payroll Cycle:'}
+                    </span>
+                    <span className="font-extrabold text-slate-950 dark:text-white">
+                      {(globalSettings?.payroll_cycle_start_day || 1) === 1
+                        ? (isRtl ? 'دورة تقويمية كاملة (من يوم 1 إلى نهاية الشهر)' : 'Full Calendar Month (Day 1 to End)')
+                        : (isRtl ? `دورة مقفلة يوم ${globalSettings?.payroll_cycle_start_day} (من يوم ${globalSettings?.payroll_cycle_start_day} السابق إلى يوم ${Number(globalSettings?.payroll_cycle_start_day) - 1} الحالي)` : `Cutoff Cycle (Day ${globalSettings?.payroll_cycle_start_day} to ${Number(globalSettings?.payroll_cycle_start_day) - 1})`)}
+                    </span>
+                  </div>
+                </div>
+                <Link
+                  href="/dashboard/settings?tab=advances"
+                  className="px-3.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 font-bold text-xs transition-all border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5"
+                >
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>{isRtl ? 'تعديل موعد اعتماد الدورة من الإعدادات ↗' : 'Adjust Cycle in Settings ↗'}</span>
+                </Link>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

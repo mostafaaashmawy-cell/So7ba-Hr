@@ -367,7 +367,15 @@ export default function EmployeeManagement({
     if (!newDeptName.trim()) return;
     setLoading(true);
     const { data: { user: currentAuth } } = await supabase.auth.getUser();
-    const { data, error } = await supabase.from('departments').insert({ name: newDeptName.trim() }).select().single();
+    const tenantId = users[0]?.tenant_id;
+    const { data, error } = await supabase
+      .from('departments')
+      .insert({
+        name: newDeptName.trim(),
+        tenant_id: tenantId || undefined,
+      })
+      .select()
+      .single();
     if (error) {
       setMsg({ text: error.message, error: true });
     } else if (data) {
@@ -375,9 +383,9 @@ export default function EmployeeManagement({
       setNewDeptName('');
       setMsg({ text: isRtl ? 'تمت إضافة القسم بنجاح!' : 'Department created successfully!', error: false });
 
-      if (currentAuth && users[0]?.tenant_id) {
+      if (currentAuth && tenantId) {
         logAuditAction(supabase, {
-          tenant_id: users[0].tenant_id,
+          tenant_id: tenantId,
           actor_id: currentAuth.id,
           action_type: 'CREATE_DEPARTMENT',
           entity_name: 'departments',
@@ -407,7 +415,15 @@ export default function EmployeeManagement({
   const handleAddKpiUnit = async () => {
     if (!newUnitName.trim()) return;
     setLoading(true);
-    const { data, error } = await supabase.from('kpi_units').insert({ name: newUnitName.trim() }).select().single();
+    const tenantId = users[0]?.tenant_id;
+    const { data, error } = await supabase
+      .from('kpi_units')
+      .insert({
+        name: newUnitName.trim(),
+        tenant_id: tenantId || undefined,
+      })
+      .select()
+      .single();
     if (error) {
       setMsg({ text: error.message, error: true });
     } else if (data) {
