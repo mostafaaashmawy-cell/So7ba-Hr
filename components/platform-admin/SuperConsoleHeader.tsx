@@ -55,7 +55,7 @@ export default function SuperConsoleHeader({
     { id: 'overview', label: 'Command Center', icon: BarChart3 },
     { id: 'clients', label: 'Clients & Workspaces', icon: Building, badge: totalTenants },
     { id: 'orders', label: 'Orders & Subscriptions', icon: Receipt, badge: totalOrders },
-    { id: 'financials', label: 'Financial Reports & MRR', icon: DollarSign },
+    { id: 'financials', label: 'Financials & Ads P&L', icon: DollarSign },
     {
       id: 'pipeline',
       label: 'Renewal Pipeline',

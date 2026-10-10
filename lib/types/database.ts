@@ -304,6 +304,7 @@ export interface TenantRecord {
   contact_email?: string | null;
   contact_phone?: string | null;
   created_at?: string;
+  updated_at?: string;
   user_count?: number;
   super_admin?: UserProfile | null;
 }
@@ -357,5 +358,22 @@ export interface SubscriptionOrderRecord {
   created_at?: string;
   created_by?: string | null;
   tenant?: TenantRecord;
+}
+
+export interface PlatformMarketingExpenseRecord {
+  id: string;
+  channel: 'meta' | 'google' | 'tiktok' | 'linkedin' | 'twitter' | 'offline' | 'other' | string;
+  campaign_name?: string | null;
+  amount: number;
+  currency: string;
+  date_spent: string;
+  period_month: string;
+  impressions?: number;
+  clicks?: number;
+  leads_count?: number;
+  notes?: string | null;
+  created_at?: string;
+  created_by?: string | null;
+  updated_at?: string;
 }
 

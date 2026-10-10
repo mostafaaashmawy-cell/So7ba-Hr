@@ -17,17 +17,27 @@ import {
   Layers,
   ChevronRight,
   Percent,
+  HelpCircle,
+  Megaphone,
 } from 'lucide-react';
-import { TenantRecord, SubscriptionOrderRecord, TenantInvitationRecord } from '@/lib/types/database';
+import {
+  TenantRecord,
+  SubscriptionOrderRecord,
+  TenantInvitationRecord,
+  PlatformMarketingExpenseRecord,
+} from '@/lib/types/database';
 import { SuperConsoleTab } from './SuperConsoleHeader';
+import MrrExplainerModal from './MrrExplainerModal';
 
 interface OverviewTabProps {
   tenants: TenantRecord[];
   orders: SubscriptionOrderRecord[];
   invitations: TenantInvitationRecord[];
+  marketingExpenses?: PlatformMarketingExpenseRecord[];
   onNavigateTab: (tab: SuperConsoleTab) => void;
   onOpenOrderModal: () => void;
   onOpenActivationModal: () => void;
+  onOpenAdSpendModal?: () => void;
   onSelectClient: (tenant: TenantRecord) => void;
   onSelectOrder: (order: SubscriptionOrderRecord) => void;
 }
@@ -36,18 +46,35 @@ export default function OverviewTab({
   tenants,
   orders,
   invitations,
+  marketingExpenses = [],
   onNavigateTab,
   onOpenOrderModal,
   onOpenActivationModal,
+  onOpenAdSpendModal,
   onSelectClient,
   onSelectOrder,
 }: OverviewTabProps) {
+  const [showMrrModal, setShowMrrModal] = React.useState(false);
   // 1. Calculate Core Financials
   const paidOrders = orders.filter((o) => o.payment_status === 'paid');
   const pendingOrders = orders.filter((o) => o.payment_status === 'pending');
 
   const totalRevenue = paidOrders.reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
   const pendingRevenue = pendingOrders.reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
+
+  // Marketing & Ad Spend Economics
+  const totalAdSpend = marketingExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+  const metaAdSpend = marketingExpenses
+    .filter((e) => e.channel === 'meta')
+    .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+  const googleAdSpend = marketingExpenses
+    .filter((e) => e.channel === 'google')
+    .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+  const netProfit = totalRevenue - totalAdSpend;
+  const netProfitMargin = totalRevenue > 0 ? Math.round((netProfit / totalRevenue) * 100) : 0;
+  const roas = totalAdSpend > 0 ? (totalRevenue / totalAdSpend).toFixed(2) : totalRevenue > 0 ? '∞' : '0.00';
+  const payingClientsCount = new Set(paidOrders.map((o) => o.company_name || o.tenant_id)).size;
+  const blendedCac = payingClientsCount > 0 ? Math.round(totalAdSpend / payingClientsCount) : 0;
 
   // Normalized MRR calculation:
   // Annual order => amount / 12
@@ -150,8 +177,16 @@ export default function OverviewTab({
         {/* MRR Card */}
         <div className="cleariq-card p-5 cleariq-card-hover space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              MRR (Monthly Run Rate)
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span>MRR (Monthly Run Rate)</span>
+              <button
+                type="button"
+                onClick={() => setShowMrrModal(true)}
+                className="text-slate-400 hover:text-emerald-500 transition-colors cursor-pointer"
+                title="How is MRR calculated?"
+              >
+                <HelpCircle className="w-3.5 h-3.5" />
+              </button>
             </span>
             <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
               <TrendingUp className="w-4 h-4" />
@@ -243,6 +278,71 @@ export default function OverviewTab({
               style={{ width: `${Math.min(seatUtilizationRate, 100)}%` }}
             />
           </div>
+        </div>
+      </div>
+
+      {/* SaaS Marketing & Net Profit Summary Strip */}
+      <div className="cleariq-card p-5 cleariq-card-hover flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-6 text-xs w-full md:w-auto">
+          <div>
+            <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Ads Budget</span>
+            <span className="text-base font-black text-slate-950 dark:text-white font-mono">
+              {totalAdSpend.toLocaleString()} <span className="text-xs text-slate-400 font-normal">EGP</span>
+            </span>
+            <span className="text-[10px] text-slate-500 block">
+              Meta: {metaAdSpend.toLocaleString()} • Google: {googleAdSpend.toLocaleString()}
+            </span>
+          </div>
+
+          <div className="h-8 w-px bg-slate-200 dark:border-slate-800 hidden sm:block" />
+
+          <div>
+            <span className="text-[10px] uppercase font-bold text-slate-400 block">Net Profit (After Ads)</span>
+            <span
+              className={`text-base font-black font-mono ${
+                netProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+              }`}
+            >
+              {netProfit >= 0 ? `+${netProfit.toLocaleString()}` : netProfit.toLocaleString()} EGP
+            </span>
+            <span className="text-[10px] text-slate-500 block">
+              Margin: <strong className="text-emerald-600 dark:text-emerald-400">{netProfitMargin}%</strong>
+            </span>
+          </div>
+
+          <div className="h-8 w-px bg-slate-200 dark:border-slate-800 hidden sm:block" />
+
+          <div>
+            <span className="text-[10px] uppercase font-bold text-slate-400 block">Blended ROAS & CAC</span>
+            <span className="text-base font-black text-teal-600 dark:text-teal-400 font-mono">
+              {roas}x ROAS
+            </span>
+            <span className="text-[10px] text-slate-500 block">
+              CAC: <strong className="text-slate-800 dark:text-slate-200 font-mono">{blendedCac.toLocaleString()} EGP</strong>
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 self-stretch md:self-auto justify-end">
+          {onOpenAdSpendModal && (
+            <button
+              type="button"
+              onClick={onOpenAdSpendModal}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-xs font-bold text-amber-700 dark:text-amber-400 transition-all cursor-pointer"
+            >
+              <Megaphone className="w-3.5 h-3.5 text-amber-500" />
+              <span>Log Ad Spend</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => onNavigateTab('financials')}
+            className="flex items-center gap-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200 transition-all cursor-pointer"
+          >
+            <span>View Full P&L</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
 
@@ -529,6 +629,14 @@ export default function OverviewTab({
           </table>
         </div>
       </div>
+
+      {showMrrModal && (
+        <MrrExplainerModal
+          tenants={tenants}
+          orders={orders}
+          onClose={() => setShowMrrModal(false)}
+        />
+      )}
     </div>
   );
 }

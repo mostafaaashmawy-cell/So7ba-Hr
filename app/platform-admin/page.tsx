@@ -8,6 +8,7 @@ import {
   TenantRecord,
   TenantInvitationRecord,
   SubscriptionOrderRecord,
+  PlatformMarketingExpenseRecord,
   UserProfile,
 } from '@/lib/types/database';
 import SuperConsoleHeader, { SuperConsoleTab } from '@/components/platform-admin/SuperConsoleHeader';
@@ -21,6 +22,7 @@ import ClientDetailsModal from '@/components/platform-admin/ClientDetailsModal';
 import NewOrderModal from '@/components/platform-admin/NewOrderModal';
 import InvoiceModal from '@/components/platform-admin/InvoiceModal';
 import NewActivationModal from '@/components/platform-admin/NewActivationModal';
+import NewAdSpendModal from '@/components/platform-admin/NewAdSpendModal';
 import { exportToCSV } from '@/lib/utils/csvExport';
 import { ShieldAlert, Lock, ArrowLeft, RefreshCw } from 'lucide-react';
 import HumAiLogo from '@/components/common/HumAiLogo';
@@ -50,10 +52,12 @@ export default function PlatformAdminPage() {
   const [tenants, setTenants] = useState<TenantRecord[]>([]);
   const [orders, setOrders] = useState<SubscriptionOrderRecord[]>([]);
   const [invitations, setInvitations] = useState<TenantInvitationRecord[]>([]);
+  const [marketingExpenses, setMarketingExpenses] = useState<PlatformMarketingExpenseRecord[]>([]);
 
   // Modals
   const [isActivationModalOpen, setIsActivationModalOpen] = useState(false);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+  const [isAdSpendModalOpen, setIsAdSpendModalOpen] = useState(false);
   const [preselectedTenantForOrder, setPreselectedTenantForOrder] = useState<TenantRecord | null>(null);
   const [selectedClientForModal, setSelectedClientForModal] = useState<TenantRecord | null>(null);
   const [selectedOrderForInvoice, setSelectedOrderForInvoice] = useState<SubscriptionOrderRecord | null>(null);
@@ -159,12 +163,53 @@ export default function PlatformAdminPage() {
       } else if (invitationsData) {
         setInvitations(invitationsData as TenantInvitationRecord[]);
       }
+
+      // 4. Fetch Marketing & Ad Expenses
+      const { data: expensesData, error: expErr } = await supabase
+        .from('platform_marketing_expenses')
+        .select('*')
+        .order('date_spent', { ascending: false });
+
+      if (expErr) {
+        console.warn('Marketing expenses fetch warning:', expErr);
+      } else if (expensesData) {
+        setMarketingExpenses(expensesData as PlatformMarketingExpenseRecord[]);
+      }
     } catch (err) {
       console.error('Failed to load platform admin data', err);
     } finally {
       setLoading(false);
       setCheckingAuth(false);
     }
+  };
+
+  // Marketing Actions
+  const handleCreateExpense = async (data: Partial<PlatformMarketingExpenseRecord>) => {
+    const { error } = await supabase.from('platform_marketing_expenses').insert({
+      channel: data.channel,
+      campaign_name: data.campaign_name || null,
+      amount: data.amount,
+      currency: data.currency || 'EGP',
+      date_spent: data.date_spent,
+      period_month: data.period_month,
+      leads_count: data.leads_count || 0,
+      impressions: data.impressions || 0,
+      clicks: data.clicks || 0,
+      notes: data.notes || null,
+    });
+
+    if (error) throw error;
+    await loadPlatformData();
+  };
+
+  const handleDeleteExpense = async (expenseId: string) => {
+    const { error } = await supabase
+      .from('platform_marketing_expenses')
+      .delete()
+      .eq('id', expenseId);
+
+    if (error) throw error;
+    await loadPlatformData();
   };
 
   // Actions
@@ -405,12 +450,14 @@ export default function PlatformAdminPage() {
             tenants={tenants}
             orders={orders}
             invitations={invitations}
+            marketingExpenses={marketingExpenses}
             onNavigateTab={setActiveTab}
             onOpenOrderModal={() => {
               setPreselectedTenantForOrder(null);
               setIsOrderModalOpen(true);
             }}
             onOpenActivationModal={() => setIsActivationModalOpen(true)}
+            onOpenAdSpendModal={() => setIsAdSpendModalOpen(true)}
             onSelectClient={(tenant) => setSelectedClientForModal(tenant)}
             onSelectOrder={(order) => setSelectedOrderForInvoice(order)}
           />
@@ -445,10 +492,13 @@ export default function PlatformAdminPage() {
           <FinancialsTab
             orders={orders}
             tenants={tenants}
+            marketingExpenses={marketingExpenses}
             onOpenOrderModal={() => {
               setPreselectedTenantForOrder(null);
               setIsOrderModalOpen(true);
             }}
+            onOpenAdSpendModal={() => setIsAdSpendModalOpen(true)}
+            onDeleteExpense={handleDeleteExpense}
           />
         )}
 
@@ -513,6 +563,14 @@ export default function PlatformAdminPage() {
           appDomain={appDomain}
           onClose={() => setIsActivationModalOpen(false)}
           onGenerate={handleGenerateActivation}
+        />
+      )}
+
+      {/* 5. Record Marketing & Ad Spend Modal */}
+      {isAdSpendModalOpen && (
+        <NewAdSpendModal
+          onClose={() => setIsAdSpendModalOpen(false)}
+          onCreateExpense={handleCreateExpense}
         />
       )}
     </div>

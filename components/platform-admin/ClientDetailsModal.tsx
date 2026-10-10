@@ -67,7 +67,7 @@ export default function ClientDetailsModal({
         name: name.trim(),
         subscription_status: status as any,
         subscription_plan: plan as any,
-        max_employees: Number(maxEmployees) || 50,
+        max_employees: Math.max(1, parseInt(String(maxEmployees), 10) || 50),
         subscription_expires_at: expiresAt ? new Date(expiresAt).toISOString() : undefined,
         contact_email: contactEmail.trim() || null,
         contact_phone: contactPhone.trim() || null,
@@ -207,7 +207,7 @@ export default function ClientDetailsModal({
                 min="1"
                 required
                 value={maxEmployees}
-                onChange={(e) => setMaxEmployees(Number(e.target.value))}
+                onChange={(e) => setMaxEmployees(e.target.value === '' ? ('' as any) : Number(e.target.value))}
                 className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-slate-100 font-sans focus:outline-none focus:border-emerald-500"
               />
               <span className="text-[10px] text-slate-400 mt-0.5 block">
