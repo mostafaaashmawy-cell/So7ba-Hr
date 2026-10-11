@@ -7,22 +7,45 @@
  * - Modern Arabic Sans Hierarchy (Cairo / Inter)
  * - Interactive Hyperlinked Table of Contents
  * - Numbered Callout Annotations & Device Frames
+ * 
+ * Strict Brand Guidelines:
+ * - HumAi must NEVER be written in Arabic. Always "HumAi" in English.
+ * - Every single option, setting, modal, tab, and button is explained accurately based on the codebase.
  */
 
 function generateManualHtml(screenshotsMap) {
-  return `
-<!DOCTYPE html>
+  // Helper for rendering screenshots inside modern device browser frames
+  const renderFrame = (imgKey, title, urlText) => {
+    const imgSrc = screenshotsMap[imgKey] || '';
+    return `
+      <div class="device-browser-frame">
+        <div class="device-browser-header">
+          <div class="device-dots">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-yellow"></span>
+            <span class="dot dot-green"></span>
+          </div>
+          <div class="device-address-bar font-mono">
+            <span class="lock-icon">🔒</span> https://app.humai.io${urlText}
+          </div>
+          <div class="device-header-title">${title}</div>
+        </div>
+        <div class="device-viewport">
+          ${imgSrc ? `<img src="${imgSrc}" alt="${title}" class="viewport-img" />` : `<div class="viewport-placeholder">صورة الشاشة الحية: ${title}</div>`}
+        </div>
+      </div>
+    `;
+  };
+
+  return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>دليل الاستخدام والتشغيل المرئي — منصة HumAi</title>
+  <title>دليل الاستخدام والتشغيل الشامل — منصة HumAi</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    /* ═══════════════════════════════════════════════════════════════════
-       PRINT & PAGE GEOMETRY SETTINGS (A4 Landscape / Portrait)
-       ═══════════════════════════════════════════════════════════════════ */
     @page {
       size: A4 portrait;
       margin: 0;
@@ -43,16 +66,15 @@ function generateManualHtml(screenshotsMap) {
       font-family: 'Cairo', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       background-color: #FFFFFF;
       color: #0F172A;
-      font-size: 13px;
-      line-height: 1.6;
+      font-size: 11.5px;
+      line-height: 1.55;
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Page Breaks */
     .page-sheet {
       width: 210mm;
       min-height: 297mm;
-      padding: 18mm 18mm 18mm 18mm;
+      padding: 14mm 16mm 14mm 16mm;
       position: relative;
       page-break-after: always;
       break-after: page;
@@ -65,7 +87,7 @@ function generateManualHtml(screenshotsMap) {
     .page-sheet.cover-page {
       background: radial-gradient(circle at 80% 20%, #162438 0%, #0B0F17 60%, #05070B 100%);
       color: #FFFFFF;
-      padding: 24mm 22mm 20mm 22mm;
+      padding: 22mm 20mm 18mm 20mm;
     }
 
     .page-sheet.dark-divider {
@@ -74,12 +96,12 @@ function generateManualHtml(screenshotsMap) {
       justify-content: center;
       align-items: center;
       text-align: center;
+      padding: 30mm 20mm;
     }
 
-    /* Typography Utilities */
     h1, h2, h3, h4, h5 {
       font-weight: 800;
-      line-height: 1.3;
+      line-height: 1.25;
     }
 
     a {
@@ -91,1364 +113,1334 @@ function generateManualHtml(screenshotsMap) {
       font-family: 'Inter', monospace;
     }
 
-    /* Brand Accents */
     .emerald-text { color: #10B981; }
     .emerald-bg { background-color: #10B981; }
     .emerald-border { border-color: #10B981; }
 
-    /* Browser Mockup Device Frame */
+    /* Device Mockup Frame */
     .device-browser-frame {
-      border: 1px solid #E2E8F0;
-      border-radius: 12px;
+      width: 100%;
+      border-radius: 10px;
       overflow: hidden;
-      background: #FFFFFF;
-      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
-      margin-bottom: 14px;
+      border: 1px solid #E2E8F0;
+      box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.08);
+      background-color: #FFFFFF;
+      margin: 8px 0 12px 0;
     }
 
-    .browser-topbar {
-      background: #F1F5F9;
-      padding: 7px 12px;
+    .device-browser-header {
+      background-color: #F8FAFC;
+      border-bottom: 1px solid #E2E8F0;
+      padding: 6px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      direction: ltr;
+    }
+
+    .device-dots {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .dot-red { background-color: #EF4444; }
+    .dot-yellow { background-color: #F59E0B; }
+    .dot-green { background-color: #10B981; }
+
+    .device-address-bar {
+      flex: 1;
+      max-width: 400px;
+      background-color: #FFFFFF;
+      border: 1px solid #CBD5E1;
+      border-radius: 6px;
+      padding: 2px 10px;
+      font-size: 10px;
+      color: #475569;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .device-header-title {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: #0F172A;
+      direction: rtl;
+    }
+
+    .device-viewport {
+      width: 100%;
+      background-color: #0F172A;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .viewport-img {
+      width: 100%;
+      height: auto;
+      display: block;
+      object-fit: cover;
+    }
+
+    .viewport-placeholder {
+      padding: 60px 20px;
+      color: #94A3B8;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    /* Modern Card Layouts */
+    .feature-card {
+      background-color: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+    }
+
+    .feature-card.highlight {
+      border-right: 4px solid #10B981;
+      background: linear-gradient(90deg, #FFFFFF 0%, #F0FDF4 100%);
+    }
+
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+
+    .badge-emerald {
+      background-color: #ECFDF5;
+      color: #059669;
+      border: 1px solid #A7F3D0;
+    }
+
+    .badge-navy {
+      background-color: #0F172A;
+      color: #F8FAFC;
+    }
+
+    .badge-amber {
+      background-color: #FFFBEB;
+      color: #D97706;
+      border: 1px solid #FDE68A;
+    }
+
+    .badge-rose {
+      background-color: #FFF1F2;
+      color: #E11D48;
+      border: 1px solid #FECDD3;
+    }
+
+    /* Numbered Callout Annotations */
+    .callout-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .callout-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 7px;
+      padding: 7px 9px;
+    }
+
+    .callout-number {
+      width: 22px;
+      height: 22px;
+      background-color: #0F172A;
+      color: #10B981;
+      border: 1px solid #10B981;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 800;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .callout-text h4 {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #0F172A;
+      margin-bottom: 2px;
+    }
+
+    .callout-text p {
+      font-size: 10.5px;
+      color: #475569;
+      line-height: 1.45;
+    }
+
+    /* Header & Footer Components */
+    .page-header-nav {
       display: flex;
       align-items: center;
       justify-content: space-between;
       border-bottom: 1px solid #E2E8F0;
-      direction: ltr;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
     }
 
-    .mac-dots {
-      display: flex;
-      gap: 5px;
-    }
-    .mac-dot {
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-    }
-    .mac-dot-red { background-color: #EF4444; }
-    .mac-dot-yellow { background-color: #F59E0B; }
-    .mac-dot-green { background-color: #10B981; }
-
-    .browser-url-pill {
-      background: #FFFFFF;
-      border: 1px solid #CBD5E1;
-      border-radius: 6px;
-      padding: 2px 14px;
-      font-size: 10px;
-      font-family: 'Inter', monospace;
+    .page-header-title {
+      font-size: 11px;
+      font-weight: 700;
       color: #64748B;
       display: flex;
       align-items: center;
       gap: 6px;
     }
 
-    .screenshot-img-container {
-      width: 100%;
-      height: 330px;
-      overflow: hidden;
-      background: #F8FAFC;
-      display: flex;
-      align-items: flex-start;
-      justify-content: center;
-      position: relative;
-    }
-
-    .screenshot-img-container img {
-      width: 100%;
-      height: auto;
-      display: block;
-      object-fit: cover;
-      object-position: top;
-    }
-
-    /* Numbered Callout Badges */
-    .badge-number {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      background: #10B981;
-      color: #FFFFFF;
+    .page-header-brand {
+      font-size: 12px;
       font-weight: 800;
-      font-size: 11px;
-      line-height: 1;
-      box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
-      margin-left: 6px;
-      vertical-align: middle;
-      flex-shrink: 0;
+      color: #0F172A;
+      letter-spacing: -0.2px;
     }
 
-    /* Section Cards */
-    .info-card {
-      background: #F8FAFC;
-      border: 1px solid #E2E8F0;
-      border-radius: 10px;
-      padding: 10px 14px;
-      margin-bottom: 8px;
-    }
-
-    .pro-tip-box {
-      background: #ECFDF5;
-      border-right: 4px solid #10B981;
-      border-radius: 0 8px 8px 0;
-      padding: 9px 13px;
-      margin-top: 8px;
-    }
-
-    /* Header & Footer Rules */
-    .document-header {
+    .page-footer {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      padding-bottom: 10px;
-      border-bottom: 1px solid #E2E8F0;
-      margin-bottom: 12px;
-    }
-
-    .document-footer {
-      display: flex;
       justify-content: space-between;
-      align-items: center;
-      padding-top: 10px;
       border-top: 1px solid #E2E8F0;
-      font-size: 10px;
+      padding-top: 8px;
+      margin-top: 10px;
+      font-size: 9.5px;
       color: #94A3B8;
-      margin-top: 12px;
     }
 
-    .logo-mark-svg {
-      display: inline-block;
-      vertical-align: middle;
+    /* Pro-Tip & Warning Boxes */
+    .callout-box {
+      border-radius: 7px;
+      padding: 7px 10px;
+      margin: 6px 0;
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      font-size: 10.5px;
+    }
+
+    .callout-pro {
+      background-color: #F0FDF4;
+      border: 1px solid #BBF7D0;
+      color: #166534;
+    }
+
+    .callout-warn {
+      background-color: #FFFBEB;
+      border: 1px solid #FDE68A;
+      color: #92400E;
+    }
+
+    .callout-info {
+      background-color: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      color: #334155;
+    }
+
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0;
+      font-size: 10.5px;
+    }
+
+    .spec-table th {
+      background-color: #F1F5F9;
+      color: #0F172A;
+      font-weight: 700;
+      padding: 6px 8px;
+      text-align: right;
+      border: 1px solid #E2E8F0;
+    }
+
+    .spec-table td {
+      padding: 6px 8px;
+      border: 1px solid #E2E8F0;
+      color: #334155;
+    }
+
+    .spec-table tr:nth-child(even) td {
+      background-color: #F8FAFC;
     }
   </style>
 </head>
 <body>
 
   <!-- ═══════════════════════════════════════════════════════════════════
-       COVER PAGE (Deep Obsidian Navy + Radiant Emerald)
+       PAGE 1: MASTER COVER PAGE
        ═══════════════════════════════════════════════════════════════════ -->
-  <section class="page-sheet cover-page">
-    <!-- Top Metadata -->
+  <div class="page-sheet cover-page">
     <div style="display: flex; justify-content: space-between; align-items: center;">
       <div style="display: flex; align-items: center; gap: 10px;">
-        <svg width="42" height="42" viewBox="0 0 60 56" fill="none">
-          <circle cx="14" cy="10" r="5.5" fill="#FFFFFF"/>
-          <rect x="9" y="19" width="10" height="28" rx="5" fill="#FFFFFF"/>
-          <circle cx="46" cy="10" r="5.5" fill="#10B981"/>
-          <rect x="41" y="19" width="10" height="28" rx="5" fill="#10B981"/>
-          <path d="M 18 29 C 23 37, 37 37, 42 29 C 40 37, 20 37, 18 29 Z" fill="#10B981"/>
-          <path d="M 17 29.5 Q 30 40.5 43 29.5" stroke="#10B981" stroke-width="5" stroke-linecap="round" fill="none"/>
-        </svg>
+        <div style="width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, #10B981 0%, #059669 100%); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 900; color: #FFFFFF;">H</div>
         <div>
-          <div style="font-weight: 900; font-size: 26px; letter-spacing: 0.05em; line-height: 1;">
-            <span>HUM</span><span style="display:inline-block; transform: scaleY(0.95); margin: 0 1px;">Λ</span><span style="position:relative;">I<span style="position:absolute; top:-4px; right:0; width:6px; height:6px; border-radius:50%; background:#10B981;"></span></span>
-          </div>
-          <span style="font-size: 10px; color: #94A3B8; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;">HR Intelligence & Payroll Platform</span>
+          <div style="font-size: 18px; font-weight: 900; letter-spacing: -0.5px; color: #FFFFFF;">HumAi</div>
+          <div style="font-size: 9.5px; color: #10B981; font-weight: 700; letter-spacing: 0.5px;">SMART HR & OPERATIONS PLATFORM</div>
         </div>
       </div>
-
-      <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 9999px; padding: 6px 16px; font-size: 11px; font-weight: 800; color: #34D399;">
-        DOCUMENT CODE: HUMAI-PROD-GUIDE-2026
-      </div>
+      <div class="badge-pill badge-emerald" style="font-size: 10px; padding: 4px 12px;">Enterprise Release 2026.1</div>
     </div>
 
-    <!-- Main Title & Badge -->
-    <div style="margin: 30mm 0 25mm 0;">
-      <div style="display: inline-block; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; padding: 4px 14px; font-size: 12px; font-weight: 700; color: #A7F3D0; margin-bottom: 18px;">
-        ✦ التوثيق التشغيلي والكتالوج البصري المعتمد 2026
+    <div style="margin: 40px 0;">
+      <div class="badge-pill badge-navy" style="border: 1px solid #1E293B; margin-bottom: 14px; font-size: 11px; padding: 5px 12px; color: #10B981;">
+        ✦ الدليل المرجعي والتشغيلي الشامل مع لقطات حية من النظام
       </div>
-
-      <h1 style="font-size: 40px; font-weight: 900; line-height: 1.25; margin-bottom: 16px; color: #FFFFFF;">
-        دليل استخدام منصة <span style="color: #10B981;">هُم آي (HumAi)</span><br>
-        والمرجع التشغيلي الميداني المصور
+      <h1 style="font-size: 32px; font-weight: 900; line-height: 1.25; margin-bottom: 14px; color: #FFFFFF;">
+        دليل الاستخدام والتشغيل الشامل<br>
+        <span style="color: #10B981;">لمنصة HumAi الذكية</span>
       </h1>
-
-      <p style="font-size: 16px; color: #94A3B8; max-width: 620px; line-height: 1.8;">
-        دليل هندسي مصور وموثق خطوة بخطوة لكافة شاشات ومحركات النظام: بدءاً من تسجيل الحضور الجغرافي للموظف، مروراً بمركز اعتمادات المدير، وصولاً إلى محرك الرواتب والامتثال القانوني للإدارة العليا.
+      <p style="font-size: 14px; color: #94A3B8; max-width: 580px; line-height: 1.6;">
+        مرجع تقني وتشغيلي متكامل يوثق بالتفصيل الدقيق كافة الشاشات، السياسات، النوافذ المنبثقة، ومحركات الحساب الآلية لمنظومة الموارد البشرية وإدارة العمليات المؤسسية في منصة HumAi.
       </p>
+    </div>
 
-      <!-- 3 Tier Cards Summary -->
-      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 30px;">
-        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 14px;">
-          <span style="font-size: 10px; color: #34D399; font-weight: 800; display: block; margin-bottom: 4px;">المستوى الأول</span>
-          <h4 style="font-size: 14px; color: #FFFFFF; font-weight: 800;">دليل الموظف اليومي</h4>
-          <p style="font-size: 11px; color: #94A3B8; margin-top: 4px;">الحضور الذكي، رصيد الإجازات، قسيمة الراتب، ومتابعة الأهداف.</p>
-        </div>
-
-        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 14px;">
-          <span style="font-size: 10px; color: #34D399; font-weight: 800; display: block; margin-bottom: 4px;">المستوى الثاني</span>
-          <h4 style="font-size: 14px; color: #FFFFFF; font-weight: 800;">دليل المدير المباشر</h4>
-          <p style="font-size: 11px; color: #94A3B8; margin-top: 4px;">المراقبة اللحظية، مركز الاعتمادات، وتقييمات الأداء والبدلات.</p>
-        </div>
-
-        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 14px;">
-          <span style="font-size: 10px; color: #34D399; font-weight: 800; display: block; margin-bottom: 4px;">المستوى الثالث</span>
-          <h4 style="font-size: 14px; color: #FFFFFF; font-weight: 800;">دليل السوبر أدمن</h4>
-          <p style="font-size: 11px; color: #94A3B8; margin-top: 4px;">إعدادات الفروع، محرك الورديات، الرواتب الآلية، وسجل الحوكمة.</p>
-        </div>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 30px;">
+      <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px;">
+        <div style="color: #10B981; font-size: 12px; font-weight: 800; margin-bottom: 4px;">الجزء الأول</div>
+        <div style="font-size: 12.5px; font-weight: 700; color: #F8FAFC;">دليل الموظف اليومي</div>
+        <div style="font-size: 10px; color: #94A3B8; margin-top: 3px;">الحضور الذكي، الإجازات، السلف، الورديات، قسائم الراتب، ومتابعة الأهداف.</div>
+      </div>
+      <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px;">
+        <div style="color: #10B981; font-size: 12px; font-weight: 800; margin-bottom: 4px;">الجزء الثاني</div>
+        <div style="font-size: 12.5px; font-weight: 700; color: #F8FAFC;">دليل المدير المباشر</div>
+        <div style="font-size: 10px; color: #94A3B8; margin-top: 3px;">المراقبة الحية للحضور، مركز الاعتمادات، تشغيل العطلات، ومقترحات المكافآت.</div>
+      </div>
+      <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px;">
+        <div style="color: #10B981; font-size: 12px; font-weight: 800; margin-bottom: 4px;">الجزء الثالث</div>
+        <div style="font-size: 12.5px; font-weight: 700; color: #F8FAFC;">دليل السوبر أدمن</div>
+        <div style="font-size: 10px; color: #94A3B8; margin-top: 3px;">الرواتب الآلية، الفروع وGPS، العقود، الورديات، المبيعات، ومسار التدقيق.</div>
       </div>
     </div>
 
-    <!-- Cover Footer -->
-    <div style="border-top: 1px solid rgba(255, 255, 255, 0.12); padding-top: 16px; display: flex; justify-content: space-between; align-items: flex-end; font-size: 11px; color: #64748B;">
-      <div>
-        <p style="color: #E2E8F0; font-weight: 700;">فريق هندسة المنتج وتجربة المستخدم — شركة هُم آي للحلول الذكية</p>
-        <p style="margin-top: 2px;">تاريخ التحديث: أكتوبر 2026 • متوافق مع قانون العمل المصري والأنظمة السحابية</p>
-      </div>
-      <div style="text-align: left; direction: ltr; font-family: 'Inter', monospace; color: #10B981; font-weight: 700;">
-        https://app.humai.eg
-      </div>
+    <div style="border-top: 1px solid rgba(255,255,255,0.12); padding-top: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #64748B;">
+      <div>الإصدار: HumAi Core v2.4 (Egyptian Labor Law Compliant)</div>
+      <div>تاريخ التوثيق المعتمد: أكتوبر 2026</div>
+      <div>حالة الاعتماد: وثيقة رسمية معتمدة</div>
     </div>
-  </section>
+  </div>
 
   <!-- ═══════════════════════════════════════════════════════════════════
-       TABLE OF CONTENTS & ARCHITECTURE (الفهرس وهندسة النظام)
+       PAGE 2: TABLE OF CONTENTS (فهرس المحتويات التفاعلي)
        ═══════════════════════════════════════════════════════════════════ -->
-  <section class="page-sheet" id="table-of-contents">
+  <div class="page-sheet">
     <div>
-      <div class="document-header">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-weight:900; color:#0F172A; font-size:15px;">HUM<span style="color:#10B981;">Λ</span>I</span>
-          <span style="font-size:11px; color:#64748B;">| الفهرس العام ومقدمة المنظومة</span>
-        </div>
-        <span style="font-size:11px; font-weight:700; color:#10B981;">دليل الاستخدام الرسمي v2.4</span>
+      <div class="page-header-nav">
+        <div class="page-header-title">فهرس المحتويات الشامل والمترابط</div>
+        <div class="page-header-brand">HumAi Platform</div>
       </div>
 
-      <div style="margin-bottom: 20px;">
-        <span style="color: #10B981; font-weight: 800; font-size: 12px; display: block; margin-bottom: 4px;">التنقل التفاعلي في الدليل</span>
-        <h2 style="font-size: 26px; color: #0F172A; font-weight: 900;">فهرس المحتويات والمحاور التشغيلية</h2>
-        <p style="font-size: 12px; color: #64748B;">يمكنك النقر مباشرة على أي قسم أو شاشة للانتقال الفوري إلى صفحتها التفصيلية في هذا المستند.</p>
+      <div style="margin-bottom: 14px;">
+        <h2 style="font-size: 18px; color: #0F172A; margin-bottom: 4px;">فهرس الدليل ومسار التصفح</h2>
+        <p style="color: #64748B; font-size: 11px;">دليل مرجعي تفصيلي يغطي 16 قسماً تشغيلياً مع شرح شامل لكافة الإجراءات والشاشات الحية.</p>
       </div>
 
-      <!-- TOC Table List -->
-      <div style="display: grid; grid-template-columns: 1fr; gap: 14px;">
-        
-        <!-- Part I -->
-        <div style="border: 1px solid #E2E8F0; border-radius: 12px; overflow: hidden;">
-          <div style="background: #0F172A; color: #FFFFFF; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center;">
-            <a href="#part-1" style="font-weight: 800; font-size: 13px; color: #FFFFFF;">
-              الجزء الأول: دليل الموظف (Employee Guide — مساحة العمل اليومية)
-            </a>
-            <span style="background: #10B981; color: #FFFFFF; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 9999px;">المستوى 1</span>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+        <!-- Column 1 -->
+        <div>
+          <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px; margin-bottom: 10px;">
+            <div style="color: #059669; font-weight: 800; font-size: 11.5px; margin-bottom: 6px;">الجزء الأول: دليل الموظف اليومي (Employee Workspace)</div>
+            <ul style="list-style: none; space-y: 4px; font-size: 10.5px; color: #334155;">
+              <li style="padding: 2px 0;"><strong>1.1</strong> بوابة تسجيل الدخول الموحدة والأمان المؤسسي (/login)</li>
+              <li style="padding: 2px 0;"><strong>1.2</strong> مساحة العمل وحساب الحضور الذكي بالـ GPS Geofence</li>
+              <li style="padding: 2px 0;"><strong>1.3</strong> نموذج طلب الإجازات والأذونات ورصيد الرصيد المتبقي</li>
+              <li style="padding: 2px 0;"><strong>1.4</strong> نافذة طلب السلف المالية وسقف الراتب المعتمد</li>
+              <li style="padding: 2px 0;"><strong>1.5</strong> بطاقة طلب تبديل الوردية مع زميل واعتماد الإدارة</li>
+              <li style="padding: 2px 0;"><strong>1.6</strong> متتبع الأهداف ومؤشرات الأداء التشغيلية KPIs</li>
+              <li style="padding: 2px 0;"><strong>1.7</strong> قسائم الرواتب الرقمية المعتمدة وتفقيط الاستحقاقات</li>
+            </ul>
           </div>
-          <div style="padding: 10px 16px; background: #FAFAFA; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
-            <a href="#view-1" style="display: flex; justify-content: space-between; padding: 6px 10px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; font-weight: 600;">
-              <span>1.1 تسجيل الحضور الجغرافي الذكي (Smart Attendance)</span>
-              <span style="color: #10B981; font-weight: 800;">صفحة 3</span>
-            </a>
-            <a href="#view-2" style="display: flex; justify-content: space-between; padding: 6px 10px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; font-weight: 600;">
-              <span>1.2 رصيد الإجازات والأذونات (Leaves & Permissions)</span>
-              <span style="color: #10B981; font-weight: 800;">صفحة 4</span>
-            </a>
-            <a href="#view-3" style="display: flex; justify-content: space-between; padding: 6px 10px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; font-weight: 600;">
-              <span>1.3 قسيمة الراتب الرقمية المعتمدة (Digital Payslip)</span>
-              <span style="color: #10B981; font-weight: 800;">صفحة 5</span>
-            </a>
-            <a href="#view-4" style="display: flex; justify-content: space-between; padding: 6px 10px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; font-weight: 600;">
-              <span>1.4 متابعة الأهداف والمهام (Targets & KPIs)</span>
-              <span style="color: #10B981; font-weight: 800;">صفحة 6</span>
-            </a>
+
+          <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px; margin-bottom: 10px;">
+            <div style="color: #059669; font-weight: 800; font-size: 11.5px; margin-bottom: 6px;">الجزء الثاني: دليل المدير المباشر (Department Manager)</div>
+            <ul style="list-style: none; space-y: 4px; font-size: 10.5px; color: #334155;">
+              <li style="padding: 2px 0;"><strong>2.1</strong> لوحة المراقبة الحية للحضور والانصراف اللحظي لفريق العمل</li>
+              <li style="padding: 2px 0;"><strong>2.2</strong> مركز الاعتمادات الموحد (إجازات، أذونات، ورديات، سلف)</li>
+              <li style="padding: 2px 0;"><strong>2.3</strong> توثيق تشغيل العطلات الرسمية والمكافآت التقديرية</li>
+            </ul>
           </div>
         </div>
 
-        <!-- Part II -->
-        <div style="border: 1px solid #E2E8F0; border-radius: 12px; overflow: hidden;">
-          <div style="background: #0F172A; color: #FFFFFF; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center;">
-            <a href="#part-2" style="font-weight: 800; font-size: 13px; color: #FFFFFF;">
-              الجزء الثاني: دليل المدير المباشر (Manager Guide — إشراف الفريق)
-            </a>
-            <span style="background: #3B82F6; color: #FFFFFF; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 9999px;">المستوى 2</span>
+        <!-- Column 2 -->
+        <div>
+          <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px; margin-bottom: 10px;">
+            <div style="color: #059669; font-weight: 800; font-size: 11.5px; margin-bottom: 6px;">الجزء الثالث: دليل السوبر أدمن (Super Admin Command Center)</div>
+            <ul style="list-style: none; space-y: 4px; font-size: 10.5px; color: #334155;">
+              <li style="padding: 2px 0;"><strong>3.1</strong> لوحة القيادة الاستراتيجية والذكاء الإداري التنفيذي BI</li>
+              <li style="padding: 2px 0;"><strong>3.2</strong> مراقبة سجلات وساعات الدوام الشاملة وتصدير CSV</li>
+              <li style="padding: 2px 0;"><strong>3.3</strong> رصيد الإجازات السنوي ومصفوفة الاعتمادات المركزية</li>
+              <li style="padding: 2px 0;"><strong>3.4</strong> دليل الموظفين، قنوات الصرف (InstaPay/بنك/كاش) والخزينة</li>
+              <li style="padding: 2px 0;"><strong>3.5</strong> الهيكل التنظيمي وإدارة الأقسام وتعيين المدراء</li>
+              <li style="padding: 2px 0;"><strong>3.6</strong> صانع العقود القانونية وتوليد النماذج الذكية بالمتغيرات</li>
+              <li style="padding: 2px 0;"><strong>3.7</strong> محرك الورديات المتقدم (ثابتة، ليلية، مجزأة، دوارة)</li>
+              <li style="padding: 2px 0;"><strong>3.8</strong> محرك الرواتب الآلي (دورة 26-25، ضرائب، تأمينات، WPS)</li>
+              <li style="padding: 2px 0;"><strong>3.9</strong> محرك متابعة المبيعات والعمولات التصاعدية</li>
+              <li style="padding: 2px 0;"><strong>3.10</strong> تقييمات الأداء ربع السنوية ومنظومة الـ 4 نجوم</li>
+              <li style="padding: 2px 0;"><strong>3.11</strong> سجل الرقابة ومسار التدقيق غير القابل للتلاعب JSON Diff</li>
+              <li style="padding: 2px 0;"><strong>3.12</strong> إعدادات النظام، الفروع، GPS Geofence وسياسات التأخير</li>
+            </ul>
           </div>
-          <div style="padding: 10px 16px; background: #FAFAFA; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
-            <a href="#view-5" style="display: flex; justify-content: space-between; padding: 6px 10px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; font-weight: 600;">
-              <span>2.1 شاشة مراقبة الحضور اللحظية (Attendance Monitor)</span>
-              <span style="color: #3B82F6; font-weight: 800;">صفحة 7</span>
-            </a>
-            <a href="#view-6" style="display: flex; justify-content: space-between; padding: 6px 10px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; font-weight: 600;">
-              <span>2.2 مركز اعتمادات الفريق والطلبات (Approval Center)</span>
-              <span style="color: #3B82F6; font-weight: 800;">صفحة 8</span>
-            </a>
-            <a href="#view-7" style="display: flex; justify-content: space-between; padding: 6px 10px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; font-weight: 600; grid-column: span 2;">
-              <span>2.3 تقييمات الأداء والمقترحات المالية (Team Evaluations & Bonus Engine)</span>
-              <span style="color: #3B82F6; font-weight: 800;">صفحة 9</span>
-            </a>
+
+          <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px;">
+            <div style="color: #059669; font-weight: 800; font-size: 11.5px; margin-bottom: 6px;">الملحق التقني ومصفوفة الصلاحيات (RBAC Matrix)</div>
+            <p style="font-size: 10px; color: #64748B;">جدول مقارنة الصلاحيات الدقيقة لكل رتبة (موظف / مدير / سوبر أدمن)، وتوافق النظام مع قانون العمل المصري رقم 12 لسنة 2003.</p>
           </div>
         </div>
-
-        <!-- Part III -->
-        <div style="border: 1px solid #E2E8F0; border-radius: 12px; overflow: hidden;">
-          <div style="background: #0F172A; color: #FFFFFF; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center;">
-            <a href="#part-3" style="font-weight: 800; font-size: 13px; color: #FFFFFF;">
-              الجزء الثالث: دليل السوبر أدمن (Super Admin — القيادة والضبط)
-            </a>
-            <span style="background: #8B5CF6; color: #FFFFFF; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 9999px;">المستوى 3</span>
-          </div>
-          <div style="padding: 10px 16px; background: #FAFAFA; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
-            <a href="#view-8" style="display: flex; justify-content: space-between; padding: 6px 10px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; font-weight: 600;">
-              <span>3.1 إعدادات الفروع ونطاق الـ GPS (Company & Branches)</span>
-              <span style="color: #8B5CF6; font-weight: 800;">صفحة 10</span>
-            </a>
-            <a href="#view-9" style="display: flex; justify-content: space-between; padding: 6px 10px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; font-weight: 600;">
-              <span>3.2 محرك الورديات والتشغيل المتقدم (Shifts Engine)</span>
-              <span style="color: #8B5CF6; font-weight: 800;">صفحة 11</span>
-            </a>
-            <a href="#view-10" style="display: flex; justify-content: space-between; padding: 6px 10px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; font-weight: 600;">
-              <span>3.3 دليل الموظفين وخزينة المستندات (Employee Vault)</span>
-              <span style="color: #8B5CF6; font-weight: 800;">صفحة 12</span>
-            </a>
-            <a href="#view-11" style="display: flex; justify-content: space-between; padding: 6px 10px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; font-weight: 600;">
-              <span>3.4 محرك مسيرات الرواتب المؤتمت (Payroll Engine)</span>
-              <span style="color: #8B5CF6; font-weight: 800;">صفحة 13</span>
-            </a>
-            <a href="#view-12" style="display: flex; justify-content: space-between; padding: 6px 10px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; font-weight: 600; grid-column: span 2;">
-              <span>3.5 سجل التدقيق والامتثال والحوكمة (Audit Trail & Governance)</span>
-              <span style="color: #8B5CF6; font-weight: 800;">صفحة 14</span>
-            </a>
-          </div>
-        </div>
-
       </div>
     </div>
 
-    <!-- Page Footer -->
-    <div class="document-footer">
-      <span>منصة HumAi للإدارة الذكية والأتمتة</span>
-      <span>وثيقة رقمية معتمدة • الإصدار 2.4</span>
-      <span>صفحة 2</span>
+    <div class="page-footer">
+      <div>HumAi Enterprise Documentation</div>
+      <div>صفحة 2</div>
     </div>
-  </section>
+  </div>
 
   <!-- ═══════════════════════════════════════════════════════════════════
-       SECTION 1: SMART ATTENDANCE (تسجيل الحضور الذكي)
+       PAGE 3: 1.1 تسجيل الدخول والأمان المؤسسي
        ═══════════════════════════════════════════════════════════════════ -->
-  <section class="page-sheet" id="view-1">
+  <div class="page-sheet">
     <div>
-      <div class="document-header">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-weight:900; color:#0F172A; font-size:15px;">HUM<span style="color:#10B981;">Λ</span>I</span>
-          <span style="font-size:11px; color:#64748B;">| دليل الموظف: الحضور والانصراف</span>
+      <div class="page-header-nav">
+        <div class="page-header-title">الجزء الأول: دليل الموظف | 1.1 تسجيل الدخول وبوابة الأمان</div>
+        <div class="page-header-brand">HumAi Platform</div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <div>
+          <h2 style="font-size: 16px; color: #0F172A;">بوابة تسجيل الدخول والأمان المؤسسي</h2>
+          <p style="color: #64748B; font-size: 11px;">المسار: <span class="font-mono text-emerald-600">/login</span> — نقطة الوصول الموحدة والمؤمنة للكوادر والمسؤولين</p>
         </div>
-        <span style="font-size:11px; font-weight:700; color:#10B981;">1.1 تسجيل الحضور الجغرافي</span>
+        <span class="badge-pill badge-emerald">بوابة الدخول الموحدة</span>
+      </div>
+
+      ${renderFrame('login-portal', 'بوابة تسجيل الدخول إلى منصة HumAi', '/login')}
+
+      <div class="callout-grid">
+        <div class="callout-item">
+          <div class="callout-number">1</div>
+          <div class="callout-text">
+            <h4>حقل البريد الإلكتروني الرسمي (Work Email)</h4>
+            <p>إدخال البريد المؤسسي المخصص للموظف أو الإداري المسجل مسبقاً في قاعدة بيانات المنظمة.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">2</div>
+          <div class="callout-text">
+            <h4>كلمة المرور المشفرة (Secure Password)</h4>
+            <p>كلمة المرور الشخصية المحمية بنظام تشفير قوي (bcrypt) ومربوطة بسياسات أمان المؤسسة.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">3</div>
+          <div class="callout-text">
+            <h4>زر تسجيل الدخول وتوجيه الدور الآلي</h4>
+            <p>يتحقق النظام فورياً من صلاحية المستخدم؛ حيث يتم تحويل السوبر أدمن تلقائياً إلى لوحة التحكم التنفيذية، والمدير المباشر إلى شاشة فريقه، والموظف إلى مساحة عمله اليومية.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">4</div>
+          <div class="callout-text">
+            <h4>شريط العزل المؤسسي (Multi-Tenant Isolation)</h4>
+            <p>يضمن عزل بيانات كل مؤسسة وفرع بشكل كلي ومستقل عبر منظومة RLS لحماية سرية الرواتب والوثائق.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout-box callout-info" style="margin-top: 10px;">
+        <strong>ملاحظة أمان:</strong> تتيح المنصة خاصية حفظ الجلسة المشفرة وتجديد التوكن التلقائي مع الالتزام بسياسات انتهاء الجلسات الآمنة عند الخمول.
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <div>دليل الموظف — منصة HumAi</div>
+      <div>صفحة 3</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       PAGE 4: 1.2 مساحة عمل الموظف والحضور الذكي
+       ═══════════════════════════════════════════════════════════════════ -->
+  <div class="page-sheet">
+    <div>
+      <div class="page-header-nav">
+        <div class="page-header-title">الجزء الأول: دليل الموظف | 1.2 الحضور الذكي بالـ GPS Geofence</div>
+        <div class="page-header-brand">HumAi Platform</div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <div>
+          <h2 style="font-size: 16px; color: #0F172A;">مساحة عمل الموظف وتسجيل الحضور والانصراف</h2>
+          <p style="color: #64748B; font-size: 11px;">المسار: <span class="font-mono text-emerald-600">/dashboard/employee</span> — تسجيل الحضور اللحظي بالتحقق الجغرافي الدقيق</p>
+        </div>
+        <span class="badge-pill badge-emerald">حضور ذكي جيومكاني</span>
+      </div>
+
+      ${renderFrame('smart-attendance', 'مساحة عمل الموظف ومسجل الحضور الذكي', '/dashboard/employee')}
+
+      <div class="callout-grid">
+        <div class="callout-item">
+          <div class="callout-number">1</div>
+          <div class="callout-text">
+            <h4>الساعة الرقمية اللحظية ومؤشر الوردية الحالية</h4>
+            <p>تعرض الساعة اللحظية بتوقيت القاهرة الرسمي (Africa/Cairo) مع اسم الوردية المعينة للموظف وتوقيت بدايتها ونهايتها وساعات الراحة المقررة.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">2</div>
+          <div class="callout-text">
+            <h4>محدد الفرع والتحقق الجغرافي (Branch Geofence Pin)</h4>
+            <p>يحدد النظام عبر إحداثيات GPS بالمتصفح المسافة بالمتر بين الموظف والفرع المختار، ويمنع تسجيل الحضور إذا تجاوز الموظف نصف القطر المسموح (مثلاً 100م) إلا في حالة تفعيل العمل عن بُعد.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">3</div>
+          <div class="callout-text">
+            <h4>زر تسجيل الحضور (Check-In) والانصراف (Check-Out)</h4>
+            <p>يسجل لحظة الدخول ويحسب بدقة دقائق التأخير بعد استهلاك فترة السماح المقررة (15 دقيقة افتراضياً)، كما يحسب زر الانصراف ساعات العمل الفعلية والإضافي المعتمد.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">4</div>
+          <div class="callout-text">
+            <h4>أزرار الإجراءات السريعة (Quick Action Buttons)</h4>
+            <p>روابط فورية تمكن الموظف من طلب سلفة مالية، أو طلب تبديل وردية، أو استعراض أحدث قسيمة راتب معتمدة بضغطة زر واحدة.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout-box callout-pro" style="margin-top: 8px;">
+        <strong>نظام الورديات الليلية:</strong> يدعم النظام الورديات الليلية الممتدة لبعد منتصف الليل تلقائياً؛ حيث يحتسب جلسة الحضور كوحدة دوام واحدة مع احتساب بدل السهر الليلي المقرر في الوردية.
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <div>دليل الموظف — منصة HumAi</div>
+      <div>صفحة 4</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       PAGE 5: 1.3 طلب الإجازات والأذونات والسلف
+       ═══════════════════════════════════════════════════════════════════ -->
+  <div class="page-sheet">
+    <div>
+      <div class="page-header-nav">
+        <div class="page-header-title">الجزء الأول: دليل الموظف | 1.3 الإجازات، الأذونات، والسلف المالية</div>
+        <div class="page-header-brand">HumAi Platform</div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <div>
+          <h2 style="font-size: 16px; color: #0F172A;">إدارة الإجازات، الأذونات الساعية، وطلبات السلف</h2>
+          <p style="color: #64748B; font-size: 11px;">نماذج الخدمة الذاتية لحساب الأرصدة وتقديم الطلبات إلكترونياً</p>
+        </div>
+        <span class="badge-pill badge-emerald">خدمة ذاتية متقدمة</span>
+      </div>
+
+      ${renderFrame('leaves-ledger', 'سجل وأرصدة الإجازات والأذونات', '/dashboard/leaves')}
+
+      <div class="callout-grid">
+        <div class="callout-item">
+          <div class="callout-number">1</div>
+          <div class="callout-text">
+            <h4>أنواع الإجازات المدعومة بالنموذج</h4>
+            <p>يدعم النموذج: الإجازة السنوية (Annual)، الإجازة العارضة (Casual)، الإذن الساعي (Permission)، الإجازة المرضية (Sick)، والإجازة بدون راتب (Unpaid) مع إمكانية إرفاق التقارير الطبية.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">2</div>
+          <div class="callout-text">
+            <h4>عداد الرصيد التفاعلي (Live Quota Tracker)</h4>
+            <p>يحتسب النظام رصيد الإجازة السنوية (21 يوماً اعتيادياً أو 30 يوماً لمن تجاوز 50 سنة أو 10 سنوات خدمة) ورصيد العارضة (7 أيام)، ويمنع تجاوز الرصيد المتاح آلياً.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">3</div>
+          <div class="callout-text">
+            <h4>نافذة طلب السلفة المالية (Salary Advance Modal)</h4>
+            <p>نافذة منبثقة تفحص سقف السلفة المسموح به للموظف (بحد أقصى 50% من الراتب الأساسي افتراضياً)، ولا تفتح إلا بعد بلوغ يوم الاستحقاق المحدد في إعدادات المنظمة (مثلاً 15 من الشهر).</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">4</div>
+          <div class="callout-text">
+            <h4>بطاقة تبديل الوردية مع الزملاء (Shift Swap Card)</h4>
+            <p>اختيار الزميل المراد مبادلته وتاريخ الوردية البديلة؛ حيث يمر الطلب بمرحلتين: موافقة الزميل أولاً ثم اعتماد المدير المباشر لحفظ انتظام العمل.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout-box callout-warn" style="margin-top: 8px;">
+        <strong>ملاحظة هامة حول السلف:</strong> يتم خصم قسط السلفة المالية المعتمدة تلقائياً في مسير الرواتب الشهري التالي عبر محرك Payroll دون أي تدخل يدوي.
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <div>دليل الموظف — منصة HumAi</div>
+      <div>صفحة 5</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       PAGE 6: 1.4 الأهداف والـ KPIs وقسائم الرواتب
+       ═══════════════════════════════════════════════════════════════════ -->
+  <div class="page-sheet">
+    <div>
+      <div class="page-header-nav">
+        <div class="page-header-title">الجزء الأول: دليل الموظف | 1.4 قسائم الرواتب ومتابعة الأهداف KPIs</div>
+        <div class="page-header-brand">HumAi Platform</div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <div>
+          <h2 style="font-size: 16px; color: #0F172A;">قسائم الرواتب الرقمية المعتمدة ومتابعة المستهدفات</h2>
+          <p style="color: #64748B; font-size: 11px;">المسار: <span class="font-mono text-emerald-600">/dashboard/payslips</span> و <span class="font-mono text-emerald-600">/dashboard/targets</span></p>
+        </div>
+        <span class="badge-pill badge-emerald">قسائم معتمدة وKPIs</span>
+      </div>
+
+      ${renderFrame('digital-payslips', 'قسيمة الراتب الرقمية المعتمدة وتفقيط البنود', '/dashboard/payslips')}
+
+      <div class="callout-grid">
+        <div class="callout-item">
+          <div class="callout-number">1</div>
+          <div class="callout-text">
+            <h4>جدول الاستحقاقات التفصيلي (Total Earnings)</h4>
+            <p>يوضح الراتب الأساسي، بدل السكن، بدل الانتقال، بدل الوردية الليلية، ساعات العمل الإضافي، ومكافآت التميز وعمولات المبيعات المحققة بدقة مليمترية.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">2</div>
+          <div class="callout-text">
+            <h4>جدول الاستقطاعات التفصيلي (Total Deductions)</h4>
+            <p>يوثق بدقة خصومات دقائق التأخير، أيام الغياب بدون إذن، أقساط السلف المستردة، حصة الموظف في التأمينات الاجتماعية (11%)، وضريبة كسب العمل المستحقة.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">3</div>
+          <div class="callout-text">
+            <h4>صافي الراتب وقناة الصرف المعتمدة (Payout Channel)</h4>
+            <p>يظهر صافي الراتب المستحق رقماً وتفقيطاً، مع توضيح قناة الصرف: حساب InstaPay أو الحساب البنكي برقم الآيبان (IBAN) أو صرف نقدي من الخزينة.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">4</div>
+          <div class="callout-text">
+            <h4>زر الطباعة والتصدير المعتمد (Certified PDF)</h4>
+            <p>توليد مستند رسمي مطبوع يحتوي على الختم الإلكتروني، وتوقيع الإدارة المالية، وتفقيط الراتب وفق اشتراطات مكاتب العمل والتفتيش العمالي.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout-box callout-info" style="margin-top: 8px;">
+        <strong>متابعة الأهداف KPIs:</strong> في شاشة المستهدفات التشغيلية، يسجل الموظف إنجازه اليومي (مهام منجزة، مكالمات، طلبات) مع متابعة شريط التقدم ونسبة تحقيق التارجت المالي والنوعي.
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <div>دليل الموظف — منصة HumAi</div>
+      <div>صفحة 6</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       PAGE 7: 2.1 لوحة المدير المباشر ومركز الاعتمادات
+       ═══════════════════════════════════════════════════════════════════ -->
+  <div class="page-sheet">
+    <div>
+      <div class="page-header-nav">
+        <div class="page-header-title">الجزء الثاني: دليل المدير المباشر | 2.1 مراقبة الفريق ومركز الاعتمادات</div>
+        <div class="page-header-brand">HumAi Platform</div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <div>
+          <h2 style="font-size: 16px; color: #0F172A;">لوحة المراقبة الحية لفريق العمل ومركز الاعتمادات</h2>
+          <p style="color: #64748B; font-size: 11px;">المسار: <span class="font-mono text-emerald-600">/dashboard/manager</span> — رؤية لحظية للحضور، الغياب، والطلبات المعلقة</p>
+        </div>
+        <span class="badge-pill badge-emerald">إشراف لحظي ومباشر</span>
+      </div>
+
+      ${renderFrame('manager-overview', 'لوحة مراقبة المدير المباشر ومركز اعتمادات الفريق', '/dashboard/manager')}
+
+      <div class="callout-grid">
+        <div class="callout-item">
+          <div class="callout-number">1</div>
+          <div class="callout-text">
+            <h4>بطاقات الإحصائيات اللحظية لفريق العمل</h4>
+            <p>إحصائيات حية تقيس في الوقت الفعلي: إجمالي عدد أعضاء القسم، الحاضرين حالياً، المتأخرين، الغائبين، الموجودين في إجازة، ومن يعملون عن بُعد بتصريح رسمي.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">2</div>
+          <div class="callout-text">
+            <h4>جدول الحضور اللحظي ومؤشر الموقع الجغرافي</h4>
+            <p>قائمة كاملة بأعضاء القسم توضح وقت تسجيل الدخول، والوردية المعينة، وشارة التحقق من النطاق الجغرافي (داخل الفرع / خارج النطاق / عن بُعد).</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">3</div>
+          <div class="callout-text">
+            <h4>مركز الاعتمادات الموحد (Approval Center Tabs)</h4>
+            <p>تبويبات مخصصة لمراجعة طلبات الإجازات والأذونات الساعية، وطلبات تبديل الورديات، وتوصيات السلف المالية، مع عرض مبررات الموظف ورصيده المتبقي.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">4</div>
+          <div class="callout-text">
+            <h4>أزرار الاعتماد والرفض المسبّب (Approve / Reject)</h4>
+            <p>زر الاعتماد الفوري لنقل الطلب إلى السجل النهائي، أو زر الرفض الذي يفرض إلزامية كتابة سبب الرفض لتصل رسالة فورية إلى الموظف بالسبب التوضيحي.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout-box callout-pro" style="margin-top: 8px;">
+        <strong>تشغيل العطلات الرسمية:</strong> يتيح تبويب "تشغيل العطلات" للمدير تسجيل أعضاء الفريق الذين داوموا في أيام الراحات الرسمية أو العطلات لاعتماد بدل التشغيل الإضافي آلياً في الراتب.
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <div>دليل المدير المباشر — منصة HumAi</div>
+      <div>صفحة 7</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       PAGE 8: 3.1 لوحة القيادة التنفيذية ومراقبة الدوام
+       ═══════════════════════════════════════════════════════════════════ -->
+  <div class="page-sheet">
+    <div>
+      <div class="page-header-nav">
+        <div class="page-header-title">الجزء الثالث: دليل السوبر أدمن | 3.1 لوحة القيادة وسجلات الدوام</div>
+        <div class="page-header-brand">HumAi Platform</div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <div>
+          <h2 style="font-size: 16px; color: #0F172A;">الذكاء الإداري ومراقبة سجلات وساعات الدوام</h2>
+          <p style="color: #64748B; font-size: 11px;">المسار: <span class="font-mono text-emerald-600">/dashboard/admin</span> و <span class="font-mono text-emerald-600">/dashboard/attendance</span></p>
+        </div>
+        <span class="badge-pill badge-emerald">مركز القيادة والتحكم</span>
+      </div>
+
+      ${renderFrame('admin-intelligence', 'لوحة القيادة الذكية والذكاء الإداري التنفيذي', '/dashboard/admin')}
+
+      <div class="callout-grid">
+        <div class="callout-item">
+          <div class="callout-number">1</div>
+          <div class="callout-text">
+            <h4>المؤشرات التنفيذية الاستراتيجية (Executive KPIs)</h4>
+            <p>بطاقات عليا تقيس إجمالي القوة العاملة النشطة، نسبة الانضباط العام لليوم، إجمالي فاتورة الرواتب التقديرية للشهر الجاري، وعدد الطلبات المعلقة على مستوى الشركة.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">2</div>
+          <div class="callout-text">
+            <h4>الرسوم البيانية التحليلية الذكية (HR Intelligence)</h4>
+            <p>مخططات بيانية تفاعلية (Recharts) ترصد منحنى الالتزام بالدوام على مدار الشهر، وتوزيع الموظفين على الأقسام، ونسب التأخير والانصراف المبكر لكل فرع.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">3</div>
+          <div class="callout-text">
+            <h4>محرك البحث والتصفية المتقدم (Advanced Filters)</h4>
+            <p>في شاشة الحضور (/dashboard/attendance)، إمكانية تصفية السجلات بنطاق زمني مخصص، بالقسم، بالموظف، أو بنوع الحالة (حاضر، متأخر، انصراف مبكر، غياب، عن بُعد).</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">4</div>
+          <div class="callout-text">
+            <h4>تعديل الحضور اليدوي وتصدير ملفات CSV</h4>
+            <p>إمكانية قيام السوبر أدمن بتعديل يدوي لوقت الحضور أو الانصراف مع إلزامية تسجيل سبب التعديل للتدقيق الرقابي، وزر لتصدير كافة السجلات لملفات Excel/CSV.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout-box callout-info" style="margin-top: 8px;">
+        <strong>إغلاق الجلسات التلقائي:</strong> يشمل النظام إجراءً برمجياً ذكياً يغلق جلسات الحضور المنسية من الأيام السابقة تلقائياً ويقيدها وفق سياسة الانصراف الرسمية للوردية.
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <div>دليل السوبر أدمن — منصة HumAi</div>
+      <div>صفحة 8</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       PAGE 9: 3.2 دليل الموظفين والخزينة الرقمية للمستندات
+       ═══════════════════════════════════════════════════════════════════ -->
+  <div class="page-sheet">
+    <div>
+      <div class="page-header-nav">
+        <div class="page-header-title">الجزء الثالث: دليل السوبر أدمن | 3.2 دليل الموظفين والخزينة الرقمية</div>
+        <div class="page-header-brand">HumAi Platform</div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <div>
+          <h2 style="font-size: 16px; color: #0F172A;">دليل الموظفين، قنوات الصرف والخزينة الرقمية</h2>
+          <p style="color: #64748B; font-size: 11px;">المسار: <span class="font-mono text-emerald-600">/dashboard/employees</span> — إدارة السجلات الوظيفية والملفات الرسمية</p>
+        </div>
+        <span class="badge-pill badge-emerald">إدارة الكوادر والمستندات</span>
+      </div>
+
+      ${renderFrame('employee-vault', 'دليل الموظفين والخزينة الرقمية للوثائق الرسمية', '/dashboard/employees')}
+
+      <div class="callout-grid">
+        <div class="callout-item">
+          <div class="callout-number">1</div>
+          <div class="callout-text">
+            <h4>نموذج إضافة وتعديل بيانات الموظف الشامل</h4>
+            <p>تسجيل الاسم الكامل، الرقم القومي (14 رقماً للتحقق من العمر وصلاحية التأمينات)، البريد، الهاتف، الوظيفة، القسم، الرتبة (موظف/مدير/سوبر أدمن)، والوردية المخصصة.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">2</div>
+          <div class="callout-text">
+            <h4>قنوات صرف الرواتب (Payout Channels Setup)</h4>
+            <p>تحديد طريقة صرف مستحقات كل موظف بدقة: (1) محفظة أو حساب InstaPay، (2) تحويل بنكي رسمي ببيانات اسم البنك ورقم الآيبان IBAN، (3) صرف نقدي من الخزينة.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">3</div>
+          <div class="callout-text">
+            <h4>الخزينة الرقمية لمسوغات التعيين (Document Vault)</h4>
+            <p>رفع وتخزين آمن لمسوغات التعيين: بطاقة الرقم القومي، عقد العمل الموقع، المؤهل الدراسي، الموقف من التجنيد، صحيفة الحالة الجنائية (فيش وتشبيه)، وكارت التأمين الطبي.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">4</div>
+          <div class="callout-text">
+            <h4>تنبيهات انتهاء صلاحية الوثائق والتعاقدات</h4>
+            <p>نظام إنذار مبكر يرصد تواريخ انتهاء العقود المحددة المدة وبطاقات الرقم القومي والشهادات الصحية، ويرسل إشعارات للإدارة قبل موعد الانتهاء بوقت كافٍ.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout-box callout-pro" style="margin-top: 8px;">
+        <strong>ميزة البحث السريع:</strong> يدعم جدول الموظفين البحث الفوري بالاسم، الرقم القومي، رقم الهاتف، أو المسمى الوظيفي مع فرز فوري حسب القسم والحالة التشغيلية.
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <div>دليل السوبر أدمن — منصة HumAi</div>
+      <div>صفحة 9</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       PAGE 10: 3.3 الهيكل التنظيمي وصانع العقود القانونية
+       ═══════════════════════════════════════════════════════════════════ -->
+  <div class="page-sheet">
+    <div>
+      <div class="page-header-nav">
+        <div class="page-header-title">الجزء الثالث: دليل السوبر أدمن | 3.3 الأقسام والعقود القانونية</div>
+        <div class="page-header-brand">HumAi Platform</div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <div>
+          <h2 style="font-size: 16px; color: #0F172A;">الهيكل التنظيمي وصانع العقود القانونية الذكية</h2>
+          <p style="color: #64748B; font-size: 11px;">المسار: <span class="font-mono text-emerald-600">/dashboard/departments</span> و <span class="font-mono text-emerald-600">/dashboard/contracts</span></p>
+        </div>
+        <span class="badge-pill badge-emerald">هيكل إداري وعقود ذكية</span>
+      </div>
+
+      ${renderFrame('departments-hierarchy', 'الهيكل التنظيمي وإدارة الأقسام وتعيين المدراء', '/dashboard/departments')}
+
+      <div class="callout-grid">
+        <div class="callout-item">
+          <div class="callout-number">1</div>
+          <div class="callout-text">
+            <h4>إدارة الأقسام وتعيين مدراء الإدارات</h4>
+            <p>إنشاء الأقسام والوحدات الإدارية، وتعيين المدير المباشر لكل قسم، مع إحصاء فوري لعدد الموظفين والورديات التابعة لكل إدارة لتنظيم سلاسل الموافقات.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">2</div>
+          <div class="callout-text">
+            <h4>محرك قوالب العقود (Contract Templates Engine)</h4>
+            <p>نماذج عقود قانونية مسبقة الإعداد متوافقة مع قانون العمل المصري رقم 12 لسنة 2003 (عقد محدد المدة، عقد غير محدد المدة، عقد تدريب، واتفاقية عدم الإفصاح NDA).</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">3</div>
+          <div class="callout-text">
+            <h4>الاستبدال الآلي للمتغيرات (Dynamic Variable Injection)</h4>
+            <p>يقوم المحرك تلقائياً بملء بيانات الموظف والراتب وتاريخ التعيين في بنود العقد عبر متغيرات برمجية مثل {{employee_name}} و {{national_id}} و {{basic_salary}} دون كتابة يدوية.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">4</div>
+          <div class="callout-text">
+            <h4>المعاينة والطباعة الفورية (Live PDF Preview)</h4>
+            <p>معاينة شكل العقد المنسق قانونياً بصيغة PDF وطباعته جاهزاً لتوقيع الطرفين وبصمة الإبهام متضمناً خانات الشهود وممثلي الموارد البشرية.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout-box callout-info" style="margin-top: 8px;">
+        <strong>مرونة التعديل:</strong> يمكن تخصيص أي بند من بنود العقد وتعديل الشروط الجزائية أو فترات الاختبار (3 أشهر كحد أقصى قانونياً) مباشرة من المحرر الذكي.
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <div>دليل السوبر أدمن — منصة HumAi</div>
+      <div>صفحة 10</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       PAGE 11: 3.4 محرك الورديات والجدولة المتقدمة
+       ═══════════════════════════════════════════════════════════════════ -->
+  <div class="page-sheet">
+    <div>
+      <div class="page-header-nav">
+        <div class="page-header-title">الجزء الثالث: دليل السوبر أدمن | 3.4 محرك الورديات والجدولة المتقدمة</div>
+        <div class="page-header-brand">HumAi Platform</div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <div>
+          <h2 style="font-size: 16px; color: #0F172A;">محرك الورديات والجدولة التشغيلية المتقدمة</h2>
+          <p style="color: #64748B; font-size: 11px;">المسار: <span class="font-mono text-emerald-600">/dashboard/shifts</span> — إدارة الورديات الثابتة، الليلية، والمجزأة</p>
+        </div>
+        <span class="badge-pill badge-emerald">جدولة متقدمة وورديات</span>
+      </div>
+
+      ${renderFrame('shifts-engine', 'محرك الورديات وإدارة جداول العمل والتبديل', '/dashboard/shifts')}
+
+      <div class="callout-grid">
+        <div class="callout-item">
+          <div class="callout-number">1</div>
+          <div class="callout-text">
+            <h4>الورديات الثابتة والاعتيادية (Fixed Shifts)</h4>
+            <p>تحديد ساعات العمل القياسية (مثلاً من 09:00 إلى 17:00)، وتعيين أيام العمل الرسمية في الأسبوع، وتحديد دقائق الراحة المقتطعة لتطبيقها على الفرق الإدارية.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">2</div>
+          <div class="callout-text">
+            <h4>الورديات الليلية الممتدة (Overnight Shifts & Allowance)</h4>
+            <p>دعم كامل للورديات التي تعبر منتصف الليل (مثلاً 22:00 إلى 06:00 ص) مع تحديد قيمة بدل الوردية الليلية (Night Shift Allowance) ليضاف تلقائياً لمستحقات الموظف.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">3</div>
+          <div class="callout-text">
+            <h4>الورديات المجزأة (Split Shifts Engine)</h4>
+            <p>ميزة متقدمة للأنشطة التجارية والمطاعم؛ تتيح تقسيم يوم العمل إلى فترتين منفصلتين (مثلاً فترة صباحية 10:00-14:00 وفترة مسائية 18:00-22:00) باحتساب دوام واحد.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">4</div>
+          <div class="callout-text">
+            <h4>الجدولة الدوارة وسجل التبديل (Rotational Rosters)</h4>
+            <p>جدولة الورديات الدوارة (أسبوعياً أو كل أسبوعين)، مع إدارة مركزية لكافة طلبات تبديل الورديات التي تمت بين الموظفين وفحص أثرها على سير العمل.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout-box callout-pro" style="margin-top: 8px;">
+        <strong>الربط الآلي مع الحضور:</strong> بمجرد تعيين الوردية للموظف، يتعرف محرك الحضور فورياً على مواعيد حضوره، ويقيس فترات التأخير بدقة طبقاً لتوقيت الوردية الخاصة به دون أي تضارب.
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <div>دليل السوبر أدمن — منصة HumAi</div>
+      <div>صفحة 11</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       PAGE 12: 3.5 محرك الرواتب الآلي الشامل
+       ═══════════════════════════════════════════════════════════════════ -->
+  <div class="page-sheet">
+    <div>
+      <div class="page-header-nav">
+        <div class="page-header-title">الجزء الثالث: دليل السوبر أدمن | 3.5 محرك الرواتب الآلي الشامل</div>
+        <div class="page-header-brand">HumAi Platform</div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <div>
+          <h2 style="font-size: 16px; color: #0F172A;">محرك الرواتب الآلي وحساب الاستحقاقات والضرائب</h2>
+          <p style="color: #64748B; font-size: 11px;">المسار: <span class="font-mono text-emerald-600">/dashboard/payroll</span> — دورة الرواتب (من 26 إلى 25) وملفات البنوك</p>
+        </div>
+        <span class="badge-pill badge-emerald">محرك الرواتب الذكي</span>
+      </div>
+
+      ${renderFrame('payroll-engine', 'محرك الرواتب الآلي وحساب المستحقات والاستقطاعات', '/dashboard/payroll')}
+
+      <div class="callout-grid">
+        <div class="callout-item">
+          <div class="callout-number">1</div>
+          <div class="callout-text">
+            <h4>دورة الرواتب المعتمدة (من 26 إلى 25) وحساب كسور الشهر</h4>
+            <p>حساب مسير الراتب من يوم 26 في الشهر السابق إلى يوم 25 في الشهر الحالي، مع تطبيق معادلة حساب كسور الشهر (Proration Matrix) تلقائياً للملتحقين الجدد أو المستقيلين.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">2</div>
+          <div class="callout-text">
+            <h4>الخصم الآلي لأقساط السلف والجزاءات</h4>
+            <p>استيراد فوري لكافة السلف المعتمدة وخصم القسط الشهري، وخصم جزاءات دقائق التأخير المحسوبة من محرك الحضور، وأيام الغياب بدون إذن دون أي خطأ بشري.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">3</div>
+          <div class="callout-text">
+            <h4>مفاتيح الضرائب والتأمينات الاجتماعية (Statutory Toggles)</h4>
+            <p>تفعيل أو إيقاف استقطاع التأمينات الاجتماعية (11% حصة الموظف و 18.75% حصة صاحب العمل) وحساب ضريبة كسب العمل طبقاً للشرائح التصاعدية والإعفاء الشخصي لمصلحة الضرائب.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">4</div>
+          <div class="callout-text">
+            <h4>تصدير ملفات البنوك المعتمدة (WPS / ACH Bank Export)</h4>
+            <p>توليد ملفات التحويل المصرفي المعتمدة للبنوك المصرية (CIB, QNB, الأهلي، مصر) وملف التحويل المجمع لـ InstaPay لصرف الرواتب بنقرة زر واحدة.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout-box callout-warn" style="margin-top: 8px;">
+        <strong>إقفال المسير المالي (Payroll Locking):</strong> بمجرد اعتماد مسير الرواتب من قِبل السوبر أدمن، يتم إقفال الدورة الشهرية لمنع أي تعديل مزدوج وتوليد القسائم الرقمية في حسابات الموظفين فوراً.
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <div>دليل السوبر أدمن — منصة HumAi</div>
+      <div>صفحة 12</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       PAGE 13: 3.6 المبيعات والعمولات والتقييمات
+       ═══════════════════════════════════════════════════════════════════ -->
+  <div class="page-sheet">
+    <div>
+      <div class="page-header-nav">
+        <div class="page-header-title">الجزء الثالث: دليل السوبر أدمن | 3.6 المبيعات والعمولات وتقييمات الأداء</div>
+        <div class="page-header-brand">HumAi Platform</div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <div>
+          <h2 style="font-size: 16px; color: #0F172A;">إدارة المبيعات، العمولات، وتقييمات الأداء 4 نجوم</h2>
+          <p style="color: #64748B; font-size: 11px;">المسار: <span class="font-mono text-emerald-600">/dashboard/sales</span> و <span class="font-mono text-emerald-600">/dashboard/evaluations</span></p>
+        </div>
+        <span class="badge-pill badge-emerald">أداء ومبيعات وعمولات</span>
+      </div>
+
+      ${renderFrame('sales-tracker', 'محرك تسجيل الصفقات البيعية وحساب العمولات', '/dashboard/sales')}
+
+      <div class="callout-grid">
+        <div class="callout-item">
+          <div class="callout-number">1</div>
+          <div class="callout-text">
+            <h4>تسجيل الصفقات البيعية وربطها بالمسؤول</h4>
+            <p>نموذج تسجيل عمليات البيع يتضمن: اسم الصفقة، العميل، القيمة المالية بالجنيه، تاريخ الإغلاق، ومندوب المبيعات المسؤول لمتابعة أداء فريق المبيعات.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">2</div>
+          <div class="callout-text">
+            <h4>محرك احتساب العمولات والترحيل للراتب</h4>
+            <p>احتساب نسبة العمولة (سواء نسبة ثابتة أو شرائح تصاعدية حسب القيمة)، مع إمكانية اعتماد العمولة لترحيلها آلياً إلى خانة الاستحقاقات في راتب الشهر الحالي.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">3</div>
+          <div class="callout-text">
+            <h4>منظومة تقييم الأداء بالـ 4 معايير (4-Star Criteria)</h4>
+            <p>تقييم ربع سنوي يرتكز على 4 أركان رئيسية: (1) جودة الإنتاجية، (2) الانضباط بمواعيد العمل، (3) التعاون والعمل الجماعي، (4) المبادرة وحل المشكلات التشغيلية.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">4</div>
+          <div class="callout-text">
+            <h4>الربط بالأثر المالي (مكافآت التميز / خطط التحسين)</h4>
+            <p>حساب النتيجة المئوية الإجمالية لكل موظف، مع ربط التقييم الممتاز بمكافأة تميز تضاف للراتب، أو فتح خطة تحسين أداء (PIP) في حال تدني التقييم.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout-box callout-info" style="margin-top: 8px;">
+        <strong>تكامل بيعي ومالي:</strong> تضمن منصة HumAi الربط السلس بين أرقام المبيعات المحققة ومسيرات الرواتب دون الحاجة لشيتات إكسيل وسيطة قد تسبب أخطاء في حساب العمولات.
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <div>دليل السوبر أدمن — منصة HumAi</div>
+      <div>صفحة 13</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       PAGE 14: 3.7 سجل التدقيق والحوكمة الرقابية
+       ═══════════════════════════════════════════════════════════════════ -->
+  <div class="page-sheet">
+    <div>
+      <div class="page-header-nav">
+        <div class="page-header-title">الجزء الثالث: دليل السوبر أدمن | 3.7 سجل التدقيق والحوكمة</div>
+        <div class="page-header-brand">HumAi Platform</div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <div>
+          <h2 style="font-size: 16px; color: #0F172A;">سجل الرقابة ومسار التدقيق غير القابل للتلاعب</h2>
+          <p style="color: #64748B; font-size: 11px;">المسار: <span class="font-mono text-emerald-600">/dashboard/audit-logs</span> — توثيق الحركات الإدارية مع مقارنة JSON Diff</p>
+        </div>
+        <span class="badge-pill badge-emerald">حوكمة وأمان تام</span>
+      </div>
+
+      ${renderFrame('audit-trail', 'سجل التدقيق الرقابي ومقارنة الفروق اللحظية', '/dashboard/audit-logs')}
+
+      <div class="callout-grid">
+        <div class="callout-item">
+          <div class="callout-number">1</div>
+          <div class="callout-text">
+            <h4>توثيق هوية الفاعل والحركة (Actor & Action Tracking)</h4>
+            <p>تسجيل كامل لبيانات القائم بالإجراء: البريد الإلكتروني، الرتبة الإدارية، عنوان الـ IP، والتوقيت الزمني الدقيق بالثانية لكل حركة إدارية تتم بالنظام.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">2</div>
+          <div class="callout-text">
+            <h4>تصنيف العمليات (CREATE, UPDATE, DELETE, OVERRIDE)</h4>
+            <p>تصنيف بصري ملون يوضح نوع العملية الإدارية والكيان المتأثر بها (ملف موظف، تعديل راتب، تغيير وقت حضور، اعتماد إجازة، أو تعديل سياسة فرع).</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">3</div>
+          <div class="callout-text">
+            <h4>عارض الفروق الذكي (JSON Before/After Diff Viewer)</h4>
+            <p>أداة مقارنة متقدمة تكشف القيمة الأصلية للبيانات قبل التعديل والقيمة الجديدة بعد التعديل، مما يمنع التلاعب السري في الرواتب أو سجلات الحضور والانصراف.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">4</div>
+          <div class="callout-text">
+            <h4>تصدير تقارير الامتثال والحوكمة الرقابية</h4>
+            <p>تصدير كامل لسجلات التدقيق لتقديمها لمجالس الإدارة أو لجان المراجعة والتدقيق الخارجي لإثبات الشفافية والامتثال المؤسسي الكامل.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout-box callout-pro" style="margin-top: 8px;">
+        <strong>أمان السجلات:</strong> يتم حفظ سجلات التدقيق في جداول مؤمنة ضد التعديل أو الحذف (Immutable Ledger) لضمان موثوقيتها القانونية أمام الجهات الرقابية.
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <div>دليل السوبر أدمن — منصة HumAi</div>
+      <div>صفحة 14</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       PAGE 15: 3.8 إعدادات النظام وسياسات الفروع والـ GPS
+       ═══════════════════════════════════════════════════════════════════ -->
+  <div class="page-sheet">
+    <div>
+      <div class="page-header-nav">
+        <div class="page-header-title">الجزء الثالث: دليل السوبر أدمن | 3.8 إعدادات النظام وسياسات الفروع</div>
+        <div class="page-header-brand">HumAi Platform</div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <div>
+          <h2 style="font-size: 16px; color: #0F172A;">إعدادات النظام، الفروع، GPS Geofence وسياسات التأخير</h2>
+          <p style="color: #64748B; font-size: 11px;">المسار: <span class="font-mono text-emerald-600">/dashboard/settings</span> — ضبط سياسات العمل والخصومات والفروع</p>
+        </div>
+        <span class="badge-pill badge-emerald">مركز الإعدادات والسياسات</span>
+      </div>
+
+      ${renderFrame('system-settings', 'مركز إعدادات النظام وتحديد النطاق الجغرافي للفروع', '/dashboard/settings')}
+
+      <div class="callout-grid">
+        <div class="callout-item">
+          <div class="callout-number">1</div>
+          <div class="callout-text">
+            <h4>إعداد الفروع ومحلل روابط Google Maps الذكي</h4>
+            <p>إضافة فروع الشركة؛ حيث يدعم النظام لصق رابط الموقع مباشرة من Google Maps ليقوم المحرك الذكي باستخراج خطوط الطول والعرض (Lat/Lng) بدقة فائقة.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">2</div>
+          <div class="callout-text">
+            <h4>شريط تحديد نصف قطر النطاق الجغرافي (Geofence Radius)</h4>
+            <p>شريط تحكم لتحديد المسافة المسموح بها لتسجيل الحضور حول مقر الفرع (من 20 متراً إلى 1000 متر) لمنع تسجيل الحضور الوهمي من خارج مقر العمل.</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">3</div>
+          <div class="callout-text">
+            <h4>فترة السماح ومصفوفة خصومات التأخير (Lateness Modes)</h4>
+            <p>تحديد دقائق السماح (مثلاً 15 دقيقة)، واختيار أسلوب الخصم: (أ) خصم بالدقيقة الواحدة (Minute-by-minute) أو (ب) خصم تصاعدي بالشرائح (إنذار، ربع يوم، نصف يوم، يوم كامل).</p>
+          </div>
+        </div>
+        <div class="callout-item">
+          <div class="callout-number">4</div>
+          <div class="callout-text">
+            <h4>سياسات السلف، الإضافي، ومفاتيح المزايا (Feature Toggles)</h4>
+            <p>ضبط سقف السلف (50%)، وتحديد معامل الإضافي (1.5x لليوم العادي و 2.0x للعطلات)، ومفاتيح تشغيل وإيقاف: العمل عن بُعد، متابعة المبيعات، ونظام الـ KPIs.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout-box callout-warn" style="margin-top: 8px;">
+        <strong>تطبيق السياسات الفوري:</strong> أي تعديل يجريه السوبر أدمن على فترة السماح أو نصف قطر الفرع ينعكس فورياً ولحظياً على جميع جلسات الموظفين القادمة.
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <div>دليل السوبر أدمن — منصة HumAi</div>
+      <div>صفحة 15</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       PAGE 16: الملحق الفني ومصفوفة الصلاحيات والدعم
+       ═══════════════════════════════════════════════════════════════════ -->
+  <div class="page-sheet">
+    <div>
+      <div class="page-header-nav">
+        <div class="page-header-title">الملحق الفني | مصفوفة الصلاحيات (RBAC) والتوافق القانوني</div>
+        <div class="page-header-brand">HumAi Platform</div>
       </div>
 
       <div style="margin-bottom: 12px;">
-        <h2 style="font-size: 20px; color: #0F172A; font-weight: 900;">
-          1.1 تسجيل الحضور والانصراف الذكي (Smart Geofence Attendance)
-        </h2>
-        <p style="font-size: 11px; color: #64748B;">
-          بوابة البصمة الإلكترونية المرتبطة جغرافياً بنطاق مقر العمل ومواعيد الورديات المعتمدة.
-        </p>
+        <h2 style="font-size: 16px; color: #0F172A; margin-bottom: 4px;">مصفوفة الصلاحيات والتوافق مع قانون العمل المصري</h2>
+        <p style="color: #64748B; font-size: 11px;">جدول الصلاحيات المفصل للأدوار الثلاثة في منصة HumAi، والضوابط القانونية المدمجة بمحرك النظام.</p>
       </div>
 
-      <!-- Device Browser Frame with Embedded Screenshot -->
-      <div class="device-browser-frame">
-        <div class="browser-topbar">
-          <div class="mac-dots">
-            <span class="mac-dot mac-dot-red"></span>
-            <span class="mac-dot mac-dot-yellow"></span>
-            <span class="mac-dot mac-dot-green"></span>
+      <table class="spec-table">
+        <thead>
+          <tr>
+            <th style="width: 32%;">المهمة / الخاصية التشغيلية</th>
+            <th style="width: 22%; text-align: center;">الموظف (Employee)</th>
+            <th style="width: 23%; text-align: center;">المدير المباشر (Manager)</th>
+            <th style="width: 23%; text-align: center;">السوبر أدمن (Super Admin)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>تسجيل الحضور بالـ GPS والانصراف</strong></td>
+            <td style="text-align: center;"><span class="badge-pill badge-emerald">نعم (فرعه فقط)</span></td>
+            <td style="text-align: center;"><span class="badge-pill badge-emerald">نعم (فرعه فقط)</span></td>
+            <td style="text-align: center;"><span class="badge-pill badge-emerald">نعم (كافة الفروع)</span></td>
+          </tr>
+          <tr>
+            <td><strong>طلب الإجازات والأذونات والسلف</strong></td>
+            <td style="text-align: center;"><span class="badge-pill badge-emerald">نعم (شخصي)</span></td>
+            <td style="text-align: center;"><span class="badge-pill badge-emerald">نعم (شخصي)</span></td>
+            <td style="text-align: center;"><span class="badge-pill badge-emerald">نعم (شخصي)</span></td>
+          </tr>
+          <tr>
+            <td><strong>اعتماد إجازات وسلف وتبديل ورديات الفريق</strong></td>
+            <td style="text-align: center;"><span class="badge-pill badge-rose">لا يملك صلاحية</span></td>
+            <td style="text-align: center;"><span class="badge-pill badge-emerald">نعم (أعضاء قسمه)</span></td>
+            <td style="text-align: center;"><span class="badge-pill badge-emerald">نعم (كافة الأقسام)</span></td>
+          </tr>
+          <tr>
+            <td><strong>الاطلاع على قسائم الرواتب</strong></td>
+            <td style="text-align: center;"><span class="badge-pill badge-emerald">قسيمته فقط</span></td>
+            <td style="text-align: center;"><span class="badge-pill badge-emerald">قسيمته فقط</span></td>
+            <td style="text-align: center;"><span class="badge-pill badge-emerald">كافة موظفي الشركة</span></td>
+          </tr>
+          <tr>
+            <td><strong>تشغيل وحساب مسير الرواتب الآلي</strong></td>
+            <td style="text-align: center;"><span class="badge-pill badge-rose">لا يملك صلاحية</span></td>
+            <td style="text-align: center;"><span class="badge-pill badge-rose">لا يملك صلاحية</span></td>
+            <td style="text-align: center;"><span class="badge-pill badge-emerald">صلاحية حصرية كاملة</span></td>
+          </tr>
+          <tr>
+            <td><strong>إضافة/تعديل الموظفين والخزينة الرقمية</strong></td>
+            <td style="text-align: center;"><span class="badge-pill badge-rose">لا يملك صلاحية</span></td>
+            <td style="text-align: center;"><span class="badge-pill badge-rose">عرض محدود</span></td>
+            <td style="text-align: center;"><span class="badge-pill badge-emerald">صلاحية كاملة وإدارة</span></td>
+          </tr>
+          <tr>
+            <td><strong>صياغة العقود وتوليد النماذج القانونية</strong></td>
+            <td style="text-align: center;"><span class="badge-pill badge-rose">لا يملك صلاحية</span></td>
+            <td style="text-align: center;"><span class="badge-pill badge-rose">لا يملك صلاحية</span></td>
+            <td style="text-align: center;"><span class="badge-pill badge-emerald">صلاحية حصرية كاملة</span></td>
+          </tr>
+          <tr>
+            <td><strong>تعديل إعدادات الفروع ونطاق الـ GPS</strong></td>
+            <td style="text-align: center;"><span class="badge-pill badge-rose">لا يملك صلاحية</span></td>
+            <td style="text-align: center;"><span class="badge-pill badge-rose">لا يملك صلاحية</span></td>
+            <td style="text-align: center;"><span class="badge-pill badge-emerald">صلاحية حصرية كاملة</span></td>
+          </tr>
+          <tr>
+            <td><strong>الاطلاع على مسار التدقيق الرقابي JSON Diff</strong></td>
+            <td style="text-align: center;"><span class="badge-pill badge-rose">لا يملك صلاحية</span></td>
+            <td style="text-align: center;"><span class="badge-pill badge-rose">لا يملك صلاحية</span></td>
+            <td style="text-align: center;"><span class="badge-pill badge-emerald">صلاحية حصرية كاملة</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="margin-top: 14px;">
+        <h3 style="font-size: 13px; color: #0F172A; margin-bottom: 6px;">بنود التوافق مع قانون العمل المصري رقم 12 لسنة 2003:</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div class="callout-box callout-info">
+            <div>
+              <strong>مادة 47 (الإجازات السنوية):</strong> 21 يوماً بأجر كامل لمن أمضى سنة، تزداد إلى 30 يوماً لمن تجاوز 50 سنة أو بلغت خدمته 10 سنوات، و7 أيام عارضة بحد أقصى يومين متتاليين.
+            </div>
           </div>
-          <div class="browser-url-pill">
-            <svg width="10" height="10" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path></svg>
-            <span>https://app.humai.eg/dashboard/employee/attendance</span>
+          <div class="callout-box callout-info">
+            <div>
+              <strong>مادة 85 (ساعات العمل الإضافي):</strong> أجر إضافي لا يقل عن الأجر الأصلي مضافاً إليه 35% عن ساعات النهار و70% عن ساعات الليل، ومضاعفة الأجر (100%) في العطلات الرسمية.
+            </div>
           </div>
-          <div style="font-size:9px; color:#94A3B8; font-weight:700;">100% SECURE</div>
-        </div>
-        <div class="screenshot-img-container">
-          <img src="${screenshotsMap['smart-attendance'] || ''}" alt="Smart Attendance Screenshot">
         </div>
       </div>
 
-      <!-- Feature Breakdown & Callouts -->
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        
-        <div class="info-card">
-          <h4 style="font-size: 12px; color: #0F172A; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center;">
-            <span class="badge-number">1</span> ما تقدمه هذه الشاشة (Core Purpose)
-          </h4>
-          <ul style="padding-right: 18px; font-size: 11px; color: #334155; line-height: 1.6;">
-            <li><strong>التحقق الجغرافي الفوري:</strong> قراءة إحداثيات GPS لجهاز الموظف ومطابقتها مع محيط الفرع المسموح به.</li>
-            <li><strong>التزامن الدقيق مع الوردية:</strong> احتساب الحضور ضمن فترة السماح (Grace Period) المحددة من الشركة.</li>
-            <li><strong>مرونة نمط العمل:</strong> التبديل بين الحضور المكتبي والعمل عن بُعد بموافقة مسبقة.</li>
-          </ul>
+      <div style="background-color: #0F172A; color: #F8FAFC; border-radius: 8px; padding: 12px; margin-top: 14px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <div style="font-size: 12px; font-weight: 800; color: #10B981;">مركز دعم وتشغيل منصة HumAi</div>
+          <div style="font-size: 10px; color: #94A3B8; margin-top: 2px;">فريق الدعم الفني والعمليات متاح لخدمتكم على مدار الساعة طوال أيام الأسبوع.</div>
         </div>
-
-        <div class="info-card">
-          <h4 style="font-size: 12px; color: #0F172A; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center;">
-            <span class="badge-number">2</span> الإجراءات المتاحة (Key Actions)
-          </h4>
-          <ul style="padding-right: 18px; font-size: 11px; color: #334155; line-height: 1.6;">
-            <li><strong>تسجيل بصمة الحضور/الانصراف:</strong> نقرة واحدة على زر "Check-In" الأخضر عند دخول النطاق.</li>
-            <li><strong>مراجعة مؤقت الوردية:</strong> استعراض مواعيد بدء الوردية، وقت الراحة المدفوعة، ورادار الموقع.</li>
-            <li><strong>متابعة ساعات الأسبوع:</strong> شريط إنجاز يوضح إجمالي الساعات الفعلية مقارنة بهدف الـ 40 ساعة.</li>
-          </ul>
+        <div style="text-align: left; font-size: 10px; color: #E2E8F0;">
+          <div>الدعم الفني: support@humai.io</div>
+          <div class="font-mono">https://humai.io</div>
         </div>
-
-      </div>
-
-      <!-- Pro-Tips Box -->
-      <div class="pro-tip-box">
-        <strong style="color: #065F46; font-size: 11px; display: block; margin-bottom: 2px;">💡 نصائح احترافية وحالات استثنائية (Pro-Tips & Edge Cases):</strong>
-        <p style="font-size: 10.5px; color: #047857; line-height: 1.5;">
-          • في حال واجهت رسالة "خارج النطاق الجغرافي"، تأكد من تفعيل صلاحية الـ Location الدقيقة في متصفحك أو هاتف المحمول، ثم انقر على "تحديث الموقع".<br>
-          • إذا كانت شركتك تفعل خيار "تلقائية الإغلاق للورديات المتداخلة"، سيقوم النظام بإنهاء الجلسة تلقائياً في نهاية مواعيد الوردية المعتمدة لحفظ حقك.
-        </p>
       </div>
     </div>
 
-    <div class="document-footer">
-      <span>منصة HumAi للإدارة الذكية</span>
-      <span>دليل الموظف — مساحة العمل اليومية</span>
-      <span>صفحة 3</span>
+    <div class="page-footer">
+      <div>دليل التشغيل والاستخدام — منصة HumAi | وثيقة معتمدة ومحمية بموجب حقوق النشر © 2026</div>
+      <div>صفحة 16</div>
     </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════════════════════════════
-       SECTION 2: LEAVES & PERMISSIONS (الإجازات والاستئذانات)
-       ═══════════════════════════════════════════════════════════════════ -->
-  <section class="page-sheet" id="view-2">
-    <div>
-      <div class="document-header">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-weight:900; color:#0F172A; font-size:15px;">HUM<span style="color:#10B981;">Λ</span>I</span>
-          <span style="font-size:11px; color:#64748B;">| دليل الموظف: الطلبات الذاتية</span>
-        </div>
-        <span style="font-size:11px; font-weight:700; color:#10B981;">1.2 الإجازات والاستئذانات</span>
-      </div>
-
-      <div style="margin-bottom: 12px;">
-        <h2 style="font-size: 20px; color: #0F172A; font-weight: 900;">
-          1.2 رصيد الإجازات وأذونات العمل (Leaves & Permissions Hub)
-        </h2>
-        <p style="font-size: 11px; color: #64748B;">
-          إدارة الأرصدة السنوية والعارضة وتقديم طلبات الإجازات والأذونات مع المتابعة الحية للاعتماد.
-        </p>
-      </div>
-
-      <div class="device-browser-frame">
-        <div class="browser-topbar">
-          <div class="mac-dots">
-            <span class="mac-dot mac-dot-red"></span>
-            <span class="mac-dot mac-dot-yellow"></span>
-            <span class="mac-dot mac-dot-green"></span>
-          </div>
-          <div class="browser-url-pill">
-            <svg width="10" height="10" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path></svg>
-            <span>https://app.humai.eg/dashboard/leaves</span>
-          </div>
-          <div style="font-size:9px; color:#94A3B8; font-weight:700;">LIVE CONNECTED</div>
-        </div>
-        <div class="screenshot-img-container">
-          <img src="${screenshotsMap['leaves-permissions'] || ''}" alt="Leaves & Permissions Screenshot">
-        </div>
-      </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div class="info-card">
-          <h4 style="font-size: 12px; color: #0F172A; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center;">
-            <span class="badge-number">1</span> ما تقدمه هذه الشاشة
-          </h4>
-          <ul style="padding-right: 18px; font-size: 11px; color: #334155; line-height: 1.6;">
-            <li><strong>عدادات الأرصدة الشفافة:</strong> تتبع فوري للرصيد الاعتيادي (21 يوماً)، العارض، وأذونات الساعتين الشهرية.</li>
-            <li><strong>سجل الاعتمادات التفاعلي:</strong> عرض دورة حياة كل طلب (قيد المراجعة ➔ معتمد ➔ مرفوض مع ذكر السبب).</li>
-            <li><strong>الرصيد التعويضي:</strong> إضافة أيام إضافية تلقائياً عند اعتماد تشغيل أيام العطلات الرسمية.</li>
-          </ul>
-        </div>
-
-        <div class="info-card">
-          <h4 style="font-size: 12px; color: #0F172A; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center;">
-            <span class="badge-number">2</span> الإجراءات المتاحة
-          </h4>
-          <ul style="padding-right: 18px; font-size: 11px; color: #334155; line-height: 1.6;">
-            <li><strong>تقديم طلب إجازة جديد:</strong> تحديد التاريخ، النوع، والملاحظات ليتم إخطار المدير عبر لوحة التحكم وواتساب.</li>
-            <li><strong>طلب إذن صباحي/مسائي:</strong> استئذان لمدة ساعتين دون الخصم من الراتب وفق سياسة المنشأة.</li>
-            <li><strong>إلغاء الطلب المعلق:</strong> إمكانية سحب الطلب قبل اعتماده النهائي بنقرة واحدة.</li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="pro-tip-box">
-        <strong style="color: #065F46; font-size: 11px; display: block; margin-bottom: 2px;">💡 نصائح وحالات استثنائية:</strong>
-        <p style="font-size: 10.5px; color: #047857; line-height: 1.5;">
-          • يُفضل تقديم الإجازات الاعتيادية قبل موعدها بـ 48 ساعة على الأقل لضمان انسيابية العمل في القسم.<br>
-          • إذا تجاوزت حصة الأذونات المسموحة شهرياً (إذنان كحد أقصى)، سيقوم النظام بتحويل الاستئذان الإضافي إلى خصم زمني مباشر في مسير الراتب.
-        </p>
-      </div>
-    </div>
-
-    <div class="document-footer">
-      <span>منصة HumAi للإدارة الذكية</span>
-      <span>دليل الموظف — مساحة العمل اليومية</span>
-      <span>صفحة 4</span>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════════════════════════════
-       SECTION 3: DIGITAL PAYSLIP (قسيمة الراتب الرقمية)
-       ═══════════════════════════════════════════════════════════════════ -->
-  <section class="page-sheet" id="view-3">
-    <div>
-      <div class="document-header">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-weight:900; color:#0F172A; font-size:15px;">HUM<span style="color:#10B981;">Λ</span>I</span>
-          <span style="font-size:11px; color:#64748B;">| دليل الموظف: المستحقات المالية</span>
-        </div>
-        <span style="font-size:11px; font-weight:700; color:#10B981;">1.3 قسيمة الراتب الرقمية</span>
-      </div>
-
-      <div style="margin-bottom: 12px;">
-        <h2 style="font-size: 20px; color: #0F172A; font-weight: 900;">
-          1.3 قسيمة الراتب الرقمية المعتمدة (Certified Digital Payslip)
-        </h2>
-        <p style="font-size: 11px; color: #64748B;">
-          عرض وتحميل مستند الراتب الشهري المفصل مع تفكيك الاستحقاقات والاستقطاعات والتحويل البنكي.
-        </p>
-      </div>
-
-      <div class="device-browser-frame">
-        <div class="browser-topbar">
-          <div class="mac-dots">
-            <span class="mac-dot mac-dot-red"></span>
-            <span class="mac-dot mac-dot-yellow"></span>
-            <span class="mac-dot mac-dot-green"></span>
-          </div>
-          <div class="browser-url-pill">
-            <svg width="10" height="10" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path></svg>
-            <span>https://app.humai.eg/dashboard/payslips</span>
-          </div>
-          <div style="font-size:9px; color:#94A3B8; font-weight:700;">ENCRYPTED WPS / ACH</div>
-        </div>
-        <div class="screenshot-img-container">
-          <img src="${screenshotsMap['digital-payslips'] || ''}" alt="Digital Payslip Screenshot">
-        </div>
-      </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div class="info-card">
-          <h4 style="font-size: 12px; color: #0F172A; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center;">
-            <span class="badge-number">1</span> ما تقدمه هذه الشاشة
-          </h4>
-          <ul style="padding-right: 18px; font-size: 11px; color: #334155; line-height: 1.6;">
-            <li><strong>بيان مالي رسمي مشفر:</strong> تفصيل دقيق لكل قرش: الراتب الأساسي، العمل الإضافي، البدلات، والمكافآت.</li>
-            <li><strong>شفافية الاستقطاعات:</strong> إيضاح حصة الموظف في التأمينات الاجتماعية وضريبة كسب العمل بدقة القانون المصري.</li>
-            <li><strong>تأكيد التحويل البنكي:</strong> إظهار الرقم المرجعي للعملية وقناة الدفع (InstaPay أو التحويل المصرفي).</li>
-          </ul>
-        </div>
-
-        <div class="info-card">
-          <h4 style="font-size: 12px; color: #0F172A; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center;">
-            <span class="badge-number">2</span> الإجراءات المتاحة
-          </h4>
-          <ul style="padding-right: 18px; font-size: 11px; color: #334155; line-height: 1.6;">
-            <li><strong>تحميل نسخة PDF معتمدة:</strong> وثيقة رسمية مختومة بالـ Watermark تصلح للاستخدام البنكي والجهات الرسمية.</li>
-            <li><strong>أمر الطباعة المباشر:</strong> تهيئة فورية للطباعة بتنسيق A4 أنيق وبدون عناصر المتصفح الجانبية.</li>
-            <li><strong>التنقل بين الأشهر السابقة:</strong> أرشيف كامل يتيح مقارنة الدخل الشهري على مدار العام.</li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="pro-tip-box">
-        <strong style="color: #065F46; font-size: 11px; display: block; margin-bottom: 2px;">💡 نصائح وحالات استثنائية:</strong>
-        <p style="font-size: 10.5px; color: #047857; line-height: 1.5;">
-          • دورة صرف الرواتب في منصة HumAi تعمل وفق التقويم القياسي (من 26 الشهر السابق حتى 25 الشهر الحالي)، ويتم قفل المسير في يوم 26.<br>
-          • يمكنك استلام إشعار تلقائي عبر مساعد واتساب فور اعتماد المسير المالي مع ملخص صافي الراتب المستلم.
-        </p>
-      </div>
-    </div>
-
-    <div class="document-footer">
-      <span>منصة HumAi للإدارة الذكية</span>
-      <span>دليل الموظف — مساحة العمل اليومية</span>
-      <span>صفحة 5</span>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════════════════════════════
-       SECTION 4: TARGETS & KPIS (متابعة الأهداف والمهام)
-       ═══════════════════════════════════════════════════════════════════ -->
-  <section class="page-sheet" id="view-4">
-    <div>
-      <div class="document-header">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-weight:900; color:#0F172A; font-size:15px;">HUM<span style="color:#10B981;">Λ</span>I</span>
-          <span style="font-size:11px; color:#64748B;">| دليل الموظف: الأداء والإنجاز</span>
-        </div>
-        <span style="font-size:11px; font-weight:700; color:#10B981;">1.4 متابعة الأهداف والـ KPIs</span>
-      </div>
-
-      <div style="margin-bottom: 12px;">
-        <h2 style="font-size: 20px; color: #0F172A; font-weight: 900;">
-          1.4 متابعة الأهداف وتسجيل الإنجازات اليومية (KPIs & Targets)
-        </h2>
-        <p style="font-size: 11px; color: #64748B;">
-          تسجيل المخرجات اليومية وربط نسبة الإنجاز بمكافآت الأداء الشهرية المعتمدة تلقائياً.
-        </p>
-      </div>
-
-      <div class="device-browser-frame">
-        <div class="browser-topbar">
-          <div class="mac-dots">
-            <span class="mac-dot mac-dot-red"></span>
-            <span class="mac-dot mac-dot-yellow"></span>
-            <span class="mac-dot mac-dot-green"></span>
-          </div>
-          <div class="browser-url-pill">
-            <svg width="10" height="10" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path></svg>
-            <span>https://app.humai.eg/dashboard/targets</span>
-          </div>
-          <div style="font-size:9px; color:#94A3B8; font-weight:700;">PERFORMANCE RADAR</div>
-        </div>
-        <div class="screenshot-img-container">
-          <img src="${screenshotsMap['targets-kpis'] || ''}" alt="Targets & KPIs Screenshot">
-        </div>
-      </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div class="info-card">
-          <h4 style="font-size: 12px; color: #0F172A; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center;">
-            <span class="badge-number">1</span> ما تقدمه هذه الشاشة
-          </h4>
-          <ul style="padding-right: 18px; font-size: 11px; color: #334155; line-height: 1.6;">
-            <li><strong>مؤشر الهدف الدائري:</strong> قياس مرئي فوري لنسبة تحقيق المستهدف الشهري (مثلاً 87%).</li>
-            <li><strong>تنوع وحدات القياس:</strong> دعم مختلف الوحدات حسب التخصص (نقاط برمجية، اتصالات مبيعات، تذاكر دعم).</li>
-            <li><strong>حساب وتيرة الإنجاز (Run-rate):</strong> حساب آلي لعدد النقاط المطلوبة يومياً للوصول إلى 100%.</li>
-          </ul>
-        </div>
-
-        <div class="info-card">
-          <h4 style="font-size: 12px; color: #0F172A; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center;">
-            <span class="badge-number">2</span> الإجراءات المتاحة
-          </h4>
-          <ul style="padding-right: 18px; font-size: 11px; color: #334155; line-height: 1.6;">
-            <li><strong>تسجيل إنجاز يومي:</strong> إدخال كمية المهام المنجزة ووصفها لتوثيق الجهد اليومي في النظام.</li>
-            <li><strong>استعراض السجل المعتمد:</strong> تتبع المهام التي تمت مراجعتها واعتمادها من قبل المدير المباشر.</li>
-            <li><strong>مؤشر استحقاق المكافأة:</strong> معرفة قيمة مكافأة الأداء التي ستُضاف لمسير الراتب عند إغلاق الشهر.</li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="pro-tip-box">
-        <strong style="color: #065F46; font-size: 11px; display: block; margin-bottom: 2px;">💡 نصائح وحالات استثنائية:</strong>
-        <p style="font-size: 10.5px; color: #047857; line-height: 1.5;">
-          • احرص على تدوين أرقام التذاكر أو روابط الإنجاز في حقل الملاحظات لتسريع دورة اعتماد المدير.<br>
-          • في حال تحقيق أكثر من 100% من المستهدف، يقوم محرك الرواتب باحتساب نقاط إضافية (Over-achievement Bonus) تلقائياً.
-        </p>
-      </div>
-    </div>
-
-    <div class="document-footer">
-      <span>منصة HumAi للإدارة الذكية</span>
-      <span>دليل الموظف — مساحة العمل اليومية</span>
-      <span>صفحة 6</span>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════════════════════════════
-       SECTION 5: ATTENDANCE MONITOR (مراقبة الحضور المباشر)
-       ═══════════════════════════════════════════════════════════════════ -->
-  <section class="page-sheet" id="view-5">
-    <div>
-      <div class="document-header">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-weight:900; color:#0F172A; font-size:15px;">HUM<span style="color:#10B981;">Λ</span>I</span>
-          <span style="font-size:11px; color:#64748B;">| دليل المدير: إشراف الفريق</span>
-        </div>
-        <span style="font-size:11px; font-weight:700; color:#3B82F6;">2.1 شاشة المراقبة اللحظية</span>
-      </div>
-
-      <div style="margin-bottom: 12px;">
-        <h2 style="font-size: 20px; color: #0F172A; font-weight: 900;">
-          2.1 شاشة مراقبة الحضور اللحظية للفريق (Live Attendance Monitor)
-        </h2>
-        <p style="font-size: 11px; color: #64748B;">
-          لوحة قيادة لحظية تمنح المدير رؤية شاملة وتحديثاً فورياً لحالة كل موظف في فريقه.
-        </p>
-      </div>
-
-      <div class="device-browser-frame">
-        <div class="browser-topbar">
-          <div class="mac-dots">
-            <span class="mac-dot mac-dot-red"></span>
-            <span class="mac-dot mac-dot-yellow"></span>
-            <span class="mac-dot mac-dot-green"></span>
-          </div>
-          <div class="browser-url-pill">
-            <svg width="10" height="10" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path></svg>
-            <span>https://app.humai.eg/dashboard/attendance</span>
-          </div>
-          <div style="font-size:9px; color:#10B981; font-weight:700;">● LIVE STREAMING</div>
-        </div>
-        <div class="screenshot-img-container">
-          <img src="${screenshotsMap['attendance-monitor'] || ''}" alt="Live Attendance Monitor Screenshot">
-        </div>
-      </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div class="info-card">
-          <h4 style="font-size: 12px; color: #0F172A; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center;">
-            <span class="badge-number">1</span> ما تقدمه هذه الشاشة
-          </h4>
-          <ul style="padding-right: 18px; font-size: 11px; color: #334155; line-height: 1.6;">
-            <li><strong>توزيع القوى العاملة الفوري:</strong> إحصاء لحظي للمتواجدين بالمقر (11)، العاملين عن بُعد (3)، والمتأخرين (2).</li>
-            <li><strong>كشف التأخيرات المبكر:</strong> إبراز دقائق التأخير باللون البرتقالي فور انقضاء فترة السماح مباشرة.</li>
-            <li><strong>التحقق من صحة البصمة:</strong> بيان موقع تسجيل البصمة واسم الفرع أو الوسم المعتمد للعمل عن بُعد.</li>
-          </ul>
-        </div>
-
-        <div class="info-card">
-          <h4 style="font-size: 12px; color: #0F172A; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center;">
-            <span class="badge-number">2</span> الإجراءات المتاحة
-          </h4>
-          <ul style="padding-right: 18px; font-size: 11px; color: #334155; line-height: 1.6;">
-            <li><strong>تبرير التأخير (Lateness Justification):</strong> إمكانية إسقاط دقائق التأخير لموظف واجه ظرفاً قاهراً مع توثيق السبب.</li>
-            <li><strong>تصفية الحالات:</strong> عزل الموظفين المتأخرين أو العاملين عن بُعد بنقرة واحدة لسرعة المتابعة.</li>
-            <li><strong>تصدير كشف الحضور:</strong> سحب تقرير CSV فوري بالبصمات وساعات العمل اليومية.</li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="pro-tip-box">
-        <strong style="color: #065F46; font-size: 11px; display: block; margin-bottom: 2px;">💡 نصائح وحالات استثنائية:</strong>
-        <p style="font-size: 10.5px; color: #047857; line-height: 1.5;">
-          • التبرير المعتمد من المدير يُرفع فورياً لسجل التدقيق المشفر ويمنع احتساب أي خصم مالي في مسير الرواتب تلقائياً.<br>
-          • يتم تحديث الشاشة بتقنية السوكت (Real-time Polling) كل 30 ثانية دون الحاجة لإعادة تحميل الصفحة يدوياً.
-        </p>
-      </div>
-    </div>
-
-    <div class="document-footer">
-      <span>منصة HumAi للإدارة الذكية</span>
-      <span>دليل المدير — إشراف الفريق</span>
-      <span>صفحة 7</span>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════════════════════════════
-       SECTION 6: APPROVAL CENTER (مركز اعتمادات الفريق)
-       ═══════════════════════════════════════════════════════════════════ -->
-  <section class="page-sheet" id="view-6">
-    <div>
-      <div class="document-header">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-weight:900; color:#0F172A; font-size:15px;">HUM<span style="color:#10B981;">Λ</span>I</span>
-          <span style="font-size:11px; color:#64748B;">| دليل المدير: القرارات الإدارية</span>
-        </div>
-        <span style="font-size:11px; font-weight:700; color:#3B82F6;">2.2 مركز الاعتمادات والقرارات</span>
-      </div>
-
-      <div style="margin-bottom: 12px;">
-        <h2 style="font-size: 20px; color: #0F172A; font-weight: 900;">
-          2.2 مركز اعتمادات الفريق والطلبات المعلقة (Approval Center)
-        </h2>
-        <p style="font-size: 11px; color: #64748B;">
-          منصة مركزية لمراجعة واتخاذ القرارات بشأن طلبات الإجازات، الأذونات، وتبديل الورديات.
-        </p>
-      </div>
-
-      <div class="device-browser-frame">
-        <div class="browser-topbar">
-          <div class="mac-dots">
-            <span class="mac-dot mac-dot-red"></span>
-            <span class="mac-dot mac-dot-yellow"></span>
-            <span class="mac-dot mac-dot-green"></span>
-          </div>
-          <div class="browser-url-pill">
-            <svg width="10" height="10" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path></svg>
-            <span>https://app.humai.eg/dashboard/manager</span>
-          </div>
-          <div style="font-size:9px; color:#94A3B8; font-weight:700;">FAST-TRACK WORKFLOW</div>
-        </div>
-        <div class="screenshot-img-container">
-          <img src="${screenshotsMap['approval-center'] || ''}" alt="Approval Center Screenshot">
-        </div>
-      </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div class="info-card">
-          <h4 style="font-size: 12px; color: #0F172A; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center;">
-            <span class="badge-number">1</span> ما تقدمه هذه الشاشة
-          </h4>
-          <ul style="padding-right: 18px; font-size: 11px; color: #334155; line-height: 1.6;">
-            <li><strong>بطاقات تفاعلية مستقلة:</strong> كل طلب يعرض بيانات الموظف، الرصيد المتبقي، والسبب باختصار واضح.</li>
-            <li><strong>دعم تبديل الورديات (Shift Swap):</strong> التحقق المتبادل من موافقة الزميل البديل قبل عرض الطلب على المدير.</li>
-            <li><strong>تكامل الأذونات السريعة:</strong> مراجعة أذونات الساعتين مع بيان عدد الأذونات المستهلكة في نفس الشهر.</li>
-          </ul>
-        </div>
-
-        <div class="info-card">
-          <h4 style="font-size: 12px; color: #0F172A; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center;">
-            <span class="badge-number">2</span> الإجراءات المتاحة
-          </h4>
-          <ul style="padding-right: 18px; font-size: 11px; color: #334155; line-height: 1.6;">
-            <li><strong>الاعتماد الفوري بنقرة واحدة:</strong> الموافقة على الطلب وتحديث جداول العمل وخصم الرصيد آلياً.</li>
-            <li><strong>الرفض مع تعليل رسمي:</strong> كتابة سبب الرفض وإرسال تنبيه فوري للموظف عبر المنصة وواتساب.</li>
-            <li><strong>فحص التعارضات الزمنية:</strong> كشف تلقائي لأي تداخل بين إجازة الموظف وإجازات زملائه في نفس الإدارة.</li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="pro-tip-box">
-        <strong style="color: #065F46; font-size: 11px; display: block; margin-bottom: 2px;">💡 نصائح وحالات استثنائية:</strong>
-        <p style="font-size: 10.5px; color: #047857; line-height: 1.5;">
-          • يدعم نظام HumAi مسار الاعتماد المزدوج (Hierarchical Mode): موافقة المدير المباشر تليها موافقة الـ HR وفق إعدادات الشركة.<br>
-          • يمكنك الرد على الطلبات عبر محادثة مساعد واتساب التفاعلية مباشرة بإرسال كود التأكيد دون فتح لوحة الويب.
-        </p>
-      </div>
-    </div>
-
-    <div class="document-footer">
-      <span>منصة HumAi للإدارة الذكية</span>
-      <span>دليل المدير — إشراف الفريق</span>
-      <span>صفحة 8</span>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════════════════════════════
-       SECTION 7: TEAM EVALUATIONS & BONUSES (تقييمات الأداء والبدلات)
-       ═══════════════════════════════════════════════════════════════════ -->
-  <section class="page-sheet" id="view-7">
-    <div>
-      <div class="document-header">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-weight:900; color:#0F172A; font-size:15px;">HUM<span style="color:#10B981;">Λ</span>I</span>
-          <span style="font-size:11px; color:#64748B;">| دليل المدير: التحفيز والمكافآت</span>
-        </div>
-        <span style="font-size:11px; font-weight:700; color:#3B82F6;">2.3 تقييم الأداء والتوصيات المالية</span>
-      </div>
-
-      <div style="margin-bottom: 12px;">
-        <h2 style="font-size: 20px; color: #0F172A; font-weight: 900;">
-          2.3 تقييمات الأداء الشهرية والتوصيات المالية (Evaluations & Bonus)
-        </h2>
-        <p style="font-size: 11px; color: #64748B;">
-          محرك التقييم الرباعي ورفع مقترحات المكافآت أو الخصومات المبررة لمسير الرواتب.
-        </p>
-      </div>
-
-      <div class="device-browser-frame">
-        <div class="browser-topbar">
-          <div class="mac-dots">
-            <span class="mac-dot mac-dot-red"></span>
-            <span class="mac-dot mac-dot-yellow"></span>
-            <span class="mac-dot mac-dot-green"></span>
-          </div>
-          <div class="browser-url-pill">
-            <svg width="10" height="10" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path></svg>
-            <span>https://app.humai.eg/dashboard/evaluations</span>
-          </div>
-          <div style="font-size:9px; color:#94A3B8; font-weight:700;">4-PILLAR RATING MATRIX</div>
-        </div>
-        <div class="screenshot-img-container">
-          <img src="${screenshotsMap['team-evaluations'] || ''}" alt="Team Evaluations Screenshot">
-        </div>
-      </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div class="info-card">
-          <h4 style="font-size: 12px; color: #0F172A; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center;">
-            <span class="badge-number">1</span> ما تقدمه هذه الشاشة
-          </h4>
-          <ul style="padding-right: 18px; font-size: 11px; color: #334155; line-height: 1.6;">
-            <li><strong>مصفوفة التقييم بالنجوم:</strong> تقييم 4 ركائز (الانضباط، جودة المخرجات، حل المشكلات، والتعاون).</li>
-            <li><strong>المتوسط التراكمي الذكي:</strong> احتساب المعدل الإجمالي (مثلاً 4.7/5.0) مع ربطه بتاريخ تعيين الموظف وراتبه.</li>
-            <li><strong>نموذج التعديلات المالية:</strong> اقتراح مكافأة تميز نقدية أو جزاء مع حقل إلزامي لتدوين الأسباب الرسمية.</li>
-          </ul>
-        </div>
-
-        <div class="info-card">
-          <h4 style="font-size: 12px; color: #0F172A; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center;">
-            <span class="badge-number">2</span> الإجراءات المتاحة
-          </h4>
-          <ul style="padding-right: 18px; font-size: 11px; color: #334155; line-height: 1.6;">
-            <li><strong>رفع توصية مكافأة (Bonus):</strong> تحديد المبلغ وتوثيق الإنجاز لترحيله إلى مسودة مسير الرواتب.</li>
-            <li><strong>حفظ التقييم كمسودة:</strong> إمكانية مراجعة التقييمات على مراحل قبل إرسالها النهائي للإدارة العليا.</li>
-            <li><strong>الربط مع تقارير الترقية:</strong> أرشفة التقييمات لتشكيل السجل السنوي لجدارة الموظف.</li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="pro-tip-box">
-        <strong style="color: #065F46; font-size: 11px; display: block; margin-bottom: 2px;">💡 نصائح وحالات استثنائية:</strong>
-        <p style="font-size: 10.5px; color: #047857; line-height: 1.5;">
-          • التوصيات المالية المرفوعة من المدير تتطلب اعتماداً نهائياً من السوبر أدمن أو المدير المالي قبل إدراجها في شيك التحويل البنكي.<br>
-          • كتابة تفاصيل واضحة في خانة المبررات يسهل على الإدارة العليا اتخاذ قرار الموافقة الفورية دون تأخير صرف الراتب.
-        </p>
-      </div>
-    </div>
-
-    <div class="document-footer">
-      <span>منصة HumAi للإدارة الذكية</span>
-      <span>دليل المدير — إشراف الفريق</span>
-      <span>صفحة 9</span>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════════════════════════════
-       SECTION 8: COMPANY & BRANCH SETUP (إعدادات الشركة والفروع)
-       ═══════════════════════════════════════════════════════════════════ -->
-  <section class="page-sheet" id="view-8">
-    <div>
-      <div class="document-header">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-weight:900; color:#0F172A; font-size:15px;">HUM<span style="color:#10B981;">Λ</span>I</span>
-          <span style="font-size:11px; color:#64748B;">| دليل السوبر أدمن: البنية التحتية</span>
-        </div>
-        <span style="font-size:11px; font-weight:700; color:#8B5CF6;">3.1 إعدادات الفروع ونطاق الـ GPS</span>
-      </div>
-
-      <div style="margin-bottom: 12px;">
-        <h2 style="font-size: 20px; color: #0F172A; font-weight: 900;">
-          3.1 إعدادات الفروع ونطاق الـ GPS الجغرافي (Branch Geofencing)
-        </h2>
-        <p style="font-size: 11px; color: #64748B;">
-          ضبط المواقع الجغرافية، نصف قطر البصمة، وسياسات الحضور وفترات السماح لكل فرع على حدة.
-        </p>
-      </div>
-
-      <div class="device-browser-frame">
-        <div class="browser-topbar">
-          <div class="mac-dots">
-            <span class="mac-dot mac-dot-red"></span>
-            <span class="mac-dot mac-dot-yellow"></span>
-            <span class="mac-dot mac-dot-green"></span>
-          </div>
-          <div class="browser-url-pill">
-            <svg width="10" height="10" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path></svg>
-            <span>https://app.humai.eg/dashboard/settings</span>
-          </div>
-          <div style="font-size:9px; color:#94A3B8; font-weight:700;">GEOFENCE ENGINE v3.2</div>
-        </div>
-        <div class="screenshot-img-container">
-          <img src="${screenshotsMap['company-branches'] || ''}" alt="Company & Branches Screenshot">
-        </div>
-      </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div class="info-card">
-          <h4 style="font-size: 12px; color: #0F172A; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center;">
-            <span class="badge-number">1</span> ما تقدمه هذه الشاشة
-          </h4>
-          <ul style="padding-right: 18px; font-size: 11px; color: #334155; line-height: 1.6;">
-            <li><strong>إدارة متعددة الفروع (Multi-Branch):</strong> ضبط مستقل للمقر الرئيسي (المعادي) والفروع الإقليمية (سموحة).</li>
-            <li><strong>محلل روابط Google Maps الذكي:</strong> استخراج الإحداثيات الدقيقة (Lat/Long) تلقائياً بمجرد لصق رابط خرائط جوجل.</li>
-            <li><strong>محيط السماح الديناميكي:</strong> ضبط نصف القطر بين 50 و 500 متر ليتناسب مع مساحة مبنى الشركة.</li>
-          </ul>
-        </div>
-
-        <div class="info-card">
-          <h4 style="font-size: 12px; color: #0F172A; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center;">
-            <span class="badge-number">2</span> الإجراءات المتاحة
-          </h4>
-          <ul style="padding-right: 18px; font-size: 11px; color: #334155; line-height: 1.6;">
-            <li><strong>إضافة فرع جديد:</strong> تخصيص اسم الفرع، الإحداثيات، وتحديد ساعات السماح الصباحية (Grace Period).</li>
-            <li><strong>اختبار الموقع الحي:</strong> تجربة نطاق الحضور مباشرة للتأكد من دقة التقاط أبراج الاتصالات والأقمار الصناعية.</li>
-            <li><strong>تفعيل حظر البصمة الخارجية:</strong> قفل تسجيل الحضور فوراً لمن هم خارج النطاق مع إرسال إشعار أمني.</li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="pro-tip-box">
-        <strong style="color: #065F46; font-size: 11px; display: block; margin-bottom: 2px;">💡 نصائح وحالات استثنائية:</strong>
-        <p style="font-size: 10.5px; color: #047857; line-height: 1.5;">
-          • يُوصى بضبط نصف القطر بـ 150 متراً للمباني المرتفعة لمراعاة تفاوت دقة إشارات الـ GPS داخل الأدوار العليا أو الجراجات.<br>
-          • أي تعديل في إحداثيات الفرع يتم توثيقه فورياً في سجل الحوكمة الإدارية (Audit Trail) موضحاً المستخدم وعنوان الـ IP.
-        </p>
-      </div>
-    </div>
-
-    <div class="document-footer">
-      <span>منصة HumAi للإدارة الذكية</span>
-      <span>دليل السوبر أدمن — القيادة والضبط</span>
-      <span>صفحة 10</span>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════════════════════════════
-       SECTION 9: SHIFTS & OPERATIONS ENGINE (محرك الورديات والتشغيل)
-       ═══════════════════════════════════════════════════════════════════ -->
-  <section class="page-sheet" id="view-9">
-    <div>
-      <div class="document-header">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-weight:900; color:#0F172A; font-size:15px;">HUM<span style="color:#10B981;">Λ</span>I</span>
-          <span style="font-size:11px; color:#64748B;">| دليل السوبر أدمن: محرك التشغيل</span>
-        </div>
-        <span style="font-size:11px; font-weight:700; color:#8B5CF6;">3.2 محرك الورديات والتشغيل</span>
-      </div>
-
-      <div style="margin-bottom: 12px;">
-        <h2 style="font-size: 20px; color: #0F172A; font-weight: 900;">
-          3.2 محرك جدولة الورديات والتشغيل المتقدم (Operations & Shift Engine)
-        </h2>
-        <p style="font-size: 11px; color: #64748B;">
-          بناء جداول الورديات الثابتة، المتداولة، الورديات الليلية العابرة لمنتصف الليل، والمنقسمة.
-        </p>
-      </div>
-
-      <div class="device-browser-frame">
-        <div class="browser-topbar">
-          <div class="mac-dots">
-            <span class="mac-dot mac-dot-red"></span>
-            <span class="mac-dot mac-dot-yellow"></span>
-            <span class="mac-dot mac-dot-green"></span>
-          </div>
-          <div class="browser-url-pill">
-            <svg width="10" height="10" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path></svg>
-            <span>https://app.humai.eg/dashboard/shifts</span>
-          </div>
-          <div style="font-size:9px; color:#94A3B8; font-weight:700;">ROSTER LOGIC ENGINE</div>
-        </div>
-        <div class="screenshot-img-container">
-          <img src="${screenshotsMap['shifts-engine'] || ''}" alt="Shifts Engine Screenshot">
-        </div>
-      </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div class="info-card">
-          <h4 style="font-size: 12px; color: #0F172A; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center;">
-            <span class="badge-number">1</span> ما تقدمه هذه الشاشة
-          </h4>
-          <ul style="padding-right: 18px; font-size: 11px; color: #334155; line-height: 1.6;">
-            <li><strong>تغطية كاملة لكافة أنماط العمل:</strong> دعم الورديات العادية (9-5)، الليلية (11PM-7AM)، والمنقسمة (Split).</li>
-            <li><strong>دعم العبور الليلي (Midnight Spanning):</strong> معالجة برمجية دقيقة للورديات التي تبدأ في يوم وتنتهي في اليوم التالي.</li>
-            <li><strong>بدل الورديات الليلية الآلي:</strong> احتساب نسبة إضافية (مثلاً 20%) وترحيلها مباشرة للاستحقاقات الشهرية.</li>
-          </ul>
-        </div>
-
-        <div class="info-card">
-          <h4 style="font-size: 12px; color: #0F172A; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center;">
-            <span class="badge-number">2</span> الإجراءات المتاحة
-          </h4>
-          <ul style="padding-right: 18px; font-size: 11px; color: #334155; line-height: 1.6;">
-            <li><strong>إنشاء وردية جديدة:</strong> تحديد ساعات البدء والانتهاء، أيام العمل، وفترة الراحة المعتمدة.</li>
-            <li><strong>تسكين الموظفين (Shift Assignment):</strong> تعيين موظفين محددين أو إدارات بأكملها لكل وردية بمرونة.</li>
-            <li><strong>جدولة الورديات التناوبية:</strong> تفعيل التدوير كل أسبوعين بين الفرق لتوزيع ساعات العمل الليلية بعدالة.</li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="pro-tip-box">
-        <strong style="color: #065F46; font-size: 11px; display: block; margin-bottom: 2px;">💡 نصائح وحالات استثنائية:</strong>
-        <p style="font-size: 10.5px; color: #047857; line-height: 1.5;">
-          • في الورديات المنقسمة (Split Shift)، يتم احتساب الحضور عبر فترتين منفصلتين دون اعتبار ساعات التوقف بينهما تأخيراً أو انصرافاً مبكراً.<br>
-          • إذا نسي الموظف تسجيل الانصراف في وردية ليلية، يقوم النظام آلياً بإغلاق البصمة بعد 12 ساعة من بدء الوردية لحماية سلامة السجلات.
-        </p>
-      </div>
-    </div>
-
-    <div class="document-footer">
-      <span>منصة HumAi للإدارة الذكية</span>
-      <span>دليل السوبر أدمن — القيادة والضبط</span>
-      <span>صفحة 11</span>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════════════════════════════
-       SECTION 10: EMPLOYEE VAULT (دليل الموظفين والخزينة)
-       ═══════════════════════════════════════════════════════════════════ -->
-  <section class="page-sheet" id="view-10">
-    <div>
-      <div class="document-header">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-weight:900; color:#0F172A; font-size:15px;">HUM<span style="color:#10B981;">Λ</span>I</span>
-          <span style="font-size:11px; color:#64748B;">| دليل السوبر أدمن: الموارد البشرية</span>
-        </div>
-        <span style="font-size:11px; font-weight:700; color:#8B5CF6;">3.3 دليل الموظفين وخزينة الملفات</span>
-      </div>
-
-      <div style="margin-bottom: 12px;">
-        <h2 style="font-size: 20px; color: #0F172A; font-weight: 900;">
-          3.3 دليل الموظفين وخزينة المستندات الرقمية (Employee Directory & Vault)
-        </h2>
-        <p style="font-size: 11px; color: #64748B;">
-          الأرشيف المركزي لكافة الكوادر، قنوات صرف الرواتب، وخزينة الملفات الرسمية المشفرة.
-        </p>
-      </div>
-
-      <div class="device-browser-frame">
-        <div class="browser-topbar">
-          <div class="mac-dots">
-            <span class="mac-dot mac-dot-red"></span>
-            <span class="mac-dot mac-dot-yellow"></span>
-            <span class="mac-dot mac-dot-green"></span>
-          </div>
-          <div class="browser-url-pill">
-            <svg width="10" height="10" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path></svg>
-            <span>https://app.humai.eg/dashboard/employees</span>
-          </div>
-          <div style="font-size:9px; color:#94A3B8; font-weight:700;">AES-256 ENCRYPTED VAULT</div>
-        </div>
-        <div class="screenshot-img-container">
-          <img src="${screenshotsMap['employee-vault'] || ''}" alt="Employee Vault Screenshot">
-        </div>
-      </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div class="info-card">
-          <h4 style="font-size: 12px; color: #0F172A; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center;">
-            <span class="badge-number">1</span> ما تقدمه هذه الشاشة
-          </h4>
-          <ul style="padding-right: 18px; font-size: 11px; color: #334155; line-height: 1.6;">
-            <li><strong>قنوات صرف متعددة:</strong> إمكانية تحديد وسيلة الدفع لكل موظف (InstaPay، تحويل بنكي، محفظة إلكترونية، كاش).</li>
-            <li><strong>الخزينة الرقمية المشفرة (Document Vault):</strong> حفظ بطاقات الرقم القومي، عقود العمل، وشهادات الجيش بأمان.</li>
-            <li><strong>ملف وظيفي متكامل:</strong> يشمل المسمى، نوع العقد، تاريخ التعيين، وتفاصيل التأمينات الاجتماعية.</li>
-          </ul>
-        </div>
-
-        <div class="info-card">
-          <h4 style="font-size: 12px; color: #0F172A; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center;">
-            <span class="badge-number">2</span> الإجراءات المتاحة
-          </h4>
-          <ul style="padding-right: 18px; font-size: 11px; color: #334155; line-height: 1.6;">
-            <li><strong>إضافة موظف جديد (Onboarding):</strong> معالج إدخال سريع يولد الحساب ويرسل رابط تفعيل واتساب تلقائياً.</li>
-            <li><strong>تحديث بيانات التحويل البنكي:</strong> تسجيل معرف InstaPay (IPA) أو الآيبان المصرفي (IBAN) بدقة.</li>
-            <li><strong>تصدير قاعدة البيانات:</strong> استخراج تقرير CSV كامل متوافق مع متطلبات مكاتب العمل والتأمينات.</li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="pro-tip-box">
-        <strong style="color: #065F46; font-size: 11px; display: block; margin-bottom: 2px;">💡 نصائح وحالات استثنائية:</strong>
-        <p style="font-size: 10.5px; color: #047857; line-height: 1.5;">
-          • التحويل عبر InstaPay يوفر تسوية فورية للرواتب على مدار 24 ساعة طوال أيام الأسبوع بما في ذلك العطلات الرسمية.<br>
-          • يتم تخزين جميع المستندات في حاويات سحابية مشفرة بتشفير AES-256 مع عزل صارم بين المستأجرين (Tenant Isolation).
-        </p>
-      </div>
-    </div>
-
-    <div class="document-footer">
-      <span>منصة HumAi للإدارة الذكية</span>
-      <span>دليل السوبر أدمن — القيادة والضبط</span>
-      <span>صفحة 12</span>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════════════════════════════
-       SECTION 11: PAYROLL ENGINE (محرك مسيرات الرواتب)
-       ═══════════════════════════════════════════════════════════════════ -->
-  <section class="page-sheet" id="view-11">
-    <div>
-      <div class="document-header">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-weight:900; color:#0F172A; font-size:15px;">HUM<span style="color:#10B981;">Λ</span>I</span>
-          <span style="font-size:11px; color:#64748B;">| دليل السوبر أدمن: الشؤون المالية</span>
-        </div>
-        <span style="font-size:11px; font-weight:700; color:#8B5CF6;">3.4 محرك الرواتب والتحويل الآلي</span>
-      </div>
-
-      <div style="margin-bottom: 12px;">
-        <h2 style="font-size: 20px; color: #0F172A; font-weight: 900;">
-          3.4 محرك حساب واعتماد مسيرات الرواتب (Automated Payroll Engine)
-        </h2>
-        <p style="font-size: 11px; color: #64748B;">
-          حساب الدورة المالية (26-25)، احتساب النسب للأيام المجتزأة، تسوية السلف، والربط المصرفي.
-        </p>
-      </div>
-
-      <div class="device-browser-frame">
-        <div class="browser-topbar">
-          <div class="mac-dots">
-            <span class="mac-dot mac-dot-red"></span>
-            <span class="mac-dot mac-dot-yellow"></span>
-            <span class="mac-dot mac-dot-green"></span>
-          </div>
-          <div class="browser-url-pill">
-            <svg width="10" height="10" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path></svg>
-            <span>https://app.humai.eg/dashboard/payroll</span>
-          </div>
-          <div style="font-size:9px; color:#10B981; font-weight:700;">CYCLE: 26TH - 25TH ACTIVE</div>
-        </div>
-        <div class="screenshot-img-container">
-          <img src="${screenshotsMap['payroll-engine'] || ''}" alt="Payroll Engine Screenshot">
-        </div>
-      </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div class="info-card">
-          <h4 style="font-size: 12px; color: #0F172A; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center;">
-            <span class="badge-number">1</span> ما تقدمه هذه الشاشة
-          </h4>
-          <ul style="padding-right: 18px; font-size: 11px; color: #334155; line-height: 1.6;">
-            <li><strong>محرك الاحتساب النسبي (Proration Matrix):</strong> احتساب أجور المعينين الجدد باليوم والساعة بدقة متناهية.</li>
-            <li><strong>تسوية السلف التلقائية:</strong> استقطاع أقساط السلف المعتمدة تلقائياً قبل حساب صافي التحويل.</li>
-            <li><strong>تطبيق شرائح الضرائب والتأمينات:</strong> خيارات تشغيل/تعطيل مرنة لحساب ضرائب الدخل والتأمينات الاجتماعية.</li>
-          </ul>
-        </div>
-
-        <div class="info-card">
-          <h4 style="font-size: 12px; color: #0F172A; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center;">
-            <span class="badge-number">2</span> الإجراءات المتاحة
-          </h4>
-          <ul style="padding-right: 18px; font-size: 11px; color: #334155; line-height: 1.6;">
-            <li><strong>مراجعة وتعديل المسودة:</strong> فحص كافة المستحقات والاستقطاعات وإجراء أي تعديل يدوي طارئ.</li>
-            <li><strong>إقفال الدورة المالية (Lock Payroll):</strong> تجميد البيانات ومنع أي تعديل لاحق عليها لحماية النزاهة.</li>
-            <li><strong>تصدير ملف البنك (WPS / ACH Export):</strong> توليد ملف الصرف المباشر للبنوك المصرية ونظام حماية الأجور.</li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="pro-tip-box">
-        <strong style="color: #065F46; font-size: 11px; display: block; margin-bottom: 2px;">💡 نصائح وحالات استثنائية:</strong>
-        <p style="font-size: 10.5px; color: #047857; line-height: 1.5;">
-          • في حال تم تعيين موظف في منتصف الشهر (مثلاً يوم 11)، يقوم النظام بتقسيم الراتب الأساسي على 30 يوماً وضرب الناتج في 14 يوماً عمل.<br>
-          • بمجرد النقر على "إقفال الدورة"، تصبح قسائم الرواتب متاحة فوراً في حسابات الموظفين مع إرسال إشعارات الاستلام.
-        </p>
-      </div>
-    </div>
-
-    <div class="document-footer">
-      <span>منصة HumAi للإدارة الذكية</span>
-      <span>دليل السوبر أدمن — القيادة والضبط</span>
-      <span>صفحة 13</span>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════════════════════════════
-       SECTION 12: AUDIT TRAIL & GOVERNANCE (سجل التدقيق والحوكمة)
-       ═══════════════════════════════════════════════════════════════════ -->
-  <section class="page-sheet" id="view-12">
-    <div>
-      <div class="document-header">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-weight:900; color:#0F172A; font-size:15px;">HUM<span style="color:#10B981;">Λ</span>I</span>
-          <span style="font-size:11px; color:#64748B;">| دليل السوبر أدمن: الحوكمة والامتثال</span>
-        </div>
-        <span style="font-size:11px; font-weight:700; color:#8B5CF6;">3.5 سجل التدقيق والامتثال</span>
-      </div>
-
-      <div style="margin-bottom: 12px;">
-        <h2 style="font-size: 20px; color: #0F172A; font-weight: 900;">
-          3.5 سجل التدقيق والحوكمة المؤسسية (Audit Trail & Governance)
-        </h2>
-        <p style="font-size: 11px; color: #64748B;">
-          الرقابة الأمنية الصارمة على كافة التعديلات، تبريرات الحضور، التجاوزات المالية، وتغييرات النظام.
-        </p>
-      </div>
-
-      <div class="device-browser-frame">
-        <div class="browser-topbar">
-          <div class="mac-dots">
-            <span class="mac-dot mac-dot-red"></span>
-            <span class="mac-dot mac-dot-yellow"></span>
-            <span class="mac-dot mac-dot-green"></span>
-          </div>
-          <div class="browser-url-pill">
-            <svg width="10" height="10" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path></svg>
-            <span>https://app.humai.eg/dashboard/audit-logs</span>
-          </div>
-          <div style="font-size:9px; color:#94A3B8; font-weight:700;">IMMUTABLE AUDIT LOG</div>
-        </div>
-        <div class="screenshot-img-container">
-          <img src="${screenshotsMap['audit-trail'] || ''}" alt="Audit Trail Screenshot">
-        </div>
-      </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div class="info-card">
-          <h4 style="font-size: 12px; color: #0F172A; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center;">
-            <span class="badge-number">1</span> ما تقدمه هذه الشاشة
-          </h4>
-          <ul style="padding-right: 18px; font-size: 11px; color: #334155; line-height: 1.6;">
-            <li><strong>سجل غير قابل للتعديل (Immutable Log):</strong> توثيق دقيق لكل عملية: من قام بها (Actor)، متى، ومن أي IP.</li>
-            <li><strong>توثيق الفروقات الزمنية (JSON Diff):</strong> إظهار القيمة قبل التعديل وبعده (مثل: الخصم من 150 إلى 0 جنيه).</li>
-            <li><strong>تصنيف العمليات الحساسة:</strong> فرز سريع بين العمليات المالية، إعدادات الفروع، وتجاوزات البصمة.</li>
-          </ul>
-        </div>
-
-        <div class="info-card">
-          <h4 style="font-size: 12px; color: #0F172A; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center;">
-            <span class="badge-number">2</span> الإجراءات المتاحة
-          </h4>
-          <ul style="padding-right: 18px; font-size: 11px; color: #334155; line-height: 1.6;">
-            <li><strong>فحص ومراجعة التجاوزات الإدارية:</strong> معرفة أي تدخل يدوي قام به المديرون المباشرون ومبرراتهم.</li>
-            <li><strong>التصفية بالأفراد والتواريخ:</strong> تتبع نشاط مسؤول معين خلال فترة زمنية محددة بدقة.</li>
-            <li><strong>تصدير السجل الرسمي لجهات التدقيق:</strong> استخراج تقرير مشفر لتقديمه للمدققين الماليين الخارجيين.</li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="pro-tip-box">
-        <strong style="color: #065F46; font-size: 11px; display: block; margin-bottom: 2px;">💡 نصائح وحالات استثنائية:</strong>
-        <p style="font-size: 10.5px; color: #047857; line-height: 1.5;">
-          • سجل التدقيق لا يمكن حذفه أو التعديل عليه حتى من قِبل السوبر أدمن، مما يضمن أعلى معايير الحوكمة المؤسسية والنزاهة.<br>
-          • يتم تخزين عنوان بروتوكول الإنترنت (IP Address) ونوع المتصفح المستخدم لكل عملية لمنع التلاعب أو الدخول غير المصرح به.
-        </p>
-      </div>
-    </div>
-
-    <div class="document-footer">
-      <span>منصة HumAi للإدارة الذكية</span>
-      <span>دليل السوبر أدمن — القيادة والضبط</span>
-      <span>صفحة 14</span>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════════════════════════════
-       BACK COVER & SUPPORT DIRECTORY (الغلاف الخلفي والدعم الفني)
-       ═══════════════════════════════════════════════════════════════════ -->
-  <section class="page-sheet dark-divider">
-    <div style="max-width: 580px; margin: 0 auto; padding: 20px;">
-      
-      <div style="display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 20px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); margin-bottom: 20px;">
-        <svg width="34" height="34" viewBox="0 0 60 56" fill="none">
-          <circle cx="14" cy="10" r="5.5" fill="#FFFFFF"/>
-          <rect x="9" y="19" width="10" height="28" rx="5" fill="#FFFFFF"/>
-          <circle cx="46" cy="10" r="5.5" fill="#10B981"/>
-          <rect x="41" y="19" width="10" height="28" rx="5" fill="#10B981"/>
-          <path d="M 18 29 C 23 37, 37 37, 42 29 C 40 37, 20 37, 18 29 Z" fill="#10B981"/>
-        </svg>
-      </div>
-
-      <h2 style="font-size: 28px; font-weight: 900; color: #FFFFFF; margin-bottom: 10px;">
-        منظومة <span style="color: #10B981;">هُم آي (HumAi)</span> الذكية
-      </h2>
-      <p style="font-size: 13px; color: #94A3B8; line-height: 1.8; margin-bottom: 28px;">
-        الجيل القادم من إدارة الموارد البشرية والرواتب المؤتمتة، المصممة خصيصاً لتمكين الشركات الطموحة في مصر والشرق الأوسط عبر حلول سحابية فائقة الأمان ومساعد ذكاء اصطناعي فوري.
-      </p>
-
-      <!-- Contact & Channels Box -->
-      <div style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 16px; padding: 18px; text-align: right; margin-bottom: 30px;">
-        <h4 style="font-size: 13px; color: #34D399; font-weight: 800; margin-bottom: 12px; text-align: center;">قنوات الدعم الفني وخدمة العملاء على مدار الساعة</h4>
-        
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 11.5px; color: #CBD5E1;">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="color: #10B981;">💬</span>
-            <span>مساعد واتساب المؤسسي:</span>
-            <strong style="color: #FFFFFF; font-family: 'Inter', monospace; direction: ltr;">+20 100 000 0000</strong>
-          </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="color: #10B981;">✉️</span>
-            <span>البريد الإلكتروني للدعم:</span>
-            <strong style="color: #FFFFFF; font-family: 'Inter', monospace; direction: ltr;">support@humai.eg</strong>
-          </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="color: #10B981;">🌐</span>
-            <span>بوابة العملاء والمستندات:</span>
-            <strong style="color: #FFFFFF; font-family: 'Inter', monospace; direction: ltr;">https://app.humai.eg</strong>
-          </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="color: #10B981;">🔒</span>
-            <span>شهادات الامتثال والأمان:</span>
-            <strong style="color: #FFFFFF;">ISO 27001 & SOC 2 Ready</strong>
-          </div>
-        </div>
-      </div>
-
-      <div style="font-size: 10.5px; color: #64748B;">
-        جميع الحقوق محفوظة © 2026 شركة هُم آي للحلول الذكية (HumAi Platform).<br>
-        هذا المستند سري ومخصص لعملاء المنظومة وفرق العمل المعتمدة.
-      </div>
-
-    </div>
-  </section>
+  </div>
 
 </body>
 </html>
-`;
+  `;
 }
 
-module.exports = {
-  generateManualHtml
-};
+module.exports = { generateManualHtml };

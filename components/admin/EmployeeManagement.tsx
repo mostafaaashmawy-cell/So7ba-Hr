@@ -442,27 +442,51 @@ export default function EmployeeManagement({
     }
 
     setLoading(true);
-    const tenantId = currentAuth?.tenant_id || users[0]?.tenant_id;
-    const { data, error } = await supabase
-      .from('kpi_units')
-      .insert({
-        name: trimmed,
-        tenant_id: tenantId || null,
-      })
-      .select()
-      .single();
-    if (error) {
-      if (error.code === '23505' || error.message.includes('unique constraint')) {
-        setMsg({ text: isRtl ? 'وحدة القياس هذه مسجلة بالفعل.' : 'This KPI unit already exists.', error: true });
-      } else {
-        setMsg({ text: error.message, error: true });
+    try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      let tenantId = users[0]?.tenant_id;
+      if (!tenantId && authUser) {
+        const { data: profile } = await supabase.from('users').select('tenant_id').eq('id', authUser.id).single();
+        tenantId = profile?.tenant_id;
       }
-    } else if (data) {
-      setKpiUnits([...kpiUnits, data]);
-      setNewUnitName('');
-      setMsg({ text: isRtl ? 'تمت إضافة وحدة القياس بنجاح!' : 'KPI Unit added successfully!', error: false });
+
+      const { data, error } = await supabase
+        .from('kpi_units')
+        .insert({
+          name: trimmed,
+          tenant_id: tenantId || null,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        if (error.code === '23505' || error.message.includes('unique constraint')) {
+          setMsg({ text: isRtl ? 'وحدة القياس هذه مسجلة بالفعل.' : 'This KPI unit already exists.', error: true });
+        } else {
+          setMsg({ text: error.message, error: true });
+        }
+      } else if (data) {
+        setKpiUnits([...kpiUnits, data]);
+        setNewUnitName('');
+        setMsg({ text: isRtl ? 'تمت إضافة وحدة القياس بنجاح!' : 'KPI Unit added successfully!', error: false });
+
+        if (authUser && tenantId) {
+          logAuditAction(supabase, {
+            tenant_id: tenantId,
+            actor_id: authUser.id,
+            action_type: 'CREATE_KPI_UNIT',
+            entity_name: 'kpi_units',
+            entity_id: data.id,
+            details: { name: data.name },
+          });
+        }
+      }
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Failed to add KPI unit';
+      setMsg({ text: errMsg, error: true });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   // Delete KPI Unit

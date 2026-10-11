@@ -178,8 +178,22 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
       console.warn('Auto close check before check-in:', e);
     }
 
-    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' });
-    const nowIso = new Date().toISOString();
+    // Authoritative Server Cairo Time to prevent any device clock / DST skew
+    let nowIso = new Date().toISOString();
+    let todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' });
+
+    try {
+      const timeRes = await fetch('/api/time', { cache: 'no-store' });
+      if (timeRes.ok) {
+        const timeData = await timeRes.json();
+        if (timeData?.serverIso) {
+          nowIso = timeData.serverIso;
+          todayStr = new Date(timeData.serverIso).toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' });
+        }
+      }
+    } catch (e) {
+      console.warn('Time sync fallback to device time:', e);
+    }
 
     const tenantId = userProfile?.tenant_id || tenantSettings?.tenant_id;
 
@@ -225,7 +239,19 @@ export default function AttendanceWidget({ userId, initialAttendance }: Attendan
     setLoading(true);
     setErrorMsg(null);
 
-    const nowIso = new Date().toISOString();
+    let nowIso = new Date().toISOString();
+    try {
+      const timeRes = await fetch('/api/time', { cache: 'no-store' });
+      if (timeRes.ok) {
+        const timeData = await timeRes.json();
+        if (timeData?.serverIso) {
+          nowIso = timeData.serverIso;
+        }
+      }
+    } catch (e) {
+      console.warn('Time sync fallback to device time on checkout:', e);
+    }
+
     const tenantId = userProfile?.tenant_id || tenantSettings?.tenant_id || latestSession.tenant_id;
 
     const start = new Date(latestSession.check_in_time);

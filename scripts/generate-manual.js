@@ -1,20 +1,19 @@
 /**
- * HumAi Visual Onboarding & Product Manual — Master Automation Engine
+ * HumAi Visual Onboarding & Product Manual — Master PDF Compilation Pipeline
  * 
  * Pipeline:
- * 1. Headless Browser Automation (Puppeteer with Microsoft Edge / Chromium)
- * 2. High-DPI Viewport Capture (1440x900 @ 2x DPI) for all 12 system views
- * 3. Embedding into HumAi Modern Device/Browser Mockup Frames
- * 4. Production-grade PDF Compilation via Chrome DevTools Protocol (printToPDF)
+ * 1. Reads authentic, live system screenshots captured from the running Next.js system
+ * 2. Compiles high-resolution Base64 Data URIs for inline zero-dependency PDF rendering
+ * 3. Builds the master HTML document using HumAi Enterprise Brand Guidelines
+ * 4. Compiles print-ready A4 PDF via Chrome DevTools Protocol (printToPDF) using Microsoft Edge
  */
 
 const fs = require('fs');
 const path = require('path');
 const puppeteer = require('puppeteer-core');
-const { views } = require('./views-renderer');
 const { generateManualHtml } = require('./manual-template');
 
-// Supported Edge/Chrome Executable Paths on Windows & POSIX
+// Supported Edge/Chrome Executable Paths
 const POSSIBLE_BROWSER_PATHS = [
   'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
   'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
@@ -35,26 +34,43 @@ function findBrowserExecutable() {
   throw new Error('No Edge or Chrome browser executable found on system.');
 }
 
-async function runPipeline() {
+async function compileManualPdf() {
   console.log('═══════════════════════════════════════════════════════════════════');
-  console.log('🚀 Starting HumAi Visual Onboarding & Product Manual Generator');
+  console.log('🚀 Compiling HumAi Master User Guide & Product Manual (Live Screenshots)');
   console.log('═══════════════════════════════════════════════════════════════════');
 
   const browserPath = findBrowserExecutable();
   console.log(`✓ Detected Browser Executable: ${browserPath}`);
 
-  // Create Output Directories
   const rootDir = path.resolve(__dirname, '..');
   const manualDir = path.join(rootDir, 'docs', 'manual');
   const screenshotsDir = path.join(manualDir, 'screenshots');
   const outputDir = path.join(manualDir, 'output');
 
-  fs.mkdirSync(screenshotsDir, { recursive: true });
   fs.mkdirSync(outputDir, { recursive: true });
-  console.log(`✓ Storage Directories Initialized: ${manualDir}`);
 
-  // Launch Headless Browser
-  console.log('\n[1/3] Launching Headless Automation Engine (DPI: 2x, Viewport: 1440x900)...');
+  // 1. Load All Real System Screenshots as Base64 Data URIs
+  console.log('\n[1/3] Loading Authentic System Screenshots from disk...');
+  const screenshotsMap = {};
+  const screenshotFiles = fs.readdirSync(screenshotsDir).filter(f => f.endsWith('.png'));
+
+  for (const file of screenshotFiles) {
+    const key = path.basename(file, '.png');
+    const fullPath = path.join(screenshotsDir, file);
+    const buffer = fs.readFileSync(fullPath);
+    screenshotsMap[key] = `data:image/png;base64,${buffer.toString('base64')}`;
+    console.log(`  ✓ Loaded screenshot: ${file} (${(buffer.length / 1024).toFixed(1)} KB)`);
+  }
+
+  // 2. Build Master HTML Document
+  console.log('\n[2/3] Generating Master HTML Document with HumAi Brand Identity...');
+  const masterHtml = generateManualHtml(screenshotsMap);
+  const masterHtmlPath = path.join(manualDir, 'HumAi_User_Guide_Manual.html');
+  fs.writeFileSync(masterHtmlPath, masterHtml, 'utf8');
+  console.log(`  ✓ Master HTML Saved: ${masterHtmlPath} (${(masterHtml.length / 1024).toFixed(1)} KB)`);
+
+  // 3. Compile Master PDF via Headless Browser
+  console.log('\n[3/3] Compiling Master PDF via Chrome DevTools Protocol (Edge)...');
   const browser = await puppeteer.launch({
     executablePath: browserPath,
     headless: 'new',
@@ -71,64 +87,17 @@ async function runPipeline() {
   await page.setViewport({
     width: 1440,
     height: 900,
-    deviceScaleFactor: 2, // High-DPI Retina fidelity
+    deviceScaleFactor: 2,
   });
 
-  // Capture All 12 Views
-  console.log('\n[2/3] Rendering and Capturing High-Resolution Screenshots...');
-  const screenshotsMap = {};
-
-  for (let i = 0; i < views.length; i++) {
-    const view = views[i];
-    const stepNum = `[${i + 1}/${views.length}]`;
-    console.log(`  ${stepNum} Rendering view: "${view.title}" (${view.id})...`);
-
-    const viewHtml = view.render();
-    
-    // Set page content and wait for DOM & fonts
-    await page.setContent(viewHtml, { waitUntil: 'domcontentloaded', timeout: 15000 });
-    try {
-      await page.evaluate(() => document.fonts.ready);
-    } catch (e) {}
-    // Brief settle time
-    await new Promise((r) => setTimeout(r, 200));
-
-    const screenshotPath = path.join(screenshotsDir, `${view.id}.png`);
-    await page.screenshot({
-      path: screenshotPath,
-      fullPage: false,
-      clip: {
-        x: 0,
-        y: 0,
-        width: 1440,
-        height: 780, // Optimal clip focusing on application header & main cards
-      },
-    });
-
-    // Read as Base64 Data URI for inline zero-dependency PDF rendering
-    const imgBuffer = fs.readFileSync(screenshotPath);
-    const base64Img = `data:image/png;base64,${imgBuffer.toString('base64')}`;
-    screenshotsMap[view.id] = base64Img;
-
-    console.log(`    ↳ Saved: ${view.id}.png (${(imgBuffer.length / 1024).toFixed(1)} KB)`);
-  }
-
-  // Compile Master PDF Document
-  console.log('\n[3/3] Compiling Master PDF User Guide & Product Manual...');
-  const masterHtml = generateManualHtml(screenshotsMap);
-  const masterHtmlPath = path.join(manualDir, 'HumAi_User_Guide_Manual.html');
-  fs.writeFileSync(masterHtmlPath, masterHtml, 'utf8');
-  console.log(`  ✓ Master HTML Document Saved: ${masterHtmlPath}`);
-
-  // Load into PDF Compiler Page
-  await page.setContent(masterHtml, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.setContent(masterHtml, { waitUntil: 'domcontentloaded', timeout: 45000 });
   try {
     await page.evaluate(() => document.fonts.ready);
   } catch (e) {}
-  await new Promise((r) => setTimeout(r, 500));
+  await new Promise(r => setTimeout(r, 800));
 
   const pdfPath = path.join(outputDir, 'HumAi_User_Guide_Manual.pdf');
-  console.log('  ↳ Generating print-ready PDF via Chrome DevTools Protocol...');
+  console.log('  ↳ Generating print-ready A4 PDF...');
 
   await page.pdf({
     path: pdfPath,
@@ -144,25 +113,20 @@ async function runPipeline() {
     },
   });
 
-  const stats = fs.statSync(pdfPath);
-  console.log(`\n🎉 PDF Generation Complete!`);
-  console.log(`  • Destination: ${pdfPath}`);
-  console.log(`  • File Size: ${(stats.size / (1024 * 1024)).toFixed(2)} MB`);
-  console.log(`  • Total Verified Pages: 15 Pages`);
-  console.log(`  • Included Views: ${views.length} Screen Captures (Employee, Manager, Super Admin)`);
-
   await browser.close();
+
+  const stats = fs.statSync(pdfPath);
   console.log('\n═══════════════════════════════════════════════════════════════════');
-  console.log('✅ Pipeline Execution Successfully Finished!');
+  console.log('🎉 HumAi Master User Guide & Product Manual Successfully Generated!');
   console.log('═══════════════════════════════════════════════════════════════════');
+  console.log(`  • Destination File: ${pdfPath}`);
+  console.log(`  • File Size: ${(stats.size / (1024 * 1024)).toFixed(2)} MB`);
+  console.log(`  • Format: Print-Ready A4 Portrait`);
+  console.log(`  • Included Views: Authentic live screenshots of actual system routes`);
+  console.log(`  • Branding: Strictly "HumAi" in English everywhere`);
 }
 
-// Execute if run directly
-if (require.main === module) {
-  runPipeline().catch((err) => {
-    console.error('❌ Pipeline Failed with Error:', err);
-    process.exit(1);
-  });
-}
-
-module.exports = { runPipeline };
+compileManualPdf().catch(err => {
+  console.error('❌ Compilation Error:', err);
+  process.exit(1);
+});

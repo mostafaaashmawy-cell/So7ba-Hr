@@ -49,6 +49,12 @@ interface PayslipSummary {
   advances: number;
   penalties: number;
   latenessDeductions: number;
+  lateDaysCount?: number;
+  totalLateMinutes?: number;
+  lateDetailsList?: Array<{ date: string; delayMins: number; deduction: number }>;
+  absenceDeductions?: number;
+  absentDaysCount?: number;
+  absentDatesList?: string[];
   incomeTax: number;
   socialInsurance: number;
   healthInsurance: number;
@@ -129,6 +135,60 @@ export default function PayslipsPage() {
         const currCycleEnd = new Date(y, m - 1, 25);
         const cyclePeriod = `${prevMonthDate.toLocaleDateString(isRtl ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short' })} - ${currCycleEnd.toLocaleDateString(isRtl ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}`;
 
+        // Check if an official approved payroll record already exists in database
+        const { data: savedRecord } = await supabase
+          .from('payroll_records')
+          .select('*')
+          .eq('tenant_id', currentUser!.tenant_id)
+          .eq('user_id', emp.id)
+          .eq('month', selectedMonth)
+          .maybeSingle();
+
+        if (savedRecord?.details) {
+          const d = savedRecord.details as any;
+          setPayslip({
+            employee: emp,
+            month: selectedMonth,
+            cyclePeriod,
+            referenceNumber: `PAY-${selectedMonth.replace('-', '')}-${emp.id.substring(0, 6).toUpperCase()}`,
+            issueDate: savedRecord.paid_at
+              ? new Date(savedRecord.paid_at).toLocaleDateString(isRtl ? 'ar-EG' : 'en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })
+              : new Date().toLocaleDateString(isRtl ? 'ar-EG' : 'en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                }),
+            basicSalary: d.basicSalary ?? Number(savedRecord.basic_salary),
+            isProrated: d.isProrated,
+            proratedDays: d.proratedDays,
+            commissions: d.commissionPaid ?? d.commission ?? Number(savedRecord.commission_paid || 0),
+            bonuses: d.bonuses ?? 0,
+            overtime: d.overtime ?? 0,
+            nightShiftAllowance: d.nightShiftAllowance ?? 0,
+            grossEarnings: d.grossEarnings ?? Number(savedRecord.gross_earnings),
+            advances: d.advances ?? 0,
+            penalties: d.penalties ?? 0,
+            latenessDeductions: d.latenessDeductions ?? 0,
+            lateDaysCount: d.lateDaysCount ?? 0,
+            totalLateMinutes: d.totalLateMinutes ?? 0,
+            lateDetailsList: d.lateDetailsList ?? [],
+            absenceDeductions: d.absenceDeductions ?? 0,
+            absentDaysCount: d.absentDaysCount ?? 0,
+            absentDatesList: d.absentDatesList ?? [],
+            incomeTax: d.incomeTax ?? 0,
+            socialInsurance: d.socialInsurance ?? 0,
+            healthInsurance: d.healthInsurance ?? 0,
+            totalDeductions: d.totalDeductions ?? Number(savedRecord.total_deductions),
+            netPay: d.netPay ?? Number(savedRecord.net_salary),
+          });
+          setLoading(false);
+          return;
+        }
+
         // Fetch Tenant Settings
         const { data: tenantSettings } = await supabase
           .from('tenant_settings')
@@ -200,39 +260,8 @@ export default function PayslipsPage() {
 
         // 4. Attendance & Shift Lateness Deductions
         let latenessDeductions = 0;
-        const fullBasicSalary = Number(emp.basic_salary ?? 0);
-        let basicSalary = fullBasicSalary;
-        let isProrated = false;
-        let proratedDays = lastDay;
-
-        const daysInMonth = lastDay;
-
-        // Mid-Month Hire Proration
-        if (emp.hire_date && emp.hire_date > startStr) {
-          const hireD = new Date(emp.hire_date);
-          const activeDays = Math.max(1, daysInMonth - hireD.getDate() + 1);
-          basicSalary = Math.round((activeDays / daysInMonth) * fullBasicSalary);
-          isProrated = true;
-          proratedDays = activeDays;
-        } else if (emp.contract_end_date && emp.contract_end_date < endStr && emp.contract_end_date >= startStr) {
-          const endD = new Date(emp.contract_end_date);
-          const activeDays = Math.max(1, endD.getDate());
-          basicSalary = Math.round((activeDays / daysInMonth) * fullBasicSalary);
-          isProrated = true;
-          proratedDays = activeDays;
-        }
-
-        const dailyRate = fullBasicSalary > 0 ? fullBasicSalary / 30 : 0;
-        const requiredHours = Number(emp.required_daily_hours ?? 8);
-        const hourlyRate = dailyRate > 0 && requiredHours > 0 ? dailyRate / requiredHours : 0;
-
-        const { data: checkins } = await supabase
-          .from('attendance')
-          .select('*')
-          .eq('tenant_id', currentUser!.tenant_id)
-          .eq('user_id', emp.id)
-          .gte('date', startStr)
-          .lte('date', endStr);
+        let totalLateMinutes = 0;
+        const lateDetailsList: Array<{ date: string; delayMins: number; deduction: number }> = [];
 
         if (checkins && checkins.length > 0 && dailyRate > 0) {
           if (emp.is_flexible) {
@@ -241,23 +270,36 @@ export default function PayslipsPage() {
                 const workedMinutes = calculateWorkingMinutes(c.check_in_time, c.check_out_time);
                 const reqMinutes = requiredHours * 60;
                 if (workedMinutes < reqMinutes) {
-                  const shortHours = (reqMinutes - workedMinutes) / 60;
-                  latenessDeductions += shortHours * hourlyRate;
+                  const shortageMins = reqMinutes - workedMinutes;
+                  if (shortageMins > 15) {
+                    const shortHours = shortageMins / 60;
+                    const dayDeduction = shortHours * hourlyRate;
+                    latenessDeductions += dayDeduction;
+                    totalLateMinutes += shortageMins;
+                    lateDetailsList.push({
+                      date: c.date || (c.check_in_time ? c.check_in_time.slice(0, 10) : 'Day'),
+                      delayMins: shortageMins,
+                      deduction: Math.round(dayDeduction),
+                    });
+                  }
                 }
               }
             });
           } else {
             const shiftStart = emp.shift?.start_time || settings?.work_start_time || '09:00';
+            const shiftEnd = emp.shift?.end_time || settings?.work_end_time || '17:00';
             const gracePeriod = Number(settings?.grace_period_mins ?? 15);
             const latenessMode = settings?.lateness_mode || 'tiered';
 
             checkins.forEach((c) => {
               if (c.check_in_time) {
-                const lateMins = calculateShiftLatenessMinutes(c.check_in_time, shiftStart);
+                const lateMins = calculateShiftLatenessMinutes(c.check_in_time, shiftStart, shiftEnd);
                 if (lateMins > gracePeriod) {
+                  totalLateMinutes += (lateMins - gracePeriod);
+                  let dayDeduction = 0;
                   if (latenessMode === 'percentage_per_minute') {
                     const minRate = Number(settings?.minute_deduction_rate ?? 0.005);
-                    latenessDeductions += dailyRate * (lateMins * minRate);
+                    dayDeduction = dailyRate * ((lateMins - gracePeriod) * minRate);
                   } else {
                     const thresholds = settings?.lateness_policy?.thresholds || [
                       { mins: 15, deduction: 0.25 },
@@ -270,13 +312,89 @@ export default function PayslipsPage() {
                         dedRatio = t.deduction;
                       }
                     });
-                    latenessDeductions += dailyRate * dedRatio;
+                    dayDeduction = dailyRate * dedRatio;
                   }
+                  latenessDeductions += dayDeduction;
+                  lateDetailsList.push({
+                    date: c.date || (c.check_in_time ? c.check_in_time.slice(0, 10) : 'Day'),
+                    delayMins: lateMins,
+                    deduction: Math.round(dayDeduction),
+                  });
                 }
               }
             });
           }
         }
+
+        const lateDaysCount = lateDetailsList.length;
+        latenessDeductions = Math.round(latenessDeductions);
+
+        // 4b. Fetch Approved Leaves & Compute Absence
+        const { data: approvedLeaves } = await supabase
+          .from('leaves')
+          .select('start_date, end_date, type')
+          .eq('tenant_id', currentUser!.tenant_id)
+          .eq('user_id', emp.id)
+          .eq('status', 'approved')
+          .lte('start_date', endStr)
+          .gte('end_date', startStr);
+
+        const todayCairoStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' });
+        const evalEndDate = endStr < todayCairoStr ? endStr : todayCairoStr;
+
+        const scheduledWorkDays: string[] = (
+          emp.custom_schedule_enabled && emp.custom_work_days && emp.custom_work_days.length > 0
+            ? emp.custom_work_days
+            : emp.shift?.work_days && emp.shift.work_days.length > 0
+            ? emp.shift.work_days
+            : settings?.work_days && settings.work_days.length > 0
+            ? settings.work_days
+            : ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday']
+        );
+
+        const attendedDatesSet = new Set<string>();
+        if (checkins) {
+          checkins.forEach((c) => {
+            if (c.date) attendedDatesSet.add(c.date);
+            else if (c.check_in_time) {
+              attendedDatesSet.add(c.check_in_time.slice(0, 10));
+            }
+          });
+        }
+
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const absentDatesList: string[] = [];
+
+        const [startYear, startMonthNum, startDayNum] = startStr.split('-').map(Number);
+        const [evalYear, evalMonthNum, evalDayNum] = evalEndDate.split('-').map(Number);
+        const curDate = new Date(startYear, startMonthNum - 1, startDayNum);
+        const stopDate = new Date(evalYear, evalMonthNum - 1, evalDayNum);
+
+        while (curDate <= stopDate) {
+          const y2 = curDate.getFullYear();
+          const m2 = String(curDate.getMonth() + 1).padStart(2, '0');
+          const d2 = String(curDate.getDate()).padStart(2, '0');
+          const dateIsoStr = `${y2}-${m2}-${d2}`;
+          const dayName = dayNames[curDate.getDay()];
+
+          const isEmployed = (!emp.hire_date || emp.hire_date <= dateIsoStr) &&
+                             (!emp.contract_end_date || emp.contract_end_date >= dateIsoStr);
+          const isWorkDay = scheduledWorkDays.includes(dayName);
+
+          if (isEmployed && isWorkDay) {
+            const hasLeave = approvedLeaves?.some((l) => l.start_date <= dateIsoStr && dateIsoStr <= l.end_date);
+            const hasAttended = attendedDatesSet.has(dateIsoStr);
+
+            if (!hasLeave && !hasAttended) {
+              absentDatesList.push(dateIsoStr);
+            }
+          }
+
+          curDate.setDate(curDate.getDate() + 1);
+        }
+
+        const absentDaysCount = absentDatesList.length;
+        const absenceDeductions = Math.round(absentDaysCount * dailyRate);
 
         // 5. Insurances
         const socialInsurance = Number(emp.social_insurance ?? 0);
@@ -285,8 +403,6 @@ export default function PayslipsPage() {
         // 6. Overtime Calculation
         let overtime = 0;
         if (settings?.enable_overtime) {
-          const overtimeMultiplier = Number(settings?.overtime_rate_multiplier ?? 1.5);
-          // Standard estimate or explicit overtime calculation if logged
           overtime = 0;
         }
 
@@ -302,8 +418,9 @@ export default function PayslipsPage() {
           incomeTax = Math.round(taxableBase * (Number(emp.income_tax_rate) / 100));
         }
 
-        const totalDeductions =
-          advances + penalties + latenessDeductions + socialInsurance + healthInsurance + incomeTax;
+        const totalDeductions = Math.round(
+          advances + penalties + latenessDeductions + absenceDeductions + socialInsurance + healthInsurance + incomeTax
+        );
         const netPay = Math.max(0, grossEarnings - totalDeductions);
 
         const refNum = `PAY-${selectedMonth.replace('-', '')}-${emp.id.substring(0, 6).toUpperCase()}`;
@@ -329,6 +446,12 @@ export default function PayslipsPage() {
           advances,
           penalties,
           latenessDeductions,
+          lateDaysCount,
+          totalLateMinutes: Math.round(totalLateMinutes),
+          lateDetailsList,
+          absenceDeductions,
+          absentDaysCount,
+          absentDatesList,
           incomeTax,
           socialInsurance,
           healthInsurance,
@@ -650,13 +773,48 @@ export default function PayslipsPage() {
                       </span>
                     </div>
 
-                    <div className="flex justify-between p-3">
-                      <span className="text-slate-600 dark:text-slate-400">
-                        {isRtl ? 'خصومات التأخير وعجز الساعات' : 'Lateness & Work Shortage'}
-                      </span>
-                      <span className="font-extrabold font-sans text-slate-900 dark:text-white">
-                        {Math.round(payslip.latenessDeductions).toLocaleString()} EGP
-                      </span>
+                    {/* Absence Deductions */}
+                    <div className="p-3 space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-slate-600 dark:text-slate-400">
+                          {isRtl
+                            ? `خصم أيام الغياب بدون إذن (${payslip.absentDaysCount || 0} يوم)`
+                            : `Unexcused Absence (${payslip.absentDaysCount || 0} days)`}
+                        </span>
+                        <span className={`font-extrabold font-sans ${(payslip.absenceDeductions || 0) > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'}`}>
+                          {Math.round(payslip.absenceDeductions || 0).toLocaleString()} EGP
+                        </span>
+                      </div>
+                      {payslip.absentDatesList && payslip.absentDatesList.length > 0 && (
+                        <div className="p-1.5 rounded-lg bg-rose-50/80 dark:bg-rose-950/20 text-[10px] text-rose-700 dark:text-rose-300">
+                          <span className="font-bold">{isRtl ? 'تواريخ الغياب: ' : 'Dates: '}</span>
+                          <span className="font-mono">{payslip.absentDatesList.join(', ')}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Lateness Deductions */}
+                    <div className="p-3 space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-slate-600 dark:text-slate-400">
+                          {isRtl
+                            ? `خصومات التأخير وعجز الساعات (${payslip.lateDaysCount || 0} يوم / ${payslip.totalLateMinutes || 0} دقيقة)`
+                            : `Lateness & Work Shortage (${payslip.lateDaysCount || 0} days / ${payslip.totalLateMinutes || 0}m)`}
+                        </span>
+                        <span className={`font-extrabold font-sans ${(payslip.latenessDeductions || 0) > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'}`}>
+                          {Math.round(payslip.latenessDeductions).toLocaleString()} EGP
+                        </span>
+                      </div>
+                      {payslip.lateDetailsList && payslip.lateDetailsList.length > 0 && (
+                        <div className="p-1.5 rounded-lg bg-amber-50/80 dark:bg-amber-950/20 text-[10px] text-amber-800 dark:text-amber-300 space-y-0.5">
+                          {payslip.lateDetailsList.map((item, idx) => (
+                            <div key={idx} className="flex justify-between font-mono">
+                              <span>{item.date} ({item.delayMins} min)</span>
+                              <span>-{item.deduction} EGP</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     {payslip.incomeTax > 0 && (

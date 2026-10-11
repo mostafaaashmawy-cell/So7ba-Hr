@@ -85,6 +85,12 @@ interface PayslipData {
   penalties: number;
   advances: number;
   latenessDeductions: number;
+  lateDaysCount: number;
+  totalLateMinutes: number;
+  lateDetailsList: Array<{ date: string; delayMins: number; deduction: number }>;
+  absenceDeductions: number;
+  absentDaysCount: number;
+  absentDatesList: string[];
   incomeTax: number;
   socialInsurance: number;
   healthInsurance: number;
@@ -479,6 +485,8 @@ export default function PayrollPage() {
       const hourlyRate = dailyRate > 0 && requiredHours > 0 ? dailyRate / requiredHours : 0;
 
       let latenessDeductions = 0;
+      let totalLateMinutes = 0;
+      const lateDetailsList: Array<{ date: string; delayMins: number; deduction: number }> = [];
       const gracePeriod = Number(settings?.grace_period_mins ?? 15);
       const latenessMode = settings?.lateness_mode || 'tiered';
 
@@ -493,7 +501,14 @@ export default function PayrollPage() {
                 const shortageMins = requiredMinutes - workedMinutes;
                 if (shortageMins > gracePeriod) {
                   const shortageHours = shortageMins / 60;
-                  latenessDeductions += shortageHours * hourlyRate;
+                  const dayDeduction = shortageHours * hourlyRate;
+                  latenessDeductions += dayDeduction;
+                  totalLateMinutes += shortageMins;
+                  lateDetailsList.push({
+                    date: c.date || (c.check_in_time ? c.check_in_time.slice(0, 10) : 'Day'),
+                    delayMins: shortageMins,
+                    deduction: Math.round(dayDeduction),
+                  });
                 }
               }
             }
@@ -523,11 +538,13 @@ export default function PayrollPage() {
               );
 
               if (delayMins > gracePeriod) {
+                totalLateMinutes += (delayMins - gracePeriod);
+                let dayDeduction = 0;
                 if (latenessMode === 'percentage_per_minute') {
                   const extraMins = delayMins - gracePeriod;
                   const rate = Number(settings?.minute_deduction_rate ?? 0.005);
                   const deductionPct = Math.min(1.0, extraMins * rate);
-                  latenessDeductions += deductionPct * dailyRate;
+                  dayDeduction = deductionPct * dailyRate;
                 } else if (settings?.lateness_policy?.thresholds) {
                   let maxDeductionPct = 0;
                   settings.lateness_policy.thresholds.forEach(
@@ -537,15 +554,92 @@ export default function PayrollPage() {
                       }
                     }
                   );
-                  latenessDeductions += maxDeductionPct * dailyRate;
+                  dayDeduction = maxDeductionPct * dailyRate;
+                } else {
+                  dayDeduction = (delayMins / 60) * hourlyRate;
                 }
+                latenessDeductions += dayDeduction;
+                lateDetailsList.push({
+                  date: c.date || (c.check_in_time ? c.check_in_time.slice(0, 10) : 'Day'),
+                  delayMins,
+                  deduction: Math.round(dayDeduction),
+                });
               }
             }
           });
         }
       }
 
+      const lateDaysCount = lateDetailsList.length;
       latenessDeductions = Math.round(latenessDeductions);
+
+      // 4b. Fetch Approved Leaves & Compute Unexcused Absence Days
+      const { data: approvedLeaves } = await supabase
+        .from('leaves')
+        .select('start_date, end_date, type')
+        .eq('tenant_id', currentUser.tenant_id)
+        .eq('user_id', emp.id)
+        .eq('status', 'approved')
+        .lte('start_date', endStr)
+        .gte('end_date', startStr);
+
+      const todayCairoStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' });
+      // Only evaluate past and current days up to today
+      const evalEndDate = endStr < todayCairoStr ? endStr : todayCairoStr;
+
+      const scheduledWorkDays: string[] = (
+        emp.custom_schedule_enabled && emp.custom_work_days && emp.custom_work_days.length > 0
+          ? emp.custom_work_days
+          : emp.shift?.work_days && emp.shift.work_days.length > 0
+          ? emp.shift.work_days
+          : settings?.work_days && settings.work_days.length > 0
+          ? settings.work_days
+          : ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday']
+      );
+
+      const attendedDatesSet = new Set<string>();
+      if (checkins) {
+        checkins.forEach((c) => {
+          if (c.date) attendedDatesSet.add(c.date);
+          else if (c.check_in_time) {
+            attendedDatesSet.add(c.check_in_time.slice(0, 10));
+          }
+        });
+      }
+
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const absentDatesList: string[] = [];
+
+      const [startYear, startMonthNum, startDayNum] = startStr.split('-').map(Number);
+      const [evalYear, evalMonthNum, evalDayNum] = evalEndDate.split('-').map(Number);
+      const curDate = new Date(startYear, startMonthNum - 1, startDayNum);
+      const stopDate = new Date(evalYear, evalMonthNum - 1, evalDayNum);
+
+      while (curDate <= stopDate) {
+        const y = curDate.getFullYear();
+        const m = String(curDate.getMonth() + 1).padStart(2, '0');
+        const d = String(curDate.getDate()).padStart(2, '0');
+        const dateIsoStr = `${y}-${m}-${d}`;
+        const dayName = dayNames[curDate.getDay()];
+
+        const isEmployed = (!emp.hire_date || emp.hire_date <= dateIsoStr) &&
+                           (!emp.contract_end_date || emp.contract_end_date >= dateIsoStr);
+        const isWorkDay = scheduledWorkDays.includes(dayName);
+
+        if (isEmployed && isWorkDay) {
+          const hasLeave = approvedLeaves?.some((l) => l.start_date <= dateIsoStr && dateIsoStr <= l.end_date);
+          const hasAttended = attendedDatesSet.has(dateIsoStr);
+
+          if (!hasLeave && !hasAttended) {
+            absentDatesList.push(dateIsoStr);
+          }
+        }
+
+        curDate.setDate(curDate.getDate() + 1);
+      }
+
+      const absentDaysCount = absentDatesList.length;
+      const absenceDeductions = Math.round(absentDaysCount * dailyRate);
 
       // 5. Calculate Overtime if enabled
       let overtimePay = 0;
@@ -618,8 +712,9 @@ export default function PayrollPage() {
       }
 
       // Final calculations without NaN propagation
-      const totalDeductions =
-        penalties + totalAdvances + latenessDeductions + socialIns + healthIns + incomeTax;
+      const totalDeductions = Math.round(
+        penalties + totalAdvances + latenessDeductions + absenceDeductions + socialIns + healthIns + incomeTax
+      );
       const netPay = Math.max(0, grossEarnings - totalDeductions);
 
       setPayslipData({
@@ -648,6 +743,12 @@ export default function PayrollPage() {
         penalties: Math.round(penalties),
         advances: Math.round(totalAdvances),
         latenessDeductions,
+        lateDaysCount,
+        totalLateMinutes: Math.round(totalLateMinutes),
+        lateDetailsList,
+        absenceDeductions,
+        absentDaysCount,
+        absentDatesList,
         incomeTax,
         socialInsurance: Math.round(socialIns),
         healthInsurance: Math.round(healthIns),
@@ -1055,11 +1156,49 @@ export default function PayrollPage() {
                       {payslipData.penalties.toLocaleString()} EGP
                     </span>
                   </div>
-                  <div className="flex justify-between text-xs text-slate-800 dark:text-slate-200">
-                    <span>{isRtl ? 'خصم التأخير التلقائي:' : 'Lateness Deductions:'}</span>
-                    <span className="font-bold font-sans">
-                      {payslipData.latenessDeductions.toLocaleString()} EGP
-                    </span>
+                  {/* Absence Deductions */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs text-slate-800 dark:text-slate-200">
+                      <span>
+                        {isRtl
+                          ? `خصم أيام الغياب بدون إذن (${payslipData.absentDaysCount || 0} يوم):`
+                          : `Unexcused Absence (${payslipData.absentDaysCount || 0} days):`}
+                      </span>
+                      <span className={`font-bold font-sans ${payslipData.absenceDeductions > 0 ? 'text-rose-600 dark:text-rose-400' : ''}`}>
+                        {payslipData.absenceDeductions > 0 ? `-${payslipData.absenceDeductions.toLocaleString()}` : '0'} EGP
+                      </span>
+                    </div>
+                    {payslipData.absentDatesList && payslipData.absentDatesList.length > 0 && (
+                      <div className="p-2 rounded-lg bg-rose-50/80 dark:bg-rose-950/20 border border-rose-200/60 dark:border-rose-900/40 text-[10px] text-rose-700 dark:text-rose-300">
+                        <span className="font-bold">{isRtl ? 'أيام الغياب المسجلة:' : 'Absent Dates:'} </span>
+                        <span className="font-mono">{payslipData.absentDatesList.join(', ')}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Lateness Deductions */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs text-slate-800 dark:text-slate-200">
+                      <span>
+                        {isRtl
+                          ? `خصم التأخير التلقائي (${payslipData.lateDaysCount || 0} يوم / ${payslipData.totalLateMinutes || 0} دقيقة):`
+                          : `Lateness Deductions (${payslipData.lateDaysCount || 0} days / ${payslipData.totalLateMinutes || 0}m):`}
+                      </span>
+                      <span className={`font-bold font-sans ${payslipData.latenessDeductions > 0 ? 'text-rose-600 dark:text-rose-400' : ''}`}>
+                        {payslipData.latenessDeductions > 0 ? `-${payslipData.latenessDeductions.toLocaleString()}` : '0'} EGP
+                      </span>
+                    </div>
+                    {payslipData.lateDetailsList && payslipData.lateDetailsList.length > 0 && (
+                      <div className="p-2 rounded-lg bg-amber-50/80 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 text-[10px] text-amber-800 dark:text-amber-300 space-y-0.5">
+                        <span className="font-bold block">{isRtl ? 'تفاصيل أيام التأخير المسجلة:' : 'Lateness Breakdown:'}</span>
+                        {payslipData.lateDetailsList.map((item, idx) => (
+                          <div key={idx} className="flex justify-between font-mono">
+                            <span>{item.date} ({item.delayMins} {isRtl ? 'دقيقة تأخير' : 'mins late'})</span>
+                            <span>-{item.deduction} EGP</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   {payslipData.incomeTax > 0 && (
                     <div className="flex justify-between text-xs text-slate-800 dark:text-slate-200">

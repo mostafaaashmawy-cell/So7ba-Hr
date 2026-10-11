@@ -34,3 +34,10 @@ yarn-error.log*
 
 # Separate Landing Page Project Repository
 Landing page/
+
+# Scratch & test automation scripts
+scripts/test*
+scripts/debug*
+scripts/inspect*
+scripts/capture*
+scripts/test_screens/
