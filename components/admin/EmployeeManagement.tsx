@@ -364,20 +364,36 @@ export default function EmployeeManagement({
 
   // Add Department
   const handleAddDept = async () => {
-    if (!newDeptName.trim()) return;
+    const trimmed = newDeptName.trim();
+    if (!trimmed) return;
+
+    if (departments.some((d) => d.name.toLowerCase() === trimmed.toLowerCase())) {
+      setMsg({ text: isRtl ? 'هذا القسم موجود بالفعل مسبقاً.' : 'This department already exists.', error: true });
+      return;
+    }
+
     setLoading(true);
     const { data: { user: currentAuth } } = await supabase.auth.getUser();
-    const tenantId = users[0]?.tenant_id;
+    let tenantId = users[0]?.tenant_id;
+    if (!tenantId && currentAuth) {
+      const { data: profile } = await supabase.from('users').select('tenant_id').eq('id', currentAuth.id).single();
+      tenantId = profile?.tenant_id;
+    }
+
     const { data, error } = await supabase
       .from('departments')
       .insert({
-        name: newDeptName.trim(),
+        name: trimmed,
         tenant_id: tenantId || undefined,
       })
       .select()
       .single();
     if (error) {
-      setMsg({ text: error.message, error: true });
+      if (error.code === '23505' || error.message.includes('unique constraint')) {
+        setMsg({ text: isRtl ? 'هذا القسم موجود بالفعل.' : 'This department already exists.', error: true });
+      } else {
+        setMsg({ text: error.message, error: true });
+      }
     } else if (data) {
       setDepartments([...departments, data]);
       setNewDeptName('');
@@ -413,19 +429,34 @@ export default function EmployeeManagement({
 
   // Add KPI Unit
   const handleAddKpiUnit = async () => {
-    if (!newUnitName.trim()) return;
+    const trimmed = newUnitName.trim();
+    if (!trimmed) return;
+
+    // Check if unit already exists (case-insensitive)
+    if (kpiUnits.some((u) => u.name.toLowerCase() === trimmed.toLowerCase())) {
+      setMsg({
+        text: isRtl ? 'وحدة القياس هذه موجودة بالفعل مسبقاً.' : 'This KPI unit already exists.',
+        error: true,
+      });
+      return;
+    }
+
     setLoading(true);
-    const tenantId = users[0]?.tenant_id;
+    const tenantId = currentAuth?.tenant_id || users[0]?.tenant_id;
     const { data, error } = await supabase
       .from('kpi_units')
       .insert({
-        name: newUnitName.trim(),
-        tenant_id: tenantId || undefined,
+        name: trimmed,
+        tenant_id: tenantId || null,
       })
       .select()
       .single();
     if (error) {
-      setMsg({ text: error.message, error: true });
+      if (error.code === '23505' || error.message.includes('unique constraint')) {
+        setMsg({ text: isRtl ? 'وحدة القياس هذه مسجلة بالفعل.' : 'This KPI unit already exists.', error: true });
+      } else {
+        setMsg({ text: error.message, error: true });
+      }
     } else if (data) {
       setKpiUnits([...kpiUnits, data]);
       setNewUnitName('');
@@ -436,6 +467,15 @@ export default function EmployeeManagement({
 
   // Delete KPI Unit
   const handleDeleteKpiUnit = async (id: string) => {
+    const unitToDelete = kpiUnits.find((u) => u.id === id);
+    if (!unitToDelete?.tenant_id) {
+      setMsg({
+        text: isRtl ? 'لا يمكن حذف وحدات القياس الافتراضية للنظام.' : 'Cannot delete default system KPI units.',
+        error: true,
+      });
+      return;
+    }
+
     if (!confirm(isRtl ? 'هل أنت متأكد من حذف وحدة القياس؟' : 'Are you sure you want to delete this KPI Unit?')) return;
     setLoading(true);
     const { error } = await supabase.from('kpi_units').delete().eq('id', id);
@@ -902,15 +942,27 @@ export default function EmployeeManagement({
                   <div className="w-8 h-8 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 font-bold flex items-center justify-center text-xs">
                     <Target className="w-4 h-4" />
                   </div>
-                  <span className="font-bold text-xs text-slate-900 dark:text-slate-100">{unit.name}</span>
+                  <div>
+                    <span className="font-bold text-xs text-slate-900 dark:text-slate-100 block">{unit.name}</span>
+                    {!unit.tenant_id && (
+                      <span className="text-[10px] text-slate-400 font-semibold">{isRtl ? 'افتراضي للنظام' : 'System Default'}</span>
+                    )}
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleDeleteKpiUnit(unit.id)}
-                  className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                {unit.tenant_id ? (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteKpiUnit(unit.id)}
+                    className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                    title={isRtl ? 'حذف الوحدة' : 'Delete unit'}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <span className="text-[10px] text-slate-400 bg-slate-200/50 dark:bg-slate-700/50 px-2 py-0.5 rounded-full font-medium">
+                    {isRtl ? 'ثابت' : 'Core'}
+                  </span>
+                )}
               </div>
             ))}
           </div>

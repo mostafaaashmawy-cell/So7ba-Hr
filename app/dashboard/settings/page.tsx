@@ -27,6 +27,7 @@ import {
   ArrowLeftRight,
   TrendingUp,
   Building2,
+  Calendar,
 } from 'lucide-react';
 import { useLanguage } from '@/lib/context/LanguageContext';
 import { logAuditAction } from '@/lib/utils/auditLogger';
@@ -293,6 +294,8 @@ export default function SettingsHubPage() {
 
         if (tenantData?.logo_url) {
           setCompanyLogoUrl(tenantData.logo_url);
+        } else if ((settings as any)?.logo_url) {
+          setCompanyLogoUrl((settings as any).logo_url);
         }
 
         // Fetch Shifts
@@ -555,6 +558,7 @@ export default function SettingsHubPage() {
         { mins: Number(lateTier2Mins || 30), deduction: Number(lateTier2Deduction ?? 0.5) },
         { mins: Number(lateTier3Mins || 60), deduction: Number(lateTier3Deduction ?? 1.0) },
       ],
+      logo_url: companyLogoUrl.trim() || null,
       updated_at: new Date().toISOString(),
     };
 
@@ -1892,7 +1896,18 @@ export default function SettingsHubPage() {
                                 .getPublicUrl(fileName);
 
                               setCompanyLogoUrl(publicData.publicUrl);
-                              setMsg({ text: isRtl ? 'تم رفع الشعار بنجاح! اضغط حفظ التعديلات لتأكيد الحفظ.' : 'Logo uploaded successfully! Click Save to apply.', error: false });
+
+                              // Immediately persist logo to database
+                              await supabase
+                                .from('tenants')
+                                .update({ logo_url: publicData.publicUrl })
+                                .eq('id', currentUser.tenant_id);
+                              await supabase
+                                .from('tenant_settings')
+                                .update({ logo_url: publicData.publicUrl })
+                                .eq('tenant_id', currentUser.tenant_id);
+
+                              setMsg({ text: isRtl ? 'تم رفع وحفظ الشعار بنجاح!' : 'Logo uploaded and saved successfully!', error: false });
                             } catch (err: unknown) {
                               const errTxt = err instanceof Error ? err.message : 'Logo upload failed';
                               setMsg({ text: errTxt, error: true });
@@ -1906,7 +1921,14 @@ export default function SettingsHubPage() {
                       {companyLogoUrl && (
                         <button
                           type="button"
-                          onClick={() => setCompanyLogoUrl('')}
+                          onClick={async () => {
+                            setCompanyLogoUrl('');
+                            if (currentUser?.tenant_id) {
+                              await supabase.from('tenants').update({ logo_url: null }).eq('id', currentUser.tenant_id);
+                              await supabase.from('tenant_settings').update({ logo_url: null }).eq('tenant_id', currentUser.tenant_id);
+                            }
+                            setMsg({ text: isRtl ? 'تمت إزالة الشعار بنجاح.' : 'Logo removed successfully.', error: false });
+                          }}
                           className="px-3.5 py-2 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 text-xs font-bold hover:bg-rose-100 transition-colors cursor-pointer"
                         >
                           {isRtl ? 'إزالة الشعار' : 'Remove Logo'}

@@ -99,6 +99,7 @@ export interface TenantSettings {
   leave_approval_mode?: 'auto_approve' | 'hierarchical';
   payroll_cycle_start_day?: number; // e.g. 1 (1st to end of month) or 26 (26th to 25th)
   payroll_cycle_type?: 'calendar_month' | 'custom_cutoff';
+  logo_url?: string | null;
 }
 
 export type AdjustmentType = 'bonus' | 'penalty' | 'deduction' | 'holiday_comp' | 'other';
