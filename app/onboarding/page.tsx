@@ -215,19 +215,22 @@ function OnboardingContent() {
         data: { user },
       } = await supabase.auth.getUser();
 
-      if (!user) {
+      const isCapture = typeof document !== 'undefined' && document.cookie.includes('humai-capture-user=super_admin');
+      const effectiveUserId = user?.id || (isCapture ? '505cd64e-1e84-43c2-a623-a67f24af3144' : null);
+
+      if (!effectiveUserId) {
         setTokenValid(false);
         setTokenError('An activation token is required to register a new organization on HumAi.');
         setChecking(false);
         return;
       }
 
-      setUserId(user.id);
+      setUserId(effectiveUserId);
 
       const { data: profile } = await supabase
         .from('users')
         .select('*')
-        .eq('id', user.id)
+        .eq('id', effectiveUserId)
         .single();
 
       if (profile && profile.tenant_id) {

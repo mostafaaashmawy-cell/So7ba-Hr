@@ -30,6 +30,8 @@ import HumAiLogo from '@/components/common/HumAiLogo';
 import {
   calculateWorkingMinutes,
   calculateShiftLatenessMinutes,
+  formatDate,
+  getPayrollCycleForMonth,
 } from '@/lib/utils/dateUtils';
 
 interface PayslipSummary {
@@ -130,10 +132,19 @@ export default function PayslipsPage() {
         const lastDay = new Date(y, m, 0).getDate();
         const endStr = `${selectedMonth}-${String(lastDay).padStart(2, '0')}`;
 
-        // Cairo Payroll Cycle notation (26th prev month to 25th current month)
-        const prevMonthDate = new Date(y, m - 2, 26);
-        const currCycleEnd = new Date(y, m - 1, 25);
-        const cyclePeriod = `${prevMonthDate.toLocaleDateString(isRtl ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short' })} - ${currCycleEnd.toLocaleDateString(isRtl ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+        // Cycle calculation based on payroll cycle start day
+        const { data: tenantSettings } = await supabase
+          .from('tenant_settings')
+          .select('*')
+          .eq('tenant_id', currentUser!.tenant_id)
+          .maybeSingle();
+
+        const settings: TenantSettings | null =
+          (tenantSettings as TenantSettings) || globalSettings;
+
+        const cycleCutoff = Number(settings?.payroll_cycle_start_day ?? 1);
+        const cycleInfo = getPayrollCycleForMonth(selectedMonth, cycleCutoff);
+        const cyclePeriod = `${formatDate(cycleInfo.startStr)} - ${formatDate(cycleInfo.endStr)}`;
 
         // Check if an official approved payroll record already exists in database
         const { data: savedRecord } = await supabase
@@ -189,22 +200,12 @@ export default function PayslipsPage() {
           return;
         }
 
-        // Fetch Tenant Settings
-        const { data: tenantSettings } = await supabase
-          .from('tenant_settings')
-          .select('*')
-          .eq('tenant_id', currentUser!.tenant_id)
-          .maybeSingle();
-
-        const settings: TenantSettings | null =
-          (tenantSettings as TenantSettings) || globalSettings;
-
         // 1. Sales & Commissions
         let commissions = 0;
         if (settings?.enable_commissions !== false) {
           const { data: sales } = await supabase
             .from('sales_logs')
-            .select('amount, commission_rate')
+            .select('amount')
             .eq('tenant_id', currentUser!.tenant_id)
             .eq('user_id', emp.id)
             .eq('status', 'approved')
@@ -258,7 +259,39 @@ export default function PayslipsPage() {
           }
         }
 
-        // 4. Attendance & Shift Lateness Deductions
+        // 4. Basic Salary, Proration & Rates
+        const fullBasicSalary = Number(emp.basic_salary ?? 0);
+        let basicSalary = fullBasicSalary;
+        let isProrated = false;
+        let proratedDays = lastDay;
+
+        if (emp.hire_date && emp.hire_date > startStr) {
+          const hireD = new Date(emp.hire_date);
+          const activeDays = Math.max(1, lastDay - hireD.getDate() + 1);
+          basicSalary = Math.round((activeDays / lastDay) * fullBasicSalary);
+          isProrated = true;
+          proratedDays = activeDays;
+        } else if (emp.contract_end_date && emp.contract_end_date < endStr && emp.contract_end_date >= startStr) {
+          const endD = new Date(emp.contract_end_date);
+          const activeDays = Math.max(1, endD.getDate());
+          basicSalary = Math.round((activeDays / lastDay) * fullBasicSalary);
+          isProrated = true;
+          proratedDays = activeDays;
+        }
+
+        const dailyRate = fullBasicSalary > 0 ? fullBasicSalary / 30 : 0;
+        const requiredHours = Number(emp.required_daily_hours ?? 8);
+        const hourlyRate = dailyRate > 0 && requiredHours > 0 ? dailyRate / requiredHours : 0;
+
+        // 5. Attendance & Shift Lateness Deductions
+        const { data: checkins } = await supabase
+          .from('attendance')
+          .select('*')
+          .eq('tenant_id', currentUser!.tenant_id)
+          .eq('user_id', emp.id)
+          .gte('date', startStr)
+          .lte('date', endStr);
+
         let latenessDeductions = 0;
         let totalLateMinutes = 0;
         const lateDetailsList: Array<{ date: string; delayMins: number; deduction: number }> = [];
@@ -402,8 +435,16 @@ export default function PayslipsPage() {
 
         // 6. Overtime Calculation
         let overtime = 0;
-        if (settings?.enable_overtime) {
-          overtime = 0;
+        if (settings?.enable_overtime !== false && checkins && hourlyRate > 0) {
+          const overtimeMultiplier = Number(settings?.overtime_rate_multiplier ?? 1.5);
+          checkins.forEach((c) => {
+            const extraMins = Number(c.overtime_minutes ?? 0);
+            if (extraMins > 0) {
+              const extraHours = extraMins / 60;
+              overtime += extraHours * (hourlyRate * overtimeMultiplier);
+            }
+          });
+          overtime = Math.round(overtime);
         }
 
         // 7. Night Shift Allowance

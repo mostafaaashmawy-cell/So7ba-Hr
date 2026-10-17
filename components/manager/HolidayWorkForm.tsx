@@ -59,9 +59,13 @@ export default function HolidayWorkForm({ teamMembers, currentUserId, isSuperAdm
     setLoading(true);
     setMsg(null);
 
+    const targetMember = teamMembers.find((m) => m.id === selectedEmployee);
+    const targetTenantId = targetMember?.tenant_id || teamMembers[0]?.tenant_id;
+
     const { data, error } = await supabase
       .from('holiday_work')
       .insert({
+        tenant_id: targetTenantId,
         user_id: selectedEmployee,
         working_date: workingDate,
         notes: notes.trim() || null,

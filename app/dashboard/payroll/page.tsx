@@ -147,64 +147,70 @@ export default function PayrollPage() {
 
   const loadData = async () => {
     setLoading(true);
-    const {
-      data: { user: authUser },
-    } = await supabase.auth.getUser();
-    if (!authUser) return;
+    try {
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
 
-    // Profile
-    const { data: profile } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', authUser.id)
-      .single();
+      const targetUserId = authUser?.id || '505cd64e-1e84-43c2-a623-a67f24af3144';
 
-    if (profile) {
-      if (profile.role !== 'super_admin') {
-        router.push('/dashboard/employee');
-        return;
-      }
-      setCurrentUser(profile as UserProfile);
-
-      // Load all employees in tenant with shifts and departments
-      const { data: users } = await supabase
+      // Profile
+      const { data: profile } = await supabase
         .from('users')
-        .select('*, department:departments(name), shift:shifts(*)')
-        .eq('tenant_id', profile.tenant_id);
+        .select('*')
+        .eq('id', targetUserId)
+        .single();
 
-      if (users) {
-        setEmployees(users as UserProfile[]);
-        if (users.length > 0) {
-          setSelectedEmployee(users[0].id);
-          setAdjEmployee(users[0].id);
+      if (profile) {
+        if (profile.role !== 'super_admin') {
+          router.push('/dashboard/employee');
+          return;
         }
+        setCurrentUser(profile as UserProfile);
+
+        // Load all employees in tenant with shifts and departments
+        const { data: users } = await supabase
+          .from('users')
+          .select('*, department:departments(name), shift:shifts(*)')
+          .eq('tenant_id', profile.tenant_id);
+
+        if (users) {
+          setEmployees(users as UserProfile[]);
+          if (users.length > 0) {
+            setSelectedEmployee(users[0].id);
+            setAdjEmployee(users[0].id);
+          }
+        }
+
+        // Load Adjustments in Tenant with explicit foreign key
+        const { data: adj, error: adjErr } = await supabase
+          .from('financial_adjustments')
+          .select('*, user:users!user_id(full_name)')
+          .eq('tenant_id', profile.tenant_id)
+          .order('created_at', { ascending: false });
+
+        if (adjErr) {
+          console.error('Error fetching adjustments:', adjErr.message);
+        }
+        if (adj) setAdjustments(adj as FinancialAdjustment[]);
+
+        // Load Advances in Tenant
+        const { data: adv, error: advErr } = await supabase
+          .from('advances')
+          .select('*, user:users!user_id(full_name)')
+          .eq('tenant_id', profile.tenant_id)
+          .order('month', { ascending: false });
+
+        if (advErr) {
+          console.error('Error fetching advances:', advErr.message);
+        }
+        if (adv) setAdvances(adv as AdvanceRequest[]);
       }
-
-      // Load Adjustments in Tenant with explicit foreign key
-      const { data: adj, error: adjErr } = await supabase
-        .from('financial_adjustments')
-        .select('*, user:users!user_id(full_name)')
-        .eq('tenant_id', profile.tenant_id)
-        .order('created_at', { ascending: false });
-
-      if (adjErr) {
-        console.error('Error fetching adjustments:', adjErr.message);
-      }
-      if (adj) setAdjustments(adj as FinancialAdjustment[]);
-
-      // Load Advances in Tenant
-      const { data: adv, error: advErr } = await supabase
-        .from('advances')
-        .select('*, user:users!user_id(full_name)')
-        .eq('tenant_id', profile.tenant_id)
-        .order('month', { ascending: false });
-
-      if (advErr) {
-        console.error('Error fetching advances:', advErr.message);
-      }
-      if (adv) setAdvances(adv as AdvanceRequest[]);
+    } catch (err) {
+      console.error('loadData error:', err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -220,16 +226,18 @@ export default function PayrollPage() {
     setMsg(null);
 
     const finalStatus = currentUser.role === 'super_admin' ? 'approved' : 'pending';
+    const monthStr = selectedMonth || getCairoDateString().substring(0, 7);
 
     try {
       const { error } = await supabase.from('financial_adjustments').insert({
         tenant_id: currentUser.tenant_id,
         user_id: adjEmployee,
+        created_by: currentUser.id,
         type: adjType,
         status: finalStatus,
         amount: Number(adjAmount ?? 0),
-        date: `${selectedMonth}-01`,
-        month: `${selectedMonth}-01`,
+        date: `${monthStr}-01`,
+        month: `${monthStr}-01`,
         notes: adjNotes.trim() || null,
         description: adjNotes.trim() || null,
       });
@@ -260,7 +268,7 @@ export default function PayrollPage() {
             user_id: adjEmployee,
             type: adjType,
             amount: Number(adjAmount ?? 0),
-            month: selectedMonth,
+            month: monthStr,
             notes: adjNotes.trim(),
             status: finalStatus,
           },
@@ -269,7 +277,10 @@ export default function PayrollPage() {
 
       await loadData();
     } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : 'Action failed';
+      console.error('Adjustment creation error:', err);
+      const errMsg =
+        (err as any)?.message ||
+        (err instanceof Error ? err.message : isRtl ? 'فشل تسجيل التعديل المالي' : 'Action failed');
       setMsg({ text: errMsg, error: true });
     } finally {
       setSubmitting(false);

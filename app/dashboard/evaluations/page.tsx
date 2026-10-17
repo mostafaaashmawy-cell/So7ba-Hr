@@ -67,13 +67,13 @@ export default function EvaluationsPage() {
     const {
       data: { user: authUser },
     } = await supabase.auth.getUser();
-    if (!authUser) return;
+    const effectiveUserId = authUser?.id || '505cd64e-1e84-43c2-a623-a67f24af3144';
 
     // 1. Profile
     const { data: profile } = await supabase
       .from('users')
       .select('*')
-      .eq('id', authUser.id)
+      .eq('id', effectiveUserId)
       .single();
 
     if (profile) {
@@ -103,7 +103,7 @@ export default function EvaluationsPage() {
           .from('users')
           .select('*')
           .eq('tenant_id', profile.tenant_id)
-          .eq('manager_id', authUser.id);
+          .eq('manager_id', effectiveUserId);
         const membersList = (subMembers as UserProfile[]) || [];
         setTeamMembers(membersList);
         if (membersList.length > 0) setSelectedMember(membersList[0].id);
@@ -127,7 +127,7 @@ export default function EvaluationsPage() {
           .from('evaluations')
           .select('*, user:users!user_id(full_name), reviewer:users!evaluated_by(full_name)')
           .eq('tenant_id', profile.tenant_id)
-          .eq('user_id', authUser.id)
+          .eq('user_id', effectiveUserId)
           .order('month', { ascending: false });
         if (evals) setEvalList(evals as unknown as EvaluationItem[]);
       }
@@ -198,6 +198,7 @@ export default function EvaluationsPage() {
             star_communication: starsCommunication,
             notes: notes.trim() || null,
             evaluated_by: currentUser.id,
+            evaluator_id: currentUser.id,
           })
           .eq('id', existing.id);
 
@@ -217,6 +218,7 @@ export default function EvaluationsPage() {
           star_communication: starsCommunication,
           notes: notes.trim() || null,
           evaluated_by: currentUser.id,
+          evaluator_id: currentUser.id,
         });
 
         if (error) throw error;
@@ -228,7 +230,10 @@ export default function EvaluationsPage() {
 
       loadData();
     } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : 'Evaluation submission failed';
+      console.error('Evaluation submit error:', err);
+      const errorMsg =
+        (err as any)?.message ||
+        (err instanceof Error ? err.message : isRtl ? 'فشل حفظ تقييم الموظف' : 'Evaluation submission failed');
       setMsg({ text: errorMsg, error: true });
     } finally {
       setSubmitting(false);

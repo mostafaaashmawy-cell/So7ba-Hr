@@ -40,4 +40,5 @@ scripts/test*
 scripts/debug*
 scripts/inspect*
 scripts/capture*
+scripts/check*
 scripts/test_screens/
