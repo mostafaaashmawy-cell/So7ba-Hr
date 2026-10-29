@@ -112,7 +112,7 @@ export default function AppSidebar({
       {/* ─── Sidebar Panel ──────────────────────────────────────────── */}
       <aside
         className={`
-          app-sidebar fixed top-0 bottom-0 z-40
+          app-sidebar fixed top-0 bottom-16 lg:bottom-0 z-40
           flex flex-col border-r
           transition-all duration-300 ease-in-out
           ${isRtl ? 'right-0 border-l border-r-0' : 'left-0'}
@@ -298,7 +298,10 @@ export default function AppSidebar({
 
         {/* ── User Profile Footer ────────────────────────────────── */}
         {user && (
-          <div className="px-3 py-3 border-t shrink-0 space-y-2.5" style={{ borderColor: 'var(--border)' }}>
+          <div
+            className="px-3 py-3 border-t shrink-0 space-y-2 bg-white/95 dark:bg-slate-900/95"
+            style={{ borderColor: 'var(--border)' }}
+          >
             {isCollapsed ? (
               <div className="flex flex-col items-center gap-2">
                 <div
@@ -337,24 +340,24 @@ export default function AppSidebar({
                       {user.job_title ?? user.role}
                     </div>
                   </div>
-                  {/* Desktop compact sign out button */}
+                  {/* Compact Sign Out button (always visible in profile row) */}
                   <button
                     type="button"
                     onClick={handleSignOut}
-                    className="hidden lg:flex w-8 h-8 rounded-xl items-center justify-center text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 transition-colors cursor-pointer shrink-0"
+                    className="flex w-8 h-8 rounded-xl items-center justify-center text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 transition-colors cursor-pointer shrink-0"
                     title={t('signOut')}
                   >
                     <LogOut className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
-                {/* Mobile Drawer Dedicated Sign Out Button */}
+                {/* Mobile Drawer Dedicated Full-Width Sign Out Button */}
                 <button
                   type="button"
                   onClick={handleSignOut}
-                  className="w-full lg:hidden flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/40 border border-rose-200 dark:border-rose-900/50 transition-all cursor-pointer shadow-xs active:scale-[0.98]"
+                  className="w-full lg:hidden flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 dark:bg-rose-600 dark:hover:bg-rose-700 transition-all cursor-pointer shadow-sm active:scale-[0.98]"
                 >
-                  <LogOut className="w-4 h-4 shrink-0" />
+                  <LogOut className="w-4 h-4 shrink-0 text-white" />
                   <span>{isRtl ? 'تسجيل الخروج' : 'Sign Out'}</span>
                 </button>
               </>

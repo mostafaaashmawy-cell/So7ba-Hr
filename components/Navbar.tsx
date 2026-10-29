@@ -435,7 +435,7 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
       {/* Mobile Bottom Navigation Bar (5-Slot Role-Tailored Thumb-Zone) */}
       {user && user.tenant_id && (
         <div
-          className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t px-2 py-2 flex items-center justify-around backdrop-blur-md bg-white/95 dark:bg-slate-900/95 border-slate-200 dark:border-slate-800 shadow-lg"
+          className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t h-16 px-2 py-2 flex items-center justify-around backdrop-blur-md bg-white/95 dark:bg-slate-900/95 border-slate-200 dark:border-slate-800 shadow-lg"
         >
           {(() => {
             const roleKey = isSuperAdmin ? 'super_admin' : isManager ? 'manager' : 'employee';
