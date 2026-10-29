@@ -130,6 +130,7 @@ export default function PayrollPage() {
   const [adjType, setAdjType] = useState<'bonus' | 'penalty'>('bonus');
   const [adjAmount, setAdjAmount] = useState<number | ''>('');
   const [adjNotes, setAdjNotes] = useState<string>('');
+  const [adjDate, setAdjDate] = useState<string>(() => getCairoDateString());
 
   const [msg, setMsg] = useState<{ text: string; error: boolean } | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -226,7 +227,8 @@ export default function PayrollPage() {
     setMsg(null);
 
     const finalStatus = currentUser.role === 'super_admin' ? 'approved' : 'pending';
-    const monthStr = selectedMonth || getCairoDateString().substring(0, 7);
+    const transactionDate = adjDate || getCairoDateString();
+    const monthStr = transactionDate.substring(0, 7) || selectedMonth || getCairoDateString().substring(0, 7);
 
     try {
       const { error } = await supabase.from('financial_adjustments').insert({
@@ -236,7 +238,7 @@ export default function PayrollPage() {
         type: adjType,
         status: finalStatus,
         amount: Number(adjAmount ?? 0),
-        date: `${monthStr}-01`,
+        date: transactionDate,
         month: `${monthStr}-01`,
         notes: adjNotes.trim() || null,
         description: adjNotes.trim() || null,
@@ -257,6 +259,7 @@ export default function PayrollPage() {
       });
       setAdjAmount('');
       setAdjNotes('');
+      setAdjDate(getCairoDateString());
 
       if (currentUser?.tenant_id) {
         logAuditAction(supabase, {
@@ -1577,7 +1580,7 @@ export default function PayrollPage() {
                     </select>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                       <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">
                         {isRtl ? 'نوع التعديل:' : 'Adjustment Type:'}
@@ -1606,6 +1609,19 @@ export default function PayrollPage() {
                           setAdjAmount(e.target.value === '' ? '' : Number(e.target.value))
                         }
                         className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 focus:outline-none font-sans"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-900 dark:text-slate-200 mb-1">
+                        {isRtl ? 'تاريخ المعاملة:' : 'Transaction Date:'}
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={adjDate}
+                        onChange={(e) => setAdjDate(e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 dark:text-slate-100 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-950 focus:outline-none font-sans cursor-pointer"
                       />
                     </div>
                   </div>

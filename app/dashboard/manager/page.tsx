@@ -54,6 +54,17 @@ export default async function ManagerDashboardPage() {
     redirect('/dashboard/employee');
   }
 
+  // Fetch Tenant Company Info
+  const { data: tenantData } = await supabase
+    .from('tenants')
+    .select('name')
+    .eq('id', manager.tenant_id)
+    .maybeSingle();
+
+  if (tenantData?.name) {
+    manager.tenant_name = tenantData.name;
+  }
+
   // Fetch Tenant Settings to check approval workflow
   const { data: tenantSettings } = await supabase
     .from('tenant_settings')

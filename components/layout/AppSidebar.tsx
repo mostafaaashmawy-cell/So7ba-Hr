@@ -2,16 +2,19 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   ChevronDown,
   ChevronRight,
   PanelLeftClose,
   PanelLeft,
+  LogOut,
+  Building2,
 } from 'lucide-react';
 import { UserProfile } from '@/lib/types/database';
 import { useLanguage } from '@/lib/context/LanguageContext';
 import { useTenantSettings } from '@/lib/context/SettingsContext';
+import { createClient } from '@/lib/supabase/client';
 import { NAV_SECTIONS, MOBILE_NAV_BY_ROLE } from '@/lib/config/navConfig';
 import HumAiLogo from '@/components/common/HumAiLogo';
 import PwaInstallButton from '@/components/common/PwaInstallButton';
@@ -32,9 +35,20 @@ export default function AppSidebar({
   onToggleCollapse,
 }: AppSidebarProps) {
   const pathname = usePathname();
-  const { isRtl } = useLanguage();
-  const { isFeatureEnabled } = useTenantSettings();
+  const router = useRouter();
+  const supabase = createClient();
+  const { isRtl, t } = useLanguage();
+  const { isFeatureEnabled, companyName } = useTenantSettings();
   const [currentHash, setCurrentHash] = useState('');
+
+  const displayCompanyName = user?.tenant_name || companyName || '';
+
+  const handleSignOut = async () => {
+    if (onClose) onClose();
+    await supabase.auth.signOut();
+    router.push('/login');
+    router.refresh();
+  };
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -284,29 +298,66 @@ export default function AppSidebar({
 
         {/* ── User Profile Footer ────────────────────────────────── */}
         {user && (
-          <div className="px-3 py-3 border-t shrink-0" style={{ borderColor: 'var(--border)' }}>
+          <div className="px-3 py-3 border-t shrink-0 space-y-2.5" style={{ borderColor: 'var(--border)' }}>
             {isCollapsed ? (
-              <div
-                className="w-9 h-9 mx-auto rounded-xl flex items-center justify-center text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
-              >
-                {user.full_name?.charAt(0).toUpperCase() ?? 'U'}
-              </div>
-            ) : (
-              <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex flex-col items-center gap-2">
                 <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 border bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                  className="w-9 h-9 mx-auto rounded-xl flex items-center justify-center text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
                 >
                   {user.full_name?.charAt(0).toUpperCase() ?? 'U'}
                 </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-xs font-extrabold truncate text-slate-950 dark:text-white">
-                    {user.full_name ?? 'User'}
-                  </div>
-                  <div className="text-[10px] font-semibold uppercase tracking-wider truncate text-slate-500 dark:text-slate-400">
-                    {user.job_title ?? user.role}
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="w-8 h-8 rounded-xl flex items-center justify-center text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 transition-colors cursor-pointer"
+                  title={t('signOut')}
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
               </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 border bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                  >
+                    {user.full_name?.charAt(0).toUpperCase() ?? 'U'}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-extrabold truncate text-slate-950 dark:text-white">
+                      {user.full_name ?? 'User'}
+                    </div>
+                    {displayCompanyName && (
+                      <div className="text-[10px] font-bold truncate text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-sans">
+                        <Building2 className="w-2.5 h-2.5 shrink-0" />
+                        <span className="truncate">{displayCompanyName}</span>
+                      </div>
+                    )}
+                    <div className="text-[10px] font-semibold uppercase tracking-wider truncate text-slate-500 dark:text-slate-400">
+                      {user.job_title ?? user.role}
+                    </div>
+                  </div>
+                  {/* Desktop compact sign out button */}
+                  <button
+                    type="button"
+                    onClick={handleSignOut}
+                    className="hidden lg:flex w-8 h-8 rounded-xl items-center justify-center text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 transition-colors cursor-pointer shrink-0"
+                    title={t('signOut')}
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {/* Mobile Drawer Dedicated Sign Out Button */}
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="w-full lg:hidden flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/40 border border-rose-200 dark:border-rose-900/50 transition-all cursor-pointer shadow-xs active:scale-[0.98]"
+                >
+                  <LogOut className="w-4 h-4 shrink-0" />
+                  <span>{isRtl ? 'تسجيل الخروج' : 'Sign Out'}</span>
+                </button>
+              </>
             )}
           </div>
         )}

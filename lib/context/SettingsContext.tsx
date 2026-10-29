@@ -6,6 +6,8 @@ import { TenantSettings } from '@/lib/types/database';
 
 interface SettingsContextType {
   settings: TenantSettings | null;
+  companyName: string | null;
+  companyLogo: string | null;
   loading: boolean;
   isFeatureEnabled: (key: keyof TenantSettings | string) => boolean;
   refreshSettings: () => Promise<void>;
@@ -13,6 +15,8 @@ interface SettingsContextType {
 
 const defaultContext: SettingsContextType = {
   settings: null,
+  companyName: null,
+  companyLogo: null,
   loading: true,
   isFeatureEnabled: () => true,
   refreshSettings: async () => {},
@@ -22,6 +26,8 @@ const SettingsContext = createContext<SettingsContextType>(defaultContext);
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<TenantSettings | null>(null);
+  const [companyName, setCompanyName] = useState<string | null>(null);
+  const [companyLogo, setCompanyLogo] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
@@ -34,6 +40,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
       if (!user) {
         setSettings(null);
+        setCompanyName(null);
+        setCompanyLogo(null);
         setLoading(false);
         return;
       }
@@ -46,14 +54,25 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle();
 
       if (profile?.tenant_id) {
-        const { data: tenantSettings } = await supabase
-          .from('tenant_settings')
-          .select('*')
-          .eq('tenant_id', profile.tenant_id)
-          .maybeSingle();
+        const [settingsRes, tenantRes] = await Promise.all([
+          supabase
+            .from('tenant_settings')
+            .select('*')
+            .eq('tenant_id', profile.tenant_id)
+            .maybeSingle(),
+          supabase
+            .from('tenants')
+            .select('id, name, logo_url')
+            .eq('id', profile.tenant_id)
+            .maybeSingle(),
+        ]);
 
-        if (tenantSettings) {
-          setSettings(tenantSettings as TenantSettings);
+        if (settingsRes.data) {
+          setSettings(settingsRes.data as TenantSettings);
+        }
+        if (tenantRes.data) {
+          setCompanyName(tenantRes.data.name || null);
+          setCompanyLogo(tenantRes.data.logo_url || null);
         }
       }
     } catch (err) {
@@ -83,6 +102,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     <SettingsContext.Provider
       value={{
         settings,
+        companyName,
+        companyLogo,
         loading,
         isFeatureEnabled,
         refreshSettings: fetchSettings,

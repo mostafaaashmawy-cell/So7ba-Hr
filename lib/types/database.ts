@@ -171,6 +171,7 @@ export interface UserProfile {
   criminal_record_url?: string | null;
   annual_leave_allowance?: number | null;
   tenant_id?: string | null;
+  tenant_name?: string | null;
 
   // Financials & Payout Channels
   commission_rate?: number | null;

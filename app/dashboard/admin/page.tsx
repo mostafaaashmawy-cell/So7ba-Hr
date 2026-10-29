@@ -115,6 +115,18 @@ export default async function SuperAdminDashboardPage() {
     .eq('tenant_id', admin.tenant_id)
     .maybeSingle();
 
+  // Fetch Tenant Company Info
+  const { data: tenantData } = await supabase
+    .from('tenants')
+    .select('name')
+    .eq('id', admin.tenant_id)
+    .maybeSingle();
+
+  const companyName = tenantData?.name || '';
+  if (companyName) {
+    admin.tenant_name = companyName;
+  }
+
   // Fetch Shifts
   const { data: allShifts } = await supabase
     .from('shifts')
@@ -190,7 +202,7 @@ export default async function SuperAdminDashboardPage() {
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-8 space-y-8">
         {/* Welcome Header */}
-        <AdminWelcomeHeader />
+        <AdminWelcomeHeader adminName={admin.full_name} companyName={companyName} />
 
         {/* Executive Risk & Governance Bar */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -104,13 +104,25 @@ export default async function EmployeeDashboardPage() {
     .eq('tenant_id', user.tenant_id)
     .maybeSingle();
 
+  // Fetch Tenant Company Info
+  const { data: tenantData } = await supabase
+    .from('tenants')
+    .select('name')
+    .eq('id', user.tenant_id)
+    .maybeSingle();
+
+  const companyName = tenantData?.name || '';
+  if (companyName) {
+    user.tenant_name = companyName;
+  }
+
   return (
     <div className="min-h-screen bg-(--bg) text-slate-900 dark:text-slate-100 flex flex-col font-sans pb-16 md:pb-8">
       <Navbar user={user} activeRoleView="employee" />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-8 space-y-8">
         {/* Welcome Header */}
-        <WelcomeHeader fullName={user?.full_name} kpiUnit={user?.kpi_unit || 'tasks'} />
+        <WelcomeHeader fullName={user?.full_name} kpiUnit={user?.kpi_unit || 'tasks'} companyName={companyName} />
 
         {/* EMPLOYEE COMMAND CENTER */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

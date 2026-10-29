@@ -30,6 +30,16 @@ export default async function DashboardRootLayout({
 
     if (profile) {
       userProfile = profile as UserProfile;
+      if (profile.tenant_id) {
+        const { data: tenantData } = await supabase
+          .from('tenants')
+          .select('name')
+          .eq('id', profile.tenant_id)
+          .maybeSingle();
+        if (tenantData?.name) {
+          userProfile.tenant_name = tenantData.name;
+        }
+      }
     }
   }
 

@@ -18,12 +18,14 @@ import {
   Star,
   Sun,
   Moon,
+  Building2,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, usePathname } from 'next/navigation';
 import { useLanguage } from '@/lib/context/LanguageContext';
 import { useTheme } from '@/lib/context/ThemeContext';
 import { useSidebar } from '@/lib/context/SidebarContext';
+import { useTenantSettings } from '@/lib/context/SettingsContext';
 import { generateDynamicNotifications } from '@/lib/utils/notificationHelper';
 import PageGuideModal from '@/components/common/PageGuideModal';
 import HumAiLogo from '@/components/common/HumAiLogo';
@@ -52,6 +54,8 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
   const { language, setLanguage, t, isRtl } = useLanguage();
   const { theme, toggleTheme } = useTheme();
   const { toggleSidebar } = useSidebar();
+  const { companyName } = useTenantSettings();
+  const displayCompanyName = user?.tenant_name || companyName || '';
 
   // Notifications State
   const [notifications, setNotifications] = useState<DBNotification[]>([]);
@@ -394,6 +398,12 @@ export default function Navbar({ user, activeRoleView }: NavbarProps) {
                   <span className="text-xs font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>
                     {user.full_name ?? 'User'}
                   </span>
+                  {displayCompanyName && (
+                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 leading-tight truncate max-w-[150px] flex items-center gap-1 font-sans">
+                      <Building2 className="w-2.5 h-2.5 shrink-0" />
+                      <span className="truncate">{displayCompanyName}</span>
+                    </span>
+                  )}
                   {getRoleBadge(user.role)}
                 </div>
 
