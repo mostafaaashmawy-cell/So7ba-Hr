@@ -76,6 +76,8 @@ function LoginFormContent() {
 
       if (message === 'Invalid login credentials') {
         message = 'البريد الإلكتروني أو كلمة المرور غير صحيحة / Invalid email or password';
+      } else if (message.toLowerCase().includes('email not confirmed')) {
+        message = 'البريد الإلكتروني بانتظار التأكيد أو التفعيل من إدارة النظام / Email not confirmed yet';
       }
       setErrorMsg(message);
     } finally {

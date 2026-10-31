@@ -75,22 +75,6 @@ export default function OperationsHub({
           </Link>
         )}
 
-        {/* 3. Contract Builder */}
-        <Link
-          href="/dashboard/contracts"
-          className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 hover:bg-emerald-50/60 dark:hover:bg-emerald-950/30 border border-slate-200/80 dark:border-slate-700 hover:border-emerald-300 dark:hover:border-emerald-600 transition-all text-center space-y-2 group shadow-2xs"
-        >
-          <div className="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 border border-teal-200 dark:border-teal-800 flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
-            <FileText className="w-5 h-5" />
-          </div>
-          <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">
-            {isRtl ? 'صانع العقود' : 'Contract Builder'}
-          </span>
-          <span className="text-[10px] text-slate-400 block truncate">
-            {isRtl ? 'العقود والاتفاقيات' : 'Agreements & PDF'}
-          </span>
-        </Link>
-
         {/* 4. Sales & Payouts */}
         {enableCommissions && (
           <Link

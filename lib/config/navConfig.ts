@@ -111,13 +111,6 @@ export const NAV_SECTIONS: NavSection[] = [
         roles: ['super_admin', 'manager'],
       },
       {
-        titleEn: 'Contract Builder & PDF',
-        titleAr: 'صانع ومحرر العقود الرسمية',
-        href: '/dashboard/contracts',
-        icon: FileText,
-        roles: ['super_admin'],
-      },
-      {
         titleEn: 'Shift Management',
         titleAr: 'إدارة الورديات وجداول الدوام',
         href: '/dashboard/shifts',

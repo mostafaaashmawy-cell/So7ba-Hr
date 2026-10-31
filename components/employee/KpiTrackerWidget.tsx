@@ -67,45 +67,75 @@ export default function KpiTrackerWidget({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (amount === '' || Number(amount) <= 0) return;
+    if (amount === '' || Number(amount) <= 0) {
+      setMsg({
+        text: isRtl ? 'يرجى إدخال كمية صحيحة أكبر من صفر' : 'Please enter a valid quantity greater than zero',
+        error: true,
+      });
+      return;
+    }
 
     setLoading(true);
     setMsg(null);
 
-    const payload: {
-      user_id: string;
-      date: string;
-      amount: number;
-      unit: string;
-      notes: string | null;
-      tenant_id?: string;
-    } = {
-      user_id: userId,
-      date,
-      amount: Number(amount),
-      unit: selectedUnit,
-      notes: notes.trim() || null,
-    };
+    try {
+      let activeUserId = userId;
+      if (!activeUserId) {
+        const { data: authData } = await supabase.auth.getUser();
+        activeUserId = authData?.user?.id || '';
+      }
 
-    if (tenantId) {
-      payload.tenant_id = tenantId;
-    }
+      if (!activeUserId) {
+        throw new Error(isRtl ? 'لم يتم التعرف على حساب المستخدم، يرجى إعادة تسجيل الدخول' : 'User account not identified, please sign in again');
+      }
 
-    const { data, error } = await supabase
-      .from('kpi_entries')
-      .insert(payload)
-      .select()
-      .single();
+      const payload: {
+        user_id: string;
+        date: string;
+        amount: number;
+        unit: string;
+        notes: string | null;
+        tenant_id?: string;
+      } = {
+        user_id: activeUserId,
+        date: date || getCairoDateString(),
+        amount: Number(amount),
+        unit: selectedUnit || 'tasks',
+        notes: notes.trim() || null,
+      };
 
-    if (error) {
-      setMsg({ text: error.message, error: true });
-    } else if (data) {
-      setEntries([data as KpiEntryRecord, ...entries]);
+      if (tenantId) {
+        payload.tenant_id = tenantId;
+      }
+
+      const { data, error } = await supabase
+        .from('kpi_entries')
+        .insert(payload)
+        .select();
+
+      if (error) {
+        throw error;
+      }
+
+      const inserted = data && data.length > 0 ? (data[0] as KpiEntryRecord) : ({
+        id: `kpi-${Date.now()}`,
+        ...payload,
+        created_at: new Date().toISOString(),
+      } as unknown as KpiEntryRecord);
+
+      setEntries((prev) => [inserted, ...prev]);
       setAmount('');
       setNotes('');
       setMsg({ text: t('kpiSuccess'), error: false });
+    } catch (err: unknown) {
+      console.error('KPI submission error:', err);
+      const errMsg =
+        (err as any)?.message ||
+        (err instanceof Error ? err.message : isRtl ? 'تعذر حفظ المهمة اليومية' : 'Failed to save daily KPI entry');
+      setMsg({ text: errMsg, error: true });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (

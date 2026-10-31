@@ -101,26 +101,26 @@ export default function HumAiLogo({
 
   if (variant === 'icon') {
     return (
-      <div className={`inline-flex items-center justify-center ${className}`}>
+      <div dir="ltr" className={`inline-flex items-center justify-center ${className}`} style={{ direction: 'ltr' }}>
         <Emblem width={iconDimensions.w} height={iconDimensions.h} />
       </div>
     );
   }
 
   return (
-    <div className={`inline-flex flex-col select-none ${className}`}>
-      <div className="flex items-center gap-2.5">
+    <div dir="ltr" className={`inline-flex flex-col select-none ${className}`} style={{ direction: 'ltr', textAlign: 'left' }}>
+      <div className="flex flex-row items-center gap-2.5" style={{ direction: 'ltr' }}>
         <Emblem width={iconDimensions.w} height={iconDimensions.h} />
 
         {/* Wordmark: HUMΛI */}
-        <div className="flex flex-col">
+        <div className="flex flex-col text-left" style={{ direction: 'ltr', textAlign: 'left' }}>
           <div
-            className={`font-black tracking-tight flex items-baseline font-sans text-slate-900 dark:text-white ${textSize}`}
-            style={{ letterSpacing: '0.04em' }}
+            className={`font-black tracking-tight flex flex-row items-baseline font-sans text-slate-900 dark:text-white ${textSize}`}
+            style={{ letterSpacing: '0.04em', direction: 'ltr' }}
           >
             <span>HUM</span>
             <span className="inline-block transform scale-y-95 mx-[0.5px]">Λ</span>
-            <span className="relative">
+            <span className="relative inline-block">
               I
               <span className="absolute -top-1 right-0 w-1.5 h-1.5 rounded-full bg-[#10B981] inline-block" />
             </span>
@@ -128,7 +128,8 @@ export default function HumAiLogo({
 
           {showTagline && (
             <div
-              className={`font-bold tracking-wider uppercase text-slate-500 dark:text-slate-400 font-sans mt-0.5 flex items-center gap-1 truncate ${taglineSize}`}
+              className={`font-bold tracking-wider uppercase text-slate-500 dark:text-slate-400 font-sans mt-0.5 flex flex-row items-center gap-1 truncate ${taglineSize}`}
+              style={{ direction: 'ltr' }}
             >
               <span>HR Automation</span>
               <span className="text-[#10B981]">•</span>
@@ -142,7 +143,8 @@ export default function HumAiLogo({
 
       {variant === 'full' && !showTagline && (
         <div
-          className={`font-bold tracking-wider uppercase text-slate-500 dark:text-slate-400 font-sans mt-1.5 flex items-center justify-center gap-1.5 ${taglineSize}`}
+          className={`font-bold tracking-wider uppercase text-slate-500 dark:text-slate-400 font-sans mt-1.5 flex flex-row items-center justify-center gap-1.5 ${taglineSize}`}
+          style={{ direction: 'ltr' }}
         >
           <span>HR AUTOMATION</span>
           <span className="text-[#10B981] font-black">•</span>

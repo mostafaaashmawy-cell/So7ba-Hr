@@ -14,6 +14,10 @@ export default function ContractsPage() {
   const { isRtl } = useLanguage();
   const supabase = createClient();
 
+  useEffect(() => {
+    router.replace('/dashboard/admin');
+  }, [router]);
+
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [employees, setEmployees] = useState<UserProfile[]>([]);

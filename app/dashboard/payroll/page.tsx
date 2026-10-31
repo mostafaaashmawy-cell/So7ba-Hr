@@ -178,8 +178,8 @@ export default function PayrollPage() {
         if (users) {
           setEmployees(users as UserProfile[]);
           if (users.length > 0) {
-            setSelectedEmployee(users[0].id);
-            setAdjEmployee(users[0].id);
+            setSelectedEmployee((prev) => (prev && users.some((u) => u.id === prev) ? prev : users[0].id));
+            setAdjEmployee((prev) => (prev && users.some((u) => u.id === prev) ? prev : users[0].id));
           }
         }
 
@@ -221,7 +221,29 @@ export default function PayrollPage() {
 
   const handleCreateAdjustment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser || !adjAmount || !adjEmployee) return;
+    if (!currentUser) {
+      setMsg({
+        text: isRtl ? 'جلسة العمل غير متصلة، يرجى تحديث الصفحة' : 'User session not connected, please refresh',
+        error: true,
+      });
+      return;
+    }
+
+    if (!adjEmployee) {
+      setMsg({
+        text: isRtl ? 'يرجى اختيار الموظف المستهدف أولاً' : 'Please select target employee first',
+        error: true,
+      });
+      return;
+    }
+
+    if (!adjAmount || Number(adjAmount) <= 0) {
+      setMsg({
+        text: isRtl ? 'يرجى كتابة مبلغ صحيح أكبر من 0 جنيه' : 'Please enter a valid amount greater than 0',
+        error: true,
+      });
+      return;
+    }
 
     setSubmitting(true);
     setMsg(null);
@@ -231,20 +253,43 @@ export default function PayrollPage() {
     const monthStr = transactionDate.substring(0, 7) || selectedMonth || getCairoDateString().substring(0, 7);
 
     try {
-      const { error } = await supabase.from('financial_adjustments').insert({
-        tenant_id: currentUser.tenant_id,
-        user_id: adjEmployee,
-        created_by: currentUser.id,
-        type: adjType,
-        status: finalStatus,
-        amount: Number(adjAmount ?? 0),
-        date: transactionDate,
-        month: `${monthStr}-01`,
-        notes: adjNotes.trim() || null,
-        description: adjNotes.trim() || null,
-      });
+      const { data: insertedData, error } = await supabase
+        .from('financial_adjustments')
+        .insert({
+          tenant_id: currentUser.tenant_id,
+          user_id: adjEmployee,
+          created_by: currentUser.id,
+          type: adjType,
+          status: finalStatus,
+          amount: Number(adjAmount ?? 0),
+          date: transactionDate,
+          month: `${monthStr}-01`,
+          notes: adjNotes.trim() || null,
+          description: adjNotes.trim() || null,
+        })
+        .select('*, user:users!user_id(full_name)')
+        .single();
 
       if (error) throw error;
+
+      if (insertedData) {
+        setAdjustments((prev) => [insertedData as FinancialAdjustment, ...prev]);
+      } else {
+        // Fallback optimistic append
+        const targetEmp = employees.find((emp) => emp.id === adjEmployee);
+        const fallbackAdj: FinancialAdjustment = {
+          id: `adj-${Date.now()}`,
+          user_id: adjEmployee,
+          type: adjType,
+          status: finalStatus,
+          amount: Number(adjAmount ?? 0),
+          date: transactionDate,
+          month: `${monthStr}-01`,
+          notes: adjNotes.trim() || null,
+          user: targetEmp ? { full_name: targetEmp.full_name } : undefined,
+        };
+        setAdjustments((prev) => [fallbackAdj, ...prev]);
+      }
 
       setMsg({
         text:
@@ -277,8 +322,6 @@ export default function PayrollPage() {
           },
         });
       }
-
-      await loadData();
     } catch (err: unknown) {
       console.error('Adjustment creation error:', err);
       const errMsg =
